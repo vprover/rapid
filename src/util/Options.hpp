@@ -80,7 +80,6 @@ namespace util {
         _lemmaPredicates("-lemmaPredicates", true),
         _integerIterations("-integerIterations", false),
         _inlineLemmas("-inlineLemmas", false),
-        _invgen("-invgen", false),
         _postcondition("-postcondition", false),
         _allOptions()
         {
@@ -104,8 +103,7 @@ namespace util {
             // inline lemmas as one big formula without naming
             registerOption(&_inlineLemmas);
 
-            // two additional modes for invariant generation and postcondition check resp.
-            registerOption(&_invgen);
+            // postcondition mode prints color and target symbols
             registerOption(&_postcondition);
 
         }
@@ -121,7 +119,6 @@ namespace util {
         bool lemmaPredicates() { return _lemmaPredicates.getValue(); }
         bool integerIterations() { return _integerIterations.getValue(); }
         bool inlineLemmas() { return _inlineLemmas.getValue(); }
-        bool invgen() { return _invgen.getValue(); }
         bool postcondition() { return _postcondition.getValue(); }
 
         static Configuration instance() { return _instance; }
@@ -134,7 +131,6 @@ namespace util {
         BooleanOption _lemmaPredicates;
         BooleanOption _integerIterations;
         BooleanOption _inlineLemmas;
-        BooleanOption _invgen;
         BooleanOption _postcondition;
 
         std::map<std::string, Option*> _allOptions;
