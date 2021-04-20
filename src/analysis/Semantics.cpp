@@ -683,6 +683,13 @@ namespace analysis {
                 )
             );
 
+            // for iterations of sort integer, assert last iteration nl >= 0
+            if(util::Configuration::instance().integerIterations()){
+                conjuncts.push_back(
+                    logic::Theory::lessEq(logic::Theory::zero(), n, "The last iteration is >= 0 when of sort integer")
+                );
+            }
+
             return logic::Formulas::conjunctionSimp(conjuncts, "Loop at location " + whileStatement->location);
         }
         else
