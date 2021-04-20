@@ -132,7 +132,11 @@ namespace analysis {
                                     "Premise for " + name,
                                     logic::ProblemItem::Visibility::Implicit
                                 );
-                            items.push_back(premiseDef);
+                                
+                            // only add named premise if we don't use inlined lemmas
+                            if (!util::Configuration::instance().inlineLemmas()) {
+                                items.push_back(premiseDef);
+                            }
 
                             // Part 2B: Define lemma:
                             //boundL<=boundR => IH(boundR)
@@ -147,7 +151,17 @@ namespace analysis {
                                 logic::Formulas::universal(argSymbols,
                                     logic::Formulas::implication(premise, conclusionFormula)
                                 );
+                                
                             std::vector<std::string> fromItems = {inductionAxBCDef->name, inductionAxICDef->name, inductionAxiomConDef->name, inductionAxiom->name, premiseDef->name};
+                            
+                            if (util::Configuration::instance().inlineLemmas()) {
+                                lemma =
+                                    logic::Formulas::universal(argSymbols,
+                                        logic::Formulas::implication(premiseFormula, conclusionFormula)
+                                    );
+                                    fromItems = {inductionAxBCDef->name, inductionAxICDef->name, inductionAxiomConDef->name, inductionAxiom->name};
+                            }
+                            
                             items.push_back(std::make_shared<logic::Lemma>(lemma, name, logic::ProblemItem::Visibility::Implicit, fromItems));
                         }
                     }
@@ -272,10 +286,15 @@ namespace analysis {
                                 "Premise for " + name,
                                 logic::ProblemItem::Visibility::Implicit
                             );
-                        items.push_back(premiseDef);
+                        
+                        // only add named premise if we don't use inlined lemmas
+                        if (!util::Configuration::instance().inlineLemmas()) {
+                            items.push_back(premiseDef);
+                        }
+
 
                         // Part 2B: Define lemma:
-                        //0<=oundL<=boundR => IH(boundR)
+                        // 0<=boundL<=boundR => IH(boundR)
                         auto conclusionFormula =
                             logic::Formulas::implication(
                                 logic::Formulas::conjunction({
@@ -290,7 +309,17 @@ namespace analysis {
                             logic::Formulas::universal(argSymbols,
                                 logic::Formulas::implication(premise, conclusionFormula)
                             );
+                        
                         std::vector<std::string> fromItems = {inductionAxBCDef->name, inductionAxICDef->name, inductionAxiomConDef->name, inductionAxiom->name, premiseDef->name};
+
+                        if (util::Configuration::instance().inlineLemmas()) {
+                            lemma =
+                                logic::Formulas::universal(argSymbols,
+                                    logic::Formulas::implication(premiseFormula, conclusionFormula)
+                                );
+                            fromItems = {inductionAxBCDef->name, inductionAxICDef->name, inductionAxiomConDef->name, inductionAxiom->name};
+                        }
+                           
                         items.push_back(std::make_shared<logic::Lemma>(lemma, name, logic::ProblemItem::Visibility::Implicit, fromItems));
                     }
                 }

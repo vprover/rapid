@@ -156,7 +156,10 @@ namespace analysis {
                                     logic::ProblemItem::Visibility::Implicit
                                 );
 
-                            items.push_back(premiseDef);
+                            // only add named premise if we don't use inlined lemmas
+                            if (!util::Configuration::instance().inlineLemmas()) {
+                                items.push_back(premiseDef);
+                            }
 
                             // PART 2C: Add lemma
                             // Conclusion: exists it2. (it2<n & v(l(it2)    )=x & v(l(s(it2))    )=v(l(it2)    )+1) or
@@ -185,6 +188,15 @@ namespace analysis {
                                     logic::Formulas::implication(premise,conclusion)
                                 );
                             std::vector<std::string> fromItems = {inductionAxBCDef->name, inductionAxICDef->name, inductionAxiomConDef->name, inductionAxiom->name, denseDef->name, premiseDef->name};
+
+                            if (util::Configuration::instance().inlineLemmas()) {
+                                lemma =
+                                logic::Formulas::universal(freeVarSymbols2,
+                                    logic::Formulas::implication(premiseFormula,conclusion)
+                                );
+                                fromItems = {inductionAxBCDef->name, inductionAxICDef->name, inductionAxiomConDef->name, inductionAxiom->name, denseDef->name};
+                            }
+
                             items.push_back(std::make_shared<logic::Lemma>(lemma, name, logic::ProblemItem::Visibility::Implicit, fromItems));
                         }
                     }
@@ -339,7 +351,11 @@ namespace analysis {
                                 logic::ProblemItem::Visibility::Implicit
                             );
 
-                        items.push_back(premiseDef);
+                        // only add named premise if we don't use inlined lemmas
+                        if (!util::Configuration::instance().inlineLemmas()) {
+                            items.push_back(premiseDef);
+                        }
+
 
                         // PART 2C: Add lemma
                         // Conclusion: exists it2. (it2<n & v(l(it2)    )=x & v(l(s(it2))    )=v(l(it2)    )+1) or
@@ -369,6 +385,14 @@ namespace analysis {
                                 logic::Formulas::implication(premise,conclusion)
                             );
                         std::vector<std::string> fromItems = {inductionAxBCDef->name, inductionAxICDef->name, inductionAxiomConDef->name, inductionAxiom->name, denseDef->name, premiseDef->name};
+
+                        if (util::Configuration::instance().inlineLemmas()) {
+                            lemma =
+                            logic::Formulas::universal(freeVarSymbols2,
+                                logic::Formulas::implication(premiseFormula,conclusion)
+                            );
+                            fromItems = {inductionAxBCDef->name, inductionAxICDef->name, inductionAxiomConDef->name, inductionAxiom->name, denseDef->name};
+                        }
                         items.push_back(std::make_shared<logic::Lemma>(lemma, name, logic::ProblemItem::Visibility::Implicit, fromItems));
                     }
                 }

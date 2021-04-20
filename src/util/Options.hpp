@@ -79,6 +79,7 @@ namespace util {
         _inlineSemantics("-inlineSemantics", true),
         _lemmaPredicates("-lemmaPredicates", true),
         _integerIterations("-integerIterations", false),
+        _inlineLemmas("-inlineLemmas", false),
         _invgen("-invgen", false),
         _postcondition("-postcondition", false),
         _allOptions()
@@ -100,6 +101,9 @@ namespace util {
             // semantics with iterations using integer instead of natural number sort
             registerOption(&_integerIterations);
 
+            // inline lemmas as one big formula without naming
+            registerOption(&_inlineLemmas);
+
             // two additional modes for invariant generation and postcondition check resp.
             registerOption(&_invgen);
             registerOption(&_postcondition);
@@ -116,6 +120,7 @@ namespace util {
         bool inlineSemantics() { return _inlineSemantics.getValue(); }
         bool lemmaPredicates() { return _lemmaPredicates.getValue(); }
         bool integerIterations() { return _integerIterations.getValue(); }
+        bool inlineLemmas() { return _inlineLemmas.getValue(); }
         bool invgen() { return _invgen.getValue(); }
         bool postcondition() { return _postcondition.getValue(); }
 
@@ -128,6 +133,7 @@ namespace util {
         BooleanOption _inlineSemantics;
         BooleanOption _lemmaPredicates;
         BooleanOption _integerIterations;
+        BooleanOption _inlineLemmas;
         BooleanOption _invgen;
         BooleanOption _postcondition;
 
