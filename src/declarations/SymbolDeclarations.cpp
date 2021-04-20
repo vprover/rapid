@@ -12,10 +12,8 @@ std::shared_ptr<const logic::Symbol> locationSymbol(std::string location, unsign
     for(int i=0; i < numberOfLoops; ++i)
     {
         if (util::Configuration::instance().integerIterations()){
-            std::cout << "integerIterations on \n";
             enclosingIteratorTypes.push_back(logic::Sorts::intSort());
         } else {
-            std::cout << "integerIterations off \n";
             enclosingIteratorTypes.push_back(logic::Sorts::natSort());
         }
     }
@@ -43,7 +41,6 @@ std::shared_ptr<const logic::Symbol> locationSymbolEndLocation(const program::Fu
 std::shared_ptr<const logic::Symbol> lastIterationSymbol(const program::WhileStatement* statement, unsigned numberOfTraces)
 {
     if (util::Configuration::instance().integerIterations()){
-                    std::cout << "integerIterations on \n";
             return intLastIterationSymbol(statement, numberOfTraces);
     }
     std::vector<const logic::Sort*> argumentSorts;
@@ -55,7 +52,6 @@ std::shared_ptr<const logic::Symbol> lastIterationSymbol(const program::WhileSta
     {
         argumentSorts.push_back(logic::Sorts::traceSort());
     }
-                std::cout << "integerIterations off \n";
     return logic::Signature::fetchOrAdd("n" + statement->location, argumentSorts, logic::Sorts::natSort());
 }
 
@@ -78,7 +74,6 @@ std::shared_ptr<const logic::Symbol> intLastIterationSymbol(const program::While
     {
         argumentSorts.push_back(logic::Sorts::traceSort());
     }
-                std::cout << "integerIterations on \n";
     return logic::Signature::fetchOrAdd("n" + statement->location, argumentSorts, logic::Sorts::intSort());
 }
 
@@ -95,7 +90,6 @@ std::shared_ptr<const logic::Symbol> posVarSymbol()
 std::shared_ptr<const logic::Symbol> traceSymbol(unsigned traceNumber)
 {
     std::string traceName = "t" + std::to_string(traceNumber);
-    std::cout << "integerIterations doesnot matter \n";
     return logic::Signature::fetchOrAdd(traceName, {}, logic::Sorts::traceSort());
 }
 

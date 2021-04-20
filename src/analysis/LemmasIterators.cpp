@@ -13,7 +13,6 @@ namespace analysis {
     void IntermediateValueLemmas::generateOutputFor(const program::WhileStatement *statement, std::vector<std::shared_ptr<const logic::ProblemItem>>& items)
     {
         if (util::Configuration::instance().integerIterations()) {
-            std::cout << " IntermediateValueLemmas integerIterations on";
             IntermediateValueLemmas::generateOutputForInteger(statement, items);
         } else {
             auto itSymbol = iteratorSymbol(statement);

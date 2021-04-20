@@ -118,9 +118,6 @@ namespace logic {
             }
             for (int i=0; i < argSorts.size(); ++i)
             {
-                std::cout << name << " \n ";
-                std::cout << " argsorts i:  " << "requires sort " << argSorts[i]->name << "\n";
-                std::cout << " symbol argsorts:  " << symbol->name << " requires sort " << symbol->argSorts[i]->name << "\n";
                 assert(argSorts[i] == symbol->argSorts[i]);
             }
             assert(rngSort = symbol->rngSort);

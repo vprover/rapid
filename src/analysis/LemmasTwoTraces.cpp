@@ -20,7 +20,6 @@ namespace analysis {
         auto assignedVars = AnalysisPreComputation::computeAssignedVars(statement);
 
         if (util::Configuration::instance().integerIterations()) {
-            std::cout << " EqualityPreservationTracesLemmas integerIterations on";
             EqualityPreservationTracesLemmas::generateOutputForInteger(statement, items);
         } else {
             // add lemma for each intVar and each intArrayVar
@@ -129,7 +128,6 @@ namespace analysis {
         assert(numberOfTraces > 1);
 
         if (util::Configuration::instance().integerIterations()) {
-            std::cout << " EqualityPreservationTracesLemmas integerIterations on";
             NEqualLemmas::generateOutputForInteger(statement, items);
         } else {
             auto itSymbol = iteratorSymbol(statement);

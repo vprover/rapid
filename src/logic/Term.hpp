@@ -59,9 +59,7 @@ namespace logic {
             assert(this->symbol->argSorts.size() == this->subterms.size());
             for (int i=0; i < this->symbol->argSorts.size(); ++i)
             {
-                std::cout << this->symbol->argSorts[i]->name << " is this symbolargSorts thingie.\n"; 
-                std::cout << this->subterms[i]->symbol->rngSort->name << " is the other sorts thingie.\n"; 
-                // assert(this->symbol->argSorts[i] == this->subterms[i]->symbol->rngSort);
+                assert(this->symbol->argSorts[i] == this->subterms[i]->symbol->rngSort);
             }
         }
         

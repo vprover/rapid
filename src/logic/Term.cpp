@@ -107,7 +107,6 @@ namespace logic {
         {
             subtermSorts.push_back(subterm->symbol->rngSort);
         }
-        std::cout << "term name " << name << " and subterms " << subterms << " and sort " << sort->name << "\n";
         auto symbol = Signature::fetchOrAdd(name, subtermSorts, sort, false, noDeclaration);
         return std::shared_ptr<const FuncTerm>(new FuncTerm(symbol, subterms));
     }
