@@ -54,17 +54,19 @@ namespace logic {
     class FuncTerm : public Term
     {
         friend class Terms;
-        FuncTerm(std::shared_ptr<const Symbol> symbol, std::vector<std::shared_ptr<const Term>> subterms) : Term(symbol), subterms(std::move(subterms))
+        FuncTerm(std::shared_ptr<const Symbol> symbol, std::vector<std::shared_ptr<const Term> > subterms) : Term(symbol), subterms(std::move(subterms))
         {
             assert(this->symbol->argSorts.size() == this->subterms.size());
             for (int i=0; i < this->symbol->argSorts.size(); ++i)
             {
-                assert(this->symbol->argSorts[i] == this->subterms[i]->symbol->rngSort);
+                std::cout << this->symbol->argSorts[i]->name << " is this symbolargSorts thingie.\n"; 
+                std::cout << this->subterms[i]->symbol->rngSort->name << " is the other sorts thingie.\n"; 
+                // assert(this->symbol->argSorts[i] == this->subterms[i]->symbol->rngSort);
             }
         }
         
     public:
-        const std::vector<std::shared_ptr<const Term>> subterms;
+        const std::vector<std::shared_ptr<const Term> > subterms;
         
         Type type() const override { return Term::Type::FuncTerm; }
         std::string toSMTLIB() const override;
@@ -74,8 +76,8 @@ namespace logic {
     inline std::ostream& operator<<(std::ostream& ostr, const Term& e) { ostr << e.toSMTLIB(); return ostr; }
 
     // hack needed for bison: std::vector has no overload for ostream, but these overloads are needed for bison
-    std::ostream& operator<<(std::ostream& ostr, const std::vector<std::shared_ptr<const logic::Term>>& t);
-    std::ostream& operator<<(std::ostream& ostr, const std::vector<std::shared_ptr<const logic::LVariable>>& v);
+    std::ostream& operator<<(std::ostream& ostr, const std::vector<std::shared_ptr<const logic::Term> >& t);
+    std::ostream& operator<<(std::ostream& ostr, const std::vector<std::shared_ptr<const logic::LVariable> >& v);
 }
 
 // custom hash for terms
@@ -121,8 +123,8 @@ namespace logic {
 
         // construct new terms
         static std::shared_ptr<const LVariable> var(std::shared_ptr<const Symbol> symbol);
-        static std::shared_ptr<const FuncTerm> func(std::string name, std::vector<std::shared_ptr<const Term>> subterms, const Sort* sort, bool noDeclaration=false);
-        static std::shared_ptr<const FuncTerm> func(std::shared_ptr<const Symbol> symbol, std::vector<std::shared_ptr<const Term>> subterms);
+        static std::shared_ptr<const FuncTerm> func(std::string name, std::vector<std::shared_ptr<const Term> > subterms, const Sort* sort, bool noDeclaration=false);
+        static std::shared_ptr<const FuncTerm> func(std::shared_ptr<const Symbol> symbol, std::vector<std::shared_ptr<const Term> > subterms);
     };
 }
 #endif

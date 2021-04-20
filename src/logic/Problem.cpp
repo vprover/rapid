@@ -122,7 +122,9 @@ namespace logic {
             auto item = items[i];
 
             // if the item is a lemma or conjecture, generate a new reasoning task to prove that lemma/conjecture
+            // removed this line to only generate conjectures
             if (item->type == ProblemItem::Type::Lemma || item->type == ProblemItem::Type::Conjecture)
+            // if (item->type == ProblemItem::Type::Conjecture)
             {
                 // collect all previous axioms, which are not hidden or occur in fromItems
                 std::vector<std::shared_ptr<const ProblemItem>> currentAxioms;

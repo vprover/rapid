@@ -29,8 +29,19 @@ namespace analysis {
 
     std::shared_ptr<const logic::Term> startTimepointForStatement(const program::Statement* statement);
 
-    std::vector<std::shared_ptr<const logic::Symbol>> enclosingIteratorsSymbols(const program::Statement* statement);
-    
+    std::vector<std::shared_ptr<const logic::Symbol> > enclosingIteratorsSymbols(const program::Statement* statement);
+
+# pragma mark - Methods for generating most used timepoint terms and symbols in integer sort
+    std::shared_ptr<const logic::LVariable> intIteratorTermForLoop(const program::WhileStatement* whileStatement);
+    std::shared_ptr<const logic::Term> intLastIterationTermForLoop(const program::WhileStatement* whileStatement, unsigned numberOfTraces, std::shared_ptr<const logic::Term> trace);
+
+    std::shared_ptr<const logic::Term> intTimepointForNonLoopStatement(const program::Statement* statement);
+    std::shared_ptr<const logic::Term> intTimepointForLoopStatement(const program::WhileStatement* whileStatement, std::shared_ptr<const logic::Term> innerIteration);
+
+    std::shared_ptr<const logic::Term> intStartTimepointForStatement(const program::Statement* statement);
+
+    std::vector<std::shared_ptr<const logic::Symbol> > intEnclosingIteratorsSymbols(const program::Statement* statement);
+
 # pragma mark - Methods for generating most used terms/predicates denoting program-expressions
     /*
      * convert a program variable to a logical term refering to the value of Variable var at the Timepoint timepoint in the Trace trace.
@@ -38,13 +49,13 @@ namespace analysis {
      */
     std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::Variable> var, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> trace);
     std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::Variable> arrayVar, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> position, std::shared_ptr<const logic::Term> trace);
-    
+
     /*
      * convert the expression expr to a logical term refering to the value of the Expression expr at the Timepoint timepoint.
      * calls toTerm(var,...) internally.
      */
     std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::IntExpression> expr, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> trace);
-    
+
     /*
      * convert the boolean expression expr to a logical predicate refering to the value of the Expression expr at the Timepoint timepoint.
      * calls toTerm(expr,...) internally.
@@ -65,4 +76,3 @@ namespace analysis {
 
 
 #endif
-

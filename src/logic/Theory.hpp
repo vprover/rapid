@@ -18,11 +18,13 @@ namespace logic {
         static void declareTheories();
         
         static std::shared_ptr<const FuncTerm> intConstant(int i);
+        static std::shared_ptr<const FuncTerm> intZero();
         static std::shared_ptr<const FuncTerm> intAddition(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2);
         static std::shared_ptr<const FuncTerm> intSubtraction(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2);
         static std::shared_ptr<const FuncTerm> intModulo(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2);
         static std::shared_ptr<const FuncTerm> intMultiplication(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2);
         static std::shared_ptr<const FuncTerm> intAbsolute(std::shared_ptr<const Term> t);
+        static std::shared_ptr<const FuncTerm> intSucc(std::shared_ptr<const Term> t);
 
         static std::shared_ptr<const Formula> intLess(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2, std::string label="");
         static std::shared_ptr<const Formula> intLessEqual(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2, std::string label="");
@@ -37,6 +39,11 @@ namespace logic {
         static std::shared_ptr<const FuncTerm> natPre(std::shared_ptr<const Term> term);
         static std::shared_ptr<const Formula> natSub(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2, std::string label="");
         static std::shared_ptr<const Formula> natSubEq(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2, std::string label="");
+
+        static std::shared_ptr<const FuncTerm> zero();
+        static std::shared_ptr<const FuncTerm> succ(std::shared_ptr<const Term> t);
+        static std::shared_ptr<const Formula> less(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2, std::string label="");
+        static std::shared_ptr<const Formula> lessEq(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2, std::string label="");
     };
     
     /*

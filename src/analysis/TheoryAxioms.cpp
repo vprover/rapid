@@ -18,7 +18,7 @@ namespace analysis {
     {
         std::vector<std::shared_ptr<const logic::Axiom>> axioms;
 
-        if (!util::Configuration::instance().nativeNat())
+        if (!util::Configuration::instance().nativeNat() && !util::Configuration::instance().integerIterations())
         {
             // add an axiomatization of Sub for natural numbers.
             // NOTE: this axiomatization should be the same as the one added by Vampire internally for Sub, so that fair comparisons can be made.

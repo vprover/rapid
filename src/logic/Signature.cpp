@@ -8,7 +8,6 @@
 #include <utility>
 #include <vector>
 #include <cassert>
-
 #include "Options.hpp"
 
 namespace logic {
@@ -23,7 +22,7 @@ namespace logic {
         {
             // hack since Vampire currently doesn't add the sub-predicate itself
             // declare and define the symbol time_sub
-            if (!util::Configuration::instance().nativeNat() && name == "Sub")
+            if (!util::Configuration::instance().integerIterations() && !util::Configuration::instance().nativeNat() && name == "Sub")
             {
                 return "(declare-fun Sub (Nat Nat) Bool)\n";
             }
@@ -119,6 +118,9 @@ namespace logic {
             }
             for (int i=0; i < argSorts.size(); ++i)
             {
+                std::cout << name << " \n ";
+                std::cout << " argsorts i:  " << "requires sort " << argSorts[i]->name << "\n";
+                std::cout << " symbol argsorts:  " << symbol->name << " requires sort " << symbol->argSorts[i]->name << "\n";
                 assert(argSorts[i] == symbol->argSorts[i]);
             }
             assert(rngSort = symbol->rngSort);

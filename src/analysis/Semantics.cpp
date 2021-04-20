@@ -75,6 +75,7 @@ namespace analysis {
         return std::make_pair(axioms, inlinedVariableValues);
     }
 
+
     std::shared_ptr<const logic::Formula> Semantics::generateSemantics(const program::Statement* statement, SemanticsInliner& inliner, std::shared_ptr<const logic::Term> trace)
     {
         if (statement->type() == program::Statement::Type::IntAssignment)
@@ -462,9 +463,9 @@ namespace analysis {
         auto it = logic::Terms::var(itSymbol);
         auto n = lastIterationTermForLoop(whileStatement, numberOfTraces, trace);
 
-        auto lStart0 = timepointForLoopStatement(whileStatement, logic::Theory::natZero());
+        auto lStart0 = timepointForLoopStatement(whileStatement, logic::Theory::zero());
         auto lStartIt = timepointForLoopStatement(whileStatement, it);
-        auto lStartSuccOfIt = timepointForLoopStatement(whileStatement, logic::Theory::natSucc(it));
+        auto lStartSuccOfIt = timepointForLoopStatement(whileStatement, logic::Theory::succ(it));
         auto lStartN = timepointForLoopStatement(whileStatement, n);
         auto lBodyStartIt = startTimepointForStatement(whileStatement->bodyStatements.front().get());
         auto lEnd = endTimePointMap.at(whileStatement);
@@ -488,15 +489,16 @@ namespace analysis {
                 }
             }
             auto f1 = inliner.handlePersistenceOfLoop(lStart0, lStartIt, vars);
+
             conjuncts.push_back(
                 logic::Formulas::universalSimp({itSymbol},
                     logic::Formulas::implicationSimp(
-                        logic::Theory::natSubEq(it,n),
+                        logic::Theory::lessEq(it,n),
                         f1
                     ),
                     "Define referenced terms denoting variable values at " + whileStatement->location
                 )
-            );
+            );  
 
             // Part 1: define values of assignedVars at iteration zero
             std::vector<std::shared_ptr<const logic::Formula>> conjPart1;
@@ -548,15 +550,31 @@ namespace analysis {
                 }
             }
 
-            conjuncts.push_back(
-                logic::Formulas::universal({itSymbol},
-                    logic::Formulas::implication(
-                        logic::Theory::natSub(it, n),
-                        inliner.toCachedFormula(whileStatement->condition)
-                    ),
-                    "The loop-condition holds always before the last iteration"
-                )
-            );
+            if (util::Configuration::instance().integerIterations()){
+                conjuncts.push_back(
+                    logic::Formulas::universal({itSymbol},
+                        logic::Formulas::implication(
+                            logic::Formulas::conjunction({
+                                logic::Theory::lessEq(logic::Theory::intZero(),it), 
+                                logic::Theory::less(it, n)
+                            }),
+                            inliner.toCachedFormula(whileStatement->condition)
+                        ),
+                        "The loop-condition holds always before the last iteration"
+                    )
+                );  
+            } else {
+                conjuncts.push_back(
+                    logic::Formulas::universal({itSymbol},
+                        logic::Formulas::implication(
+                            logic::Theory::less(it, n),
+                            inliner.toCachedFormula(whileStatement->condition)
+                        ),
+                        "The loop-condition holds always before the last iteration"
+                    )
+                );
+            }    
+            
 
             // Extra part: collect in inlinedVarValues the values of all variables, which occur in the loop condition but are not assigned to.
             inlinedVariableValues.initializeWhileStatement(whileStatement);
@@ -615,16 +633,32 @@ namespace analysis {
                 }
             }
 
-            conjuncts.push_back(
-                logic::Formulas::universalSimp({itSymbol},
-                    logic::Formulas::implicationSimp(
-                        logic::Theory::natSub(it,n),
-                        logic::Formulas::conjunctionSimp(conjunctsBody)
-                    ),
-                    "Semantics of the body"
-                )
-            );
-
+            // Semantics of the body
+            if (util::Configuration::instance().integerIterations()){
+                conjuncts.push_back(
+                    logic::Formulas::universalSimp({itSymbol},
+                        logic::Formulas::implicationSimp(
+                            logic::Formulas::conjunctionSimp({
+                                logic::Theory::lessEq(logic::Theory::intZero(),it), 
+                                logic::Theory::less(it, n)
+                            }),
+                            logic::Formulas::conjunctionSimp(conjunctsBody)
+                        ),
+                        "Semantics of the body"
+                    )
+                );  
+            } else {
+                conjuncts.push_back(
+                    logic::Formulas::universalSimp({itSymbol},
+                        logic::Formulas::implicationSimp(
+                            logic::Theory::less(it,n),
+                            logic::Formulas::conjunctionSimp(conjunctsBody)
+                        ),
+                        "Semantics of the body"
+                    )
+                );
+            }   
+            
             // Part 4: define values of assignedVars after the execution of the loop
             inliner.currTimepoint = lStartN;
             for (const auto& var : assignedVars)
@@ -657,11 +691,23 @@ namespace analysis {
             auto part1 =
                 logic::Formulas::universal({itSymbol},
                     logic::Formulas::implication(
-                        logic::Theory::natSub(it,n),
+                        logic::Theory::less(it,n),
                         allVarEqual(activeVars,lBodyStartIt,lStartIt, trace)
                     ),
                     "Jumping into the loop body doesn't change the variable values"
                 );
+            if (util::Configuration::instance().integerIterations()){
+                part1 = logic::Formulas::universal({itSymbol},
+                        logic::Formulas::implication(
+                            logic::Formulas::conjunctionSimp({
+                                logic::Theory::lessEq(logic::Theory::intZero(),it), 
+                                logic::Theory::less(it, n)
+                            }),
+                            allVarEqual(activeVars,lBodyStartIt,lStartIt, trace)
+                        ),
+                        "Jumping into the loop body doesn't change the variable values"
+                );
+            }
             conjuncts.push_back(part1);
 
             // Part 2: collect all formulas describing semantics of body
@@ -674,11 +720,24 @@ namespace analysis {
             auto bodySemantics =
                 logic::Formulas::universal({itSymbol},
                     logic::Formulas::implication(
-                        logic::Theory::natSub(it,n),
+                        logic::Theory::less(it,n),
                         logic::Formulas::conjunction(conjunctsBody)
                     ),
                     "Semantics of the body"
+            );
+            if (util::Configuration::instance().integerIterations()){
+                bodySemantics = 
+                    logic::Formulas::universal({itSymbol},
+                    logic::Formulas::implication(
+                            logic::Formulas::conjunctionSimp({
+                                logic::Theory::lessEq(logic::Theory::intZero(),it), 
+                                logic::Theory::less(it, n)
+                            }),                        
+                            logic::Formulas::conjunction(conjunctsBody)
+                    ),
+                    "Semantics of the body"
                 );
+            }
             conjuncts.push_back(bodySemantics);
 
             // Part 3: Define last iteration
@@ -686,15 +745,29 @@ namespace analysis {
             auto universal =
                 logic::Formulas::universal({itSymbol},
                     logic::Formulas::implication(
-                        logic::Theory::natSub(it, n),
+                        logic::Theory::less(it, n),
                         toFormula(whileStatement->condition, lStartIt, trace)),
                     "The loop-condition holds always before the last iteration"
                 );
+
+            if (util::Configuration::instance().integerIterations()){
+                universal =
+                logic::Formulas::universal({itSymbol},
+                    logic::Formulas::implication(
+                        logic::Formulas::conjunctionSimp({
+                                logic::Theory::lessEq(logic::Theory::intZero(),it), 
+                                logic::Theory::less(it, n)
+                        }),
+                        toFormula(whileStatement->condition, lStartIt, trace)),
+                    "The loop-condition holds always before the last iteration"
+                );                  
+            }
             conjuncts.push_back(universal);
 
             // loop condition doesn't hold at n
             auto negConditionAtN = logic::Formulas::negation(toFormula(whileStatement->condition, lStartN, trace), "The loop-condition doesn't hold in the last iteration");
             conjuncts.push_back(negConditionAtN);
+
 
             // Part 4: The values after the while-loop are the values from the timepoint with location lStart and iteration n
             auto part4 = allVarEqual(activeVars,lEnd,lStartN, trace, "The values after the while-loop are the values from the last iteration");

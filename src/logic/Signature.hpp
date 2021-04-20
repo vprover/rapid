@@ -12,6 +12,7 @@
 #include <cassert>
 
 #include "Sort.hpp"
+#include "Options.hpp"
 
 # pragma mark - Symbol
 

@@ -6,6 +6,7 @@
 #include "Theory.hpp"
 #include "SymbolDeclarations.hpp"
 #include "SemanticsHelper.hpp"
+#include "Options.hpp"
 
 namespace analysis
 {    
@@ -96,7 +97,7 @@ namespace analysis
 
         // for the last statement in the body, set as end-timepoint the start-location of the while-statement in the next iteration
         auto lastStatement = whileStatement->bodyStatements.back().get();
-        auto nextTimepointForStatement = timepointForLoopStatement(whileStatement, logic::Theory::natSucc(iteratorTermForLoop(whileStatement)));
+        auto nextTimepointForStatement = timepointForLoopStatement(whileStatement, logic::Theory::succ(iteratorTermForLoop(whileStatement)));
         addEndTimePointForStatement(lastStatement, nextTimepointForStatement, endTimePointMap);
     }
 

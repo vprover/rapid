@@ -292,6 +292,7 @@ namespace logic {
         {
             subtermSorts.push_back(subterm->symbol->rngSort);
         }
+        std::cout << "predicate formula name " << name << " and subterms " << subterms << "\n";
         auto symbol = Signature::fetchOrAdd(name, subtermSorts, Sorts::boolSort(), false, noDeclaration);
         return std::make_shared<const PredicateFormula>(symbol, subterms, label);
     }
@@ -302,6 +303,7 @@ namespace logic {
         {
             subtermSorts.push_back(subterm->symbol->rngSort);
         }
+       std::cout << "lemma predicate formula name " << name << " and subterms " << subterms << "\n";
         auto symbol = Signature::fetchOrAdd(name, subtermSorts, Sorts::boolSort(), true, false);
         return std::make_shared<const PredicateFormula>(symbol, subterms, label);
     }
