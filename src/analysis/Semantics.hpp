@@ -40,6 +40,12 @@ namespace analysis {
         const unsigned numberOfTraces;
         InlinedVariableValues inlinedVariableValues;
 
+        //stores variables that are used in the left side of assignments, i.e. symbols that need to be colored and targeted for symbol elimination
+        std::unordered_map<std::string, std::shared_ptr<const program::Variable>> coloredSymbols;
+        //used to track start timepoints of all loops to find the first relevant timepoint for target symbols
+        std::vector<std::shared_ptr<const logic::Term>> loopStartTimePoints;
+
+
         std::shared_ptr<const logic::Formula> generateSemantics(const program::Statement* statement, SemanticsInliner& inliner, std::shared_ptr<const logic::Term> trace);
         std::shared_ptr<const logic::Formula> generateSemantics(const program::IntAssignment* intAssignment, SemanticsInliner& inliner, std::shared_ptr<const logic::Term> trace);
         std::shared_ptr<const logic::Formula> generateSemantics(const program::IfElse* ifElse, SemanticsInliner& inliner, std::shared_ptr<const logic::Term> trace);

@@ -93,6 +93,50 @@ std::shared_ptr<const logic::Symbol> traceSymbol(unsigned traceNumber)
     return logic::Signature::fetchOrAdd(traceName, {}, logic::Sorts::traceSort());
 }
 
+std::shared_ptr<const logic::Symbol> declareInitTargetSymbol(const program::Variable* var)
+{
+    // declare target symbol var_final and var_init for invariant generation
+    assert(!var->isConstant);
+    std::vector<const logic::Sort*> argSorts;
+    if (var->isArray)
+    {
+        argSorts.push_back(logic::Sorts::intSort());
+    }
+    if(var->numberOfTraces > 1)
+    {
+        // TODO: this probably needs more proper handling
+        argSorts.push_back(logic::Sorts::traceSort());
+    }
+    
+    return logic::Signature::add(var->name + "_init", argSorts, logic::Sorts::intSort());
+}
+
+std::shared_ptr<const logic::Symbol> declareFinalTargetSymbol(const program::Variable* var)
+{
+    // declare target symbol var_final and var_init for invariant generation
+    assert(!var->isConstant);
+    std::vector<const logic::Sort*> argSorts;
+    if (var->isArray)
+    {
+        argSorts.push_back(logic::Sorts::intSort());
+    }
+    if(var->numberOfTraces > 1)
+    {
+        // TODO: this probably needs more proper handling
+        argSorts.push_back(logic::Sorts::traceSort());
+    }
+    
+    return logic::Signature::add(var->name + "_final", argSorts, logic::Sorts::intSort());
+}
+
+void declareColorSymbolLeft(const program::Variable* var)
+{
+    // declare color symbol left for symbol elimination
+    assert(!var->isConstant);
+    auto orientation = "left";
+    logic::Signature::addColorSymbol(var->name, orientation);
+}
+
 void declareSymbolForProgramVar(const program::Variable* var)
 {
     std::vector<const logic::Sort*> argSorts;
@@ -111,6 +155,8 @@ void declareSymbolForProgramVar(const program::Variable* var)
     
     logic::Signature::add(var->name, argSorts, logic::Sorts::intSort());
 }
+
+
 
 void declareSymbolsForTraces(unsigned numberOfTraces)
 {

@@ -20,6 +20,18 @@ namespace analysis {
     std::shared_ptr<const logic::Term> traceTerm(unsigned traceNumber);
     std::vector<std::shared_ptr<const logic::Term>> traceTerms(unsigned numberOfTraces);
 
+#pragma mark - Methods for generating color and target symbols for symbol elimination
+    // adds inital target symbol to signature and returns the symbol to add assertion
+    std::shared_ptr<const logic::LVariable> initTargetSymbol(const program::Variable* var);
+    // adds final target symbol to signature and returns the symbol to add assertion
+    std::shared_ptr<const logic::LVariable> finalTargetSymbol(const program::Variable* var);
+    // adds color symbol left to signature
+    void colorSymbol(const program::Variable* var);
+    // generate equality assertion for target symbol and trace logic pendant
+    std::shared_ptr<const logic::Formula> defineTargetSymbol(std::shared_ptr<const logic::LVariable> target, std::shared_ptr<const program::Variable> origin, std::shared_ptr<const logic::Term> tp);
+
+    
+
 # pragma mark - Methods for generating most used timepoint terms and symbols
     std::shared_ptr<const logic::LVariable> iteratorTermForLoop(const program::WhileStatement* whileStatement);
     std::shared_ptr<const logic::Term> lastIterationTermForLoop(const program::WhileStatement* whileStatement, unsigned numberOfTraces, std::shared_ptr<const logic::Term> trace);
@@ -71,7 +83,7 @@ namespace analysis {
      * generate a formula asserting that for each variable v in activeVars, the values of v at timepoint1 and timepoint2 are the same.
      * ignores any v in activeVars which is constant.
      */
-    std::shared_ptr<const logic::Formula> allVarEqual(const std::vector<std::shared_ptr<const program::Variable>>& activeVars, std::shared_ptr<const logic::Term> timePoint1, std::shared_ptr<const logic::Term> timePoint2, std::shared_ptr<const logic::Term> trace, std::string label="");
+    std::shared_ptr<const logic::Formula> allVarEqual(const std::vector<std::shared_ptr<const program::Variable>>& activeVars, std::shared_ptr<const logic::Term> timePoint1, std::shared_ptr<const logic::Term> timePoint2, std::shared_ptr<const logic::Term> trace, std::string label="");    
 }
 
 

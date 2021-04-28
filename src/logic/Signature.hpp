@@ -29,7 +29,8 @@ namespace logic {
         argSorts(),
         rngSort(rngSort),
         isLemmaPredicate(isLemmaPredicate),
-        noDeclaration(noDeclaration)
+        noDeclaration(noDeclaration),
+        isColorSymbol(false)
         {
             assert(!name.empty());
             assert(!isLemmaPredicate || isPredicateSymbol());
@@ -40,10 +41,25 @@ namespace logic {
         argSorts(std::move(argSorts)),
         rngSort(rngSort),
         isLemmaPredicate(isLemmaPredicate),
+        isColorSymbol(false),
         noDeclaration(noDeclaration)
         {
             assert(!name.empty());
             assert(!isLemmaPredicate || isPredicateSymbol());
+        }
+
+        Symbol(std::string name, std::string orientation, bool isColorSymbol) :
+        name(name),
+        argSorts(),
+        rngSort(),
+        isLemmaPredicate(false),
+        noDeclaration(false),
+        orientation(orientation),
+        isColorSymbol(isColorSymbol)
+        {
+            assert(!name.empty());
+            assert(!orientation.empty());
+            assert(orientation == "left" || orientation == "right");
         }
      
     public:
@@ -52,6 +68,10 @@ namespace logic {
         const Sort* rngSort;
         const bool isLemmaPredicate; // lemma predicates will be annotated in the smtlib-output, so that Vampire can treat them differently
         const bool noDeclaration; // true iff the symbol needs no declaration in smtlib (i.e. true only for interpreted symbols and variables)
+
+        // used for symbol elimination, values are either "left" or "right", can be empty for non-color symbols     
+        const std::string orientation; 
+        const bool isColorSymbol; 
 
         bool isPredicateSymbol() const { return rngSort == Sorts::boolSort(); }
          
@@ -111,6 +131,9 @@ namespace logic {
         // check that variable doesn't use name which already occurs in Signature
         // return Symbol without adding it to Signature
         static std::shared_ptr<const Symbol> varSymbol(std::string name, const Sort* rngSort);
+
+        // construct color symbol declarations for symbol elimination
+        static void addColorSymbol(std::string name, std::string orientation);
 
         static const std::vector<std::shared_ptr<const Symbol>>& signatureOrderedByInsertion(){return _signatureOrderedByInsertion;}
         

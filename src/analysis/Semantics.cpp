@@ -11,7 +11,6 @@
 #include "Formula.hpp"
 #include "Theory.hpp"
 #include "Options.hpp"
-
 #include "SymbolDeclarations.hpp"
 
 namespace analysis {
@@ -66,10 +65,38 @@ namespace analysis {
                     // if there is only one trace, don't group semantics by trace but use semantics directly
                     conjunctsFunction = conjunctsTrace;
                 }
+
+                std::vector<std::shared_ptr<const logic::Formula>> targetSymbolAxioms; 
+
+                // postcondition mode
+                // TODO: handling for multiple traces
+                if (util::Configuration::instance().postcondition()){
+                    for (auto i = coloredSymbols.begin(); i != coloredSymbols.end(); ++i){
+                        auto name = i->first;
+                        auto var = i->second;
+                        auto variable = var.get();
+
+                        //add target-symbols
+                        auto symInit = initTargetSymbol(variable);
+                        auto symFinal = finalTargetSymbol(variable);
+                        colorSymbol(variable);
+                        auto lEnd = endTimePointMap.at(function->statements.back().get());
+                        // hack to get the start timepoint of the first while loop 
+                        auto lStart = loopStartTimePoints.front();
+
+                        //add definitions for final and initial values
+                        targetSymbolAxioms.push_back(defineTargetSymbol(symInit, var, lStart));
+                        targetSymbolAxioms.push_back(defineTargetSymbol(symFinal, var, lEnd));
+                    }
+                }
+
+                auto targetFormula = std::make_shared<logic::Axiom>(logic::Formulas::conjunctionSimp(targetSymbolAxioms), "target symbol definitions for symbol elimination", logic::ProblemItem::Visibility::Implicit);
+                axioms.push_back(targetFormula);
             }
 
             auto axiomFormula = logic::Formulas::conjunctionSimp(conjunctsFunction);
             axioms.push_back(std::make_shared<logic::Axiom>(axiomFormula, "Semantics of function " + function->name, logic::ProblemItem::Visibility::Implicit));
+            
         }
 
         return std::make_pair(axioms, inlinedVariableValues);
@@ -115,6 +142,9 @@ namespace analysis {
         if (intAssignment->lhs->type() == program::IntExpression::Type::IntVariableAccess)
         {
             auto castedLhs = std::static_pointer_cast<const program::IntVariableAccess>(intAssignment->lhs);
+            
+            //add integer symbols for coloring
+            coloredSymbols.insert_or_assign(intAssignment->lhs->toString(), castedLhs->var);
 
             if (util::Configuration::instance().inlineSemantics())
             {
@@ -175,6 +205,9 @@ namespace analysis {
         {
             assert(intAssignment->lhs->type() == program::IntExpression::Type::IntArrayApplication);
             auto application = std::static_pointer_cast<const program::IntArrayApplication>(intAssignment->lhs);
+                        
+            //add array symbols for coloring
+            coloredSymbols.insert_or_assign(application->array->name, application->array);
 
             if (util::Configuration::instance().inlineSemantics())
             {
@@ -464,6 +497,7 @@ namespace analysis {
         auto n = lastIterationTermForLoop(whileStatement, numberOfTraces, trace);
 
         auto lStart0 = timepointForLoopStatement(whileStatement, logic::Theory::zero());
+        loopStartTimePoints.push_back(lStart0);
         auto lStartIt = timepointForLoopStatement(whileStatement, it);
         auto lStartSuccOfIt = timepointForLoopStatement(whileStatement, logic::Theory::succ(it));
         auto lStartN = timepointForLoopStatement(whileStatement, n);

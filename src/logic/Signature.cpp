@@ -26,6 +26,11 @@ namespace logic {
             {
                 return "(declare-fun Sub (Nat Nat) Bool)\n";
             }
+
+            if (isColorSymbol) {
+                return "(color-symbol " + name + " :" + orientation + ")\n";
+            }
+
             if (argSorts.size() == 0 && !(isLemmaPredicate && util::Configuration::instance().lemmaPredicates()))
             {
                 return "(declare-const " + toSMTLIB() + " " + rngSort->toSMTLIB() + ")\n";
@@ -133,6 +138,19 @@ namespace logic {
         assert(_signature.count(name) == 0);
         
         return std::shared_ptr<Symbol>(new Symbol(name, rngSort, false, true));
+    }
+
+    void Signature::addColorSymbol(std::string name, std::string orientation)
+    {
+        // there must be no symbol with name name already added
+        assert(orientation == "left" || orientation == "right");
+        bool isColorSymbol = true;
+        
+        auto pair = _signature.insert(std::make_pair(name + "_color",std::unique_ptr<Symbol>(new Symbol(name, orientation, isColorSymbol))));
+        assert(pair.second); // must succeed since we checked that no such symbols existed before the insertion
+
+        auto symbol = pair.first->second;
+        _signatureOrderedByInsertion.push_back(symbol);
     }
 
 }

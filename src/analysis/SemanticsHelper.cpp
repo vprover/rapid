@@ -34,6 +34,61 @@ namespace analysis {
         return traces;
     }
 
+#pragma mark - Methods for generating color and target symbols for symbol elimination
+
+    std::shared_ptr<const logic::LVariable> initTargetSymbol(const program::Variable* var)
+    {
+        return logic::Terms::var(declareInitTargetSymbol(var));
+    }
+
+    std::shared_ptr<const logic::LVariable> finalTargetSymbol(const program::Variable* var)
+    {
+        return logic::Terms::var(declareFinalTargetSymbol(var));
+    }
+
+    void colorSymbol(const program::Variable* var)
+    {
+        declareColorSymbolLeft(var);
+    }
+
+    std::shared_ptr<const logic::Formula> defineTargetSymbol(std::shared_ptr<const logic::LVariable> target, std::shared_ptr<const program::Variable> origin, std::shared_ptr<const logic::Term> tp)
+    {
+        std::shared_ptr<const logic::Formula> formula;
+        std::vector<std::shared_ptr<const logic::Term>> arguments;
+        auto trace = traceTerm(origin->numberOfTraces);
+
+        if (!origin->isConstant)
+        {
+            assert(tp != nullptr);
+            arguments.push_back(tp);
+        }
+    
+        if(origin->isArray){
+
+            auto posSymbol = posVarSymbol();
+            auto pos = posVar();
+            arguments.push_back(pos);
+            std::vector<std::shared_ptr<const logic::Term>> targetArguments;
+            targetArguments.push_back(pos);
+
+            formula =
+                logic::Formulas::universal({posSymbol},
+                    logic::Formulas::equality(
+                        logic::Terms::func(target->symbol->name, targetArguments, logic::Sorts::intSort()),
+                        // logic::Terms::func(origin->name, arguments, logic::Sorts::intSort())
+                        toTerm(origin, tp, pos, trace)
+                    )
+                );
+        } else {
+            formula = 
+                logic::Formulas::equality(
+                    logic::Terms::func(target->symbol->name, {}, logic::Sorts::intSort()),
+                    logic::Terms::func(origin->name, arguments, logic::Sorts::intSort())
+                );
+        }
+        return formula;
+    }
+
 
 # pragma mark - Methods for generating most used timepoint terms and symbols
 
@@ -403,4 +458,5 @@ namespace analysis {
         }
         return logic::Formulas::conjunction(conjuncts, label);
     }
+    
 }
