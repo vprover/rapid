@@ -36,10 +36,12 @@ namespace logic {
         virtual Type type() const = 0;
         
         virtual std::string toSMTLIB(unsigned indentation = 0) const = 0;
+        virtual std::string toTPTP(unsigned indentation = 0) const = 0;
         virtual std::string prettyString(unsigned indentation = 0) const = 0;
         
     protected:
         std::string stringForLabel(unsigned indentation) const;
+        std::string stringForLabelTPTP(unsigned indentation) const;
     };
     
     // hack needed for bison: std::vector has no overload for ostream, but these overloads are needed for bison
@@ -64,6 +66,7 @@ namespace logic {
 
         Type type() const override { return Formula::Type::Predicate; }
         std::string toSMTLIB(unsigned indentation = 0) const override;
+        std::string toTPTP(unsigned indentation = 0) const override;
         std::string prettyString(unsigned indentation = 0) const override;
     };
     
@@ -82,6 +85,7 @@ namespace logic {
         
         Type type() const override { return Formula::Type::Equality; }
         std::string toSMTLIB(unsigned indentation = 0) const override;
+        std::string toTPTP(unsigned indentation = 0) const override;
         std::string prettyString(unsigned indentation = 0) const override;
     };
     
@@ -96,6 +100,7 @@ namespace logic {
 
         Type type() const override { return Formula::Type::Conjunction; }
         std::string toSMTLIB(unsigned indentation = 0) const override;
+        std::string toTPTP(unsigned indentation = 0) const override;
         std::string prettyString(unsigned indentation = 0) const override;
     };
     
@@ -110,6 +115,7 @@ namespace logic {
 
         Type type() const override { return Formula::Type::Disjunction; }
         std::string toSMTLIB(unsigned indentation = 0) const override;
+        std::string toTPTP(unsigned indentation = 0) const override;
         std::string prettyString(unsigned indentation = 0) const override;
     };
     
@@ -124,6 +130,7 @@ namespace logic {
 
         Type type() const override { return Formula::Type::Negation; }
         std::string toSMTLIB(unsigned indentation = 0) const override;
+        std::string toTPTP(unsigned indentation = 0) const override;
         std::string prettyString(unsigned indentation = 0) const override;
         
     };
@@ -147,6 +154,7 @@ namespace logic {
         
         Type type() const override { return Formula::Type::Existential; }
         std::string toSMTLIB(unsigned indentation = 0) const override;
+        std::string toTPTP(unsigned indentation = 0) const override;
         std::string prettyString(unsigned indentation = 0) const override;
     };
     
@@ -169,6 +177,7 @@ namespace logic {
         
         Type type() const override { return Formula::Type::Universal; }
         std::string toSMTLIB(unsigned indentation = 0) const override;
+        std::string toTPTP(unsigned indentation = 0) const override;
         std::string prettyString(unsigned indentation = 0) const override;
     };
     
@@ -185,6 +194,7 @@ namespace logic {
         
         Type type() const override { return Formula::Type::Implication; }
         std::string toSMTLIB(unsigned indentation = 0) const override;
+        std::string toTPTP(unsigned indentation = 0) const override;
         std::string prettyString(unsigned indentation = 0) const override;
     };
 
@@ -201,6 +211,7 @@ namespace logic {
 
         Type type() const override { return Formula::Type::Equivalence; }
         std::string toSMTLIB(unsigned indentation = 0) const override;
+        std::string toTPTP(unsigned indentation = 0) const override;
         std::string prettyString(unsigned indentation = 0) const override;
     };
 
@@ -213,6 +224,7 @@ namespace logic {
         
         Type type() const override { return Formula::Type::True; }
         std::string toSMTLIB(unsigned indentation = 0) const override;
+        std::string toTPTP(unsigned indentation = 0) const override;
         std::string prettyString(unsigned indentation = 0) const override;
     };
     
@@ -225,6 +237,7 @@ namespace logic {
         
         Type type() const override { return Formula::Type::False; }
         std::string toSMTLIB(unsigned indentation = 0) const override;
+        std::string toTPTP(unsigned indentation = 0) const override;
         std::string prettyString(unsigned indentation = 0) const override;
     };
     inline std::ostream& operator<<(std::ostream& ostr, const Formula& e) { ostr << e.toSMTLIB(); return ostr; }

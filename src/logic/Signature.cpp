@@ -52,8 +52,37 @@ namespace logic {
             return "";
         }
     }
-    
-    std::string Symbol::toSMTLIB() const
+
+    std::string Symbol::declareSymbolTPTP() const
+    {
+        if (noDeclaration || isLemmaPredicate)
+        {
+            return ""; // don't need to declare symbols, which are already known to TPTP-solvers.
+                // TODO: vampire doesn't parse tptp for lemma-predicates, so neglected for now
+        }
+        
+        std::string s = "tff(symb_" + name + ", type, " + name + " : ";
+        if (argSorts.size() == 0)
+        {
+            s += rngSort->toTPTP() + ").\n";
+        }
+        else if (argSorts.size() == 1)
+        {
+            s += argSorts[0]->toTPTP() + " > " + rngSort->toTPTP() + ").\n";
+        }
+        else 
+        {
+            s += "(";
+            for (unsigned i = 0; i < argSorts.size() - 1; i++)
+            {
+                s += argSorts[i]->toTPTP() + " * ";
+            }
+            s += argSorts[argSorts.size() - 1]->toTPTP() + ") > " + rngSort->toTPTP() + ").\n";
+        }
+        return s;
+    }
+
+      std::string Symbol::toSMTLIB() const
     {
         // if non-negative integer constant
         if (std::all_of(name.begin(), name.end(), ::isdigit))
@@ -65,6 +94,26 @@ namespace logic {
         {
             // need to encode negative integer as unary minus of positive integer
             return  "(- " + name.substr(1,name.size()-1) + ")";
+        }
+        else
+        {
+            return name;
+        }
+    }
+
+    std::string Symbol::toTPTP() const
+    {
+        const std::string toFind = "main_end";
+        // if non-negative integer constant
+        if (std::all_of(name.begin(), name.end(), ::isdigit))
+        {
+            return name;
+        }
+        // if negative integer constant
+        else if (name[0]=='-' && name.size() > 1 && std::all_of(name.begin()+1, name.end(), ::isdigit))
+        {
+            // need to encode negative integer as unary minus of positive integer
+            return  "($uminus " + name.substr(1,name.size()-1) + ")";
         }
         else
         {

@@ -75,7 +75,6 @@ namespace analysis {
                 logic::Formulas::universal({posSymbol},
                     logic::Formulas::equality(
                         logic::Terms::func(target->symbol->name, targetArguments, logic::Sorts::intSort()),
-                        // logic::Terms::func(origin->name, arguments, logic::Sorts::intSort())
                         toTerm(origin, tp, pos, trace)
                     )
                 );

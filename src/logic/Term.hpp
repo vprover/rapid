@@ -29,6 +29,7 @@ namespace logic {
         virtual Type type() const = 0;
 
         virtual std::string toSMTLIB() const = 0;
+        virtual std::string toTPTP() const = 0;
         virtual std::string prettyString() const = 0;
     };
 
@@ -46,6 +47,7 @@ namespace logic {
 
         Type type() const override { return Term::Type::Variable; }
         std::string toSMTLIB() const override;
+        std::string toTPTP() const override;
         virtual std::string prettyString() const override;
         
         static unsigned freshId;
@@ -68,6 +70,7 @@ namespace logic {
         
         Type type() const override { return Term::Type::FuncTerm; }
         std::string toSMTLIB() const override;
+        virtual std::string toTPTP() const override;
         virtual std::string prettyString() const override;
     };
     

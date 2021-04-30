@@ -76,7 +76,9 @@ namespace logic {
         bool isPredicateSymbol() const { return rngSort == Sorts::boolSort(); }
          
         std::string toSMTLIB() const;
+        std::string toTPTP() const ;
         std::string declareSymbolSMTLIB() const;
+        std::string declareSymbolTPTP() const;
         std::string declareSymbolColorSMTLIB() const;
         
         bool operator==(const Symbol &s) const {return name == s.name;}

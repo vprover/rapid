@@ -72,10 +72,7 @@ int main(int argc, char *argv[])
                 auto traceLemmas = analysis::generateTraceLemmas(*parserResult.program, parserResult.locationToActiveVars, parserResult.numberOfTraces, semantics, inlinedVarValues);
                 problemItems.insert(problemItems.end(), traceLemmas.begin(), traceLemmas.end());
                 
-
-                
                 problemItems.insert(problemItems.end(), parserResult.problemItems.begin(), parserResult.problemItems.end());
-                
                 logic::Problem problem(problemItems);
                 
                 // generate reasoning tasks, convert each reasoning task to smtlib, and output it to output-file
@@ -86,6 +83,18 @@ int main(int argc, char *argv[])
                     preamble << util::Output::comment << *parserResult.program << util::Output::nocomment;
                     task.outputSMTLIBToDir(outputDir, preamble.str());
                 }
+
+                if (util::Configuration::instance().postcondition()){
+                    for (const auto& task : tasks){
+                        if (task.conjecture.get()->name.find("user-conjecture") != std::string::npos) {
+                            std::stringstream preamble;
+                            preamble << util::Output::comment << *parserResult.program << util::Output::nocomment;
+                            task.outputTPTPToDir(outputDir, preamble.str());
+                        }
+                    }
+                }
+
+
             }
         }
         return 0;

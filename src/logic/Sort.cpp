@@ -27,6 +27,23 @@ namespace logic {
             return name;
         }
     }
+
+    std::string Sort::toTPTP() const
+    {       
+        if (name == "Int")
+        {
+            return "$int";
+        }
+        else if (name == "Bool")
+        {
+            return "$o";
+        }
+        else
+        {
+            return name;
+        }
+    }
+    
     
     std::string declareSortSMTLIB(const Sort& s)
     {
@@ -49,6 +66,24 @@ namespace logic {
         else
         {
             return "(declare-sort " + s.toSMTLIB() + " 0)\n";
+        }
+    }
+
+    std::string declareSortTPTP(const Sort& s) 
+    {        
+        if (s.toTPTP() == "int" || s.toTPTP() == "bool")
+        {
+            // TPTP already knows bool and int.
+            return "";
+        }
+        else if (s.toTPTP() == "Nat")
+        {
+            assert(false); // TPTP doesn't support term algebras
+            return "";
+        }
+        else
+        {
+            return "tff(sort_" + s.toTPTP() + ", type, " + s.toTPTP() + " : $tType).\n";
         }
     }
     
