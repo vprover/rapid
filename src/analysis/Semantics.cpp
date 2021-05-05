@@ -515,14 +515,39 @@ namespace analysis {
                 }
                 else
                 {
-                    conjPart1.push_back(
-                        logic::Formulas::universalSimp({posSymbol},
+
+                    auto cachedArrayTerm = inliner.toCachedTermFull(var, pos);
+
+                    std::cout << "cached array term " << cachedArrayTerm->toSMTLIB() << '\n';
+
+                    auto f = logic::Formulas::universalSimp({posSymbol},
                             logic::Formulas::equalitySimp(
                                 toTerm(var,lStart0,pos,trace),
-                                inliner.toCachedTermFull(var, pos)
+                                cachedArrayTerm
                             )
-                        )
-                    );
+                        );
+
+
+                    // When a timepoint is used with a quantified variable like Itl9 instead nl9 when dereferencing terms for main_end, 
+                    // f needs to universally quantify over Itl9 as well.
+                    // This might occur when variable values are not changed throughout a loop, 
+                    // but are not propagated throughout all timepoints with inline semantics.
+                    // This variable will only have cached timepoints from where its values were used, but not from the end of the loop.
+                    auto tps = inliner.getCachedArrayVarTimepoints();
+                    auto cachedTimepoint =  tps[var];
+                    if(cachedTimepoint.get()->prettyString().find("nl") == std::string::npos) {
+                        auto cachedTimepointTerm = std::static_pointer_cast<const logic::FuncTerm>(cachedTimepoint);
+                            auto quantifiedSym = cachedTimepointTerm->subterms.back().get()->symbol;
+                            f = 
+                                logic::Formulas::universalSimp({posSymbol, quantifiedSym},
+                                    logic::Formulas::equalitySimp(
+                                        toTerm(var, lStart0, pos, trace),
+                                        toTerm(var, cachedTimepoint, pos, trace)
+                                    )
+                                );
+                    } 
+
+                    conjPart1.push_back(f);
                 }
             }
 
