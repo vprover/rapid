@@ -518,8 +518,6 @@ namespace analysis {
 
                     auto cachedArrayTerm = inliner.toCachedTermFull(var, pos);
 
-                    std::cout << "cached array term " << cachedArrayTerm->toSMTLIB() << '\n';
-
                     auto f = logic::Formulas::universalSimp({posSymbol},
                             logic::Formulas::equalitySimp(
                                 toTerm(var,lStart0,pos,trace),
