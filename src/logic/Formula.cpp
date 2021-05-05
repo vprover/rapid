@@ -279,8 +279,8 @@ namespace logic {
             return conj[0]->toTPTP();
         
         for (unsigned i = 0; i < conj.size(); i++) {
-            str += "(" + conj[i]->toTPTP() + ")";
-            str += (i == conj.size() - 1) ? "" : " & ";
+            str += "" + conj[i]->toTPTP() + "";
+            str += (i == conj.size() - 1) ? "" : "&";
         }
         return str;
     }

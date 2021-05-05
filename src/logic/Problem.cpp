@@ -152,10 +152,8 @@ namespace logic {
         
         ostr
             << "\n\% negated conjecture\n"
-            << "tff(postcondition, conjecture,\n"
-            << "   \n"
-            <<         conjecture->formula->toTPTP() << "\n"
-            << "   \n"
+            << "tff(postcondition, conjecture, "
+            <<         conjecture->formula->toTPTP()
             << ").\n";
 
     }
