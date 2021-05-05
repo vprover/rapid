@@ -2,6 +2,7 @@
 #include "SemanticsInliner.hpp"
 #include "SemanticsHelper.hpp"
 #include "Theory.hpp"
+#include "Term.hpp"
 
 #include <cassert>
 
@@ -345,7 +346,7 @@ namespace analysis
                         if (cachedArrayVarTimepoints.find(var) != cachedArrayVarTimepoints.end())
                         {
                             auto cachedTimepoint = cachedArrayVarTimepoints[var];
-
+                            
                             // add formula
                             auto posSymbol = posVarSymbol();
                             auto pos = posVar();
@@ -356,6 +357,24 @@ namespace analysis
                                         toTerm(var, cachedTimepoint, pos, trace)
                                     )
                                 );
+
+                            // When a timepoint is used with a quantified variable like Itl9 instead nl9 when dereferencing terms for main_end, 
+                            // f needs to universally quantify over Itl9 as well.
+                            // This might occur when variable values are not changed throughout a loop, 
+                            // but are not propagated throughout all timepoints with inline semantics.
+                            // This variable will only have cached timepoints from where its values were used, but not from the end of the loop.
+                            if(cachedTimepoint.get()->prettyString().find("nl") == std::string::npos) {
+                                auto cachedTimepointTerm = std::static_pointer_cast<const logic::FuncTerm>(cachedTimepoint);
+                                    auto quantifiedSym = cachedTimepointTerm->subterms.back().get()->symbol;
+                                    f = 
+                                        logic::Formulas::universalSimp({posSymbol, quantifiedSym},
+                                            logic::Formulas::equalitySimp(
+                                                toTerm(var, currTimepoint, pos, trace),
+                                                toTerm(var, cachedTimepoint, pos, trace)
+                                            )
+                                        );
+                            } 
+
                             conjuncts.push_back(f);
                         }
                         else
