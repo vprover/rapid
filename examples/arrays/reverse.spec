@@ -14,6 +14,10 @@ func main()
 	}
 }
 
+(axiom
+  (<= 0 length)
+)
+
 (conjecture
 	(forall ((j Int))
 		(=>

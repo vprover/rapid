@@ -17,6 +17,10 @@ func main()
 	}
 }
 
+(axiom
+  (<= 0 alength)
+)
+
 (conjecture
 	(not 
 		(< (i main_end) alength)

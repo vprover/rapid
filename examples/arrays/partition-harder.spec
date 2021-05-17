@@ -34,17 +34,17 @@ func main()
 
 (axiom
   (forall ((it Nat))
-    (<= 
+    (<=
       (blength (l19 it))
-      (i (l19 it)) 
+      (i (l19 it))
     )
   )
 )
 (axiom
   (forall ((it Nat))
-    (<= 
+    (<=
       (clength (l19 it))
-      (i (l19 it)) 
+      (i (l19 it))
     )
   )
 )

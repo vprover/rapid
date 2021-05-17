@@ -20,6 +20,10 @@ func main()
 	)
 )
 
+(axiom
+  (<= 0 blength)
+)
+
 (conjecture
 	(forall ((k Int))
 		(=>

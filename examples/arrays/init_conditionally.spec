@@ -23,6 +23,10 @@ func main()
 	}
 }
 
+(axiom
+  (<= 0 length)
+)
+
 (conjecture
 	(forall ((pos Int))
 		(=>
