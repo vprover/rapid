@@ -12,6 +12,7 @@
 #include "LemmasIterators.hpp"
 #include "LemmasOther.hpp"
 #include "LemmasTwoTraces.hpp"
+#include "LemmasVariableDiffs.hpp"
 
 using namespace logic;
 
@@ -36,6 +37,15 @@ namespace analysis {
         {
             StaticAnalysisLemmas staticAnalysisLemmas(program, locationToActiveVars, numberOfTraces, programSemantics);
             staticAnalysisLemmas.generate(items);
+        }
+
+        if (util::Configuration::instance().variableDifferences())
+        {
+            VariableDiffLemmas varDiffLemmas(program, locationToActiveVars, numberOfTraces);
+            varDiffLemmas.generate(items);
+            if(util::Configuration::instance().axiomatiseToInt() && varDiffLemmas.addToIntLemmas()){
+                varDiffLemmas.addToIntAxioms(items);
+            }
         }
 
         // Lemmas for iterators

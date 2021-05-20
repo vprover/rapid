@@ -47,6 +47,8 @@ int main(int argc, char *argv[])
                 // parse inputFile
                 auto parserResult = parser::parse(inputFile);
                 
+                std::cout << *parserResult.program << std::endl;
+
                 // setup outputDir
                 auto outputDir = util::Configuration::instance().outputDir();
                 if (outputDir == "")
@@ -68,6 +70,11 @@ int main(int argc, char *argv[])
                 analysis::Semantics s(*parserResult.program, parserResult.locationToActiveVars, parserResult.problemItems, parserResult.numberOfTraces);
                 auto [semantics, inlinedVarValues] = s.generateSemantics();
                 problemItems.insert(problemItems.end(), semantics.begin(), semantics.end());
+
+                // for all variables that represent unsigned, add constraints of the form
+                // forall (tp : Time) x(tp) >= 0
+                auto unsignedVarBounds = s.generateBounds();
+                problemItems.insert(problemItems.end(), unsignedVarBounds.begin(), unsignedVarBounds.end());
 
                 auto traceLemmas = analysis::generateTraceLemmas(*parserResult.program, parserResult.locationToActiveVars, parserResult.numberOfTraces, semantics, inlinedVarValues);
                 problemItems.insert(problemItems.end(), traceLemmas.begin(), traceLemmas.end());

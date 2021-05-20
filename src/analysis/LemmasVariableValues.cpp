@@ -64,14 +64,14 @@ namespace analysis {
                         {
                             auto lStartArg = timepointForLoopStatement(whileStatement, arg);
                             return predicateFunctor(
-                                v->isArray ? toTerm(v, lStartBoundL, pos, trace) : toTerm(v,lStartBoundL,trace),
-                                v->isArray ? toTerm(v, lStartArg, pos, trace) : toTerm(v,lStartArg, trace),
+                                v->isArray() ? toTerm(v, lStartBoundL, pos, trace) : toTerm(v,lStartBoundL,trace),
+                                v->isArray() ? toTerm(v, lStartArg, pos, trace) : toTerm(v,lStartArg, trace),
                                 ""
                             );
                         };
 
                         auto freeVars = enclosingIteratorsSymbols(whileStatement);
-                        if (v->isArray)
+                        if (v->isArray())
                         {
                             freeVars.push_back(posSymbol);
                         }
@@ -103,14 +103,14 @@ namespace analysis {
                                         logic::Theory::natSubEq(boundL, it),
                                         logic::Theory::natSub(it, boundR),
                                         predicateFunctor(
-                                            v->isArray ? toTerm(v,lStartBoundL,pos,trace) : toTerm(v,lStartBoundL,trace),
-                                            v->isArray ? toTerm(v,lStartIt,pos,trace) : toTerm(v,lStartIt,trace),
+                                            v->isArray() ? toTerm(v,lStartBoundL,pos,trace) : toTerm(v,lStartBoundL,trace),
+                                            v->isArray() ? toTerm(v,lStartIt,pos,trace) : toTerm(v,lStartIt,trace),
                                             ""
                                         )
                                     }),
                                     predicateFunctor(
-                                        v->isArray ? toTerm(v,lStartBoundL,pos,trace) : toTerm(v,lStartBoundL,trace),
-                                        v->isArray ? toTerm(v,lStartSuccOfIt,pos,trace) : toTerm(v,lStartSuccOfIt,trace),
+                                        v->isArray() ? toTerm(v,lStartBoundL,pos,trace) : toTerm(v,lStartBoundL,trace),
+                                        v->isArray() ? toTerm(v,lStartSuccOfIt,pos,trace) : toTerm(v,lStartSuccOfIt,trace),
                                         ""
                                     )
                                 )
@@ -189,14 +189,14 @@ namespace analysis {
                         auto lStartArg = timepointForLoopStatement(statement, arg);
                         return
                             logic::Formulas::equality(
-                                v->isArray ? toTerm(v,lStartZero,pos,trace) : toTerm(v,lStartZero,trace),
-                                v->isArray ? toTerm(v,lStartArg,pos,trace) : toTerm(v,lStartArg,trace)
+                                v->isArray() ? toTerm(v,lStartZero,pos,trace) : toTerm(v,lStartZero,trace),
+                                v->isArray() ? toTerm(v,lStartArg,pos,trace) : toTerm(v,lStartArg,trace)
                             );
                     };
 
                     // PART 1: Add induction-axiom
                     auto freeVars = enclosingIteratorsSymbols(statement);
-                    if (v->isArray)
+                    if (v->isArray())
                     {
                         freeVars.push_back(posSymbol);
                     }
@@ -243,9 +243,9 @@ namespace analysis {
             {
                 auto castedStatement = static_cast<const program::IntAssignment*>(statement);
                 // add variable on lhs to assignedVars, independently from whether those vars are simple ones or arrays.
-                if (castedStatement->lhs->type() == program::IntExpression::Type::IntVariableAccess)
+                if (castedStatement->lhs->type() == program::IntExpression::Type::IntOrNatVariableAccess)
                 {
-                    auto access = static_cast<const program::IntVariableAccess*>(castedStatement->lhs.get());
+                    auto access = static_cast<const program::IntOrNatVariableAccess*>(castedStatement->lhs.get());
                     assignedVars.insert(access->var);
                 }
                 else

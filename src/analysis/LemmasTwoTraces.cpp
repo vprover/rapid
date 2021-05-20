@@ -43,13 +43,13 @@ namespace analysis {
                                 auto lStartArg = timepointForLoopStatement(statement, arg);
                                 return
                                     logic::Formulas::equality(
-                                        v->isArray ? toTerm(v, lStartArg, pos, t1) : toTerm(v, lStartArg, t1),
-                                        v->isArray ? toTerm(v, lStartArg, pos, t2) : toTerm(v, lStartArg, t2)
+                                        v->isArray() ? toTerm(v, lStartArg, pos, t1) : toTerm(v, lStartArg, t1),
+                                        v->isArray() ? toTerm(v, lStartArg, pos, t2) : toTerm(v, lStartArg, t2)
                                     );
                             };
 
                         std::vector<std::shared_ptr<const logic::Symbol>> freeVars = enclosingIteratorsSymbols(statement);
-                        if(v->isArray)
+                        if(v->isArray())
                         {
                             freeVars.push_back(posSymbol);
                         }
@@ -112,7 +112,7 @@ namespace analysis {
                         if ((inlineSemantics && assignedVars.find(v) != assignedVars.end()) ||
                             (!inlineSemantics && !v->isConstant))
                         {
-                            if (v->isArray)
+                            if (v->isArray())
                             {
                                 auto posSymbol = posVarSymbol();
                                 auto pos = posVar();
@@ -158,7 +158,7 @@ namespace analysis {
                     if ((inlineSemantics && assignedVars.find(v) == assignedVars.end()) ||
                        (!inlineSemantics && v->isConstant))
                     {
-                        if (v->isArray)
+                        if (v->isArray())
                         {
                             auto posSymbol = posVarSymbol();
                             auto pos = posVar();

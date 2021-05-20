@@ -77,6 +77,8 @@ namespace util {
         _generateBenchmark("generateBenchmark", false),
         _nativeNat("-nat", true),
         _inlineSemantics("-inlineSemantics", true),
+        _variableDifferences("-varDiff", true),
+        _axiomatiseToInt("-axToInt", false),
         _lemmaPredicates("-lemmaPredicates", true),
         _allOptions()
         {
@@ -84,6 +86,8 @@ namespace util {
             registerOption(&_generateBenchmark);
             registerOption(&_nativeNat);
             registerOption(&_inlineSemantics);
+            registerOption(&_variableDifferences);
+            registerOption(&_axiomatiseToInt);            
             registerOption(&_lemmaPredicates);
         }
         
@@ -95,6 +99,8 @@ namespace util {
         bool generateBenchmark() { return _generateBenchmark.getValue(); }
         bool nativeNat() { return _nativeNat.getValue(); }
         bool inlineSemantics() { return _inlineSemantics.getValue(); }
+        bool variableDifferences() { return _variableDifferences.getValue();  }
+        bool axiomatiseToInt() { return _axiomatiseToInt.getValue(); }
         bool lemmaPredicates() { return _lemmaPredicates.getValue(); }
 
         static Configuration instance() { return _instance; }
@@ -104,6 +110,8 @@ namespace util {
         BooleanOption _generateBenchmark;
         BooleanOption _nativeNat;
         BooleanOption _inlineSemantics;
+        BooleanOption _variableDifferences;
+        BooleanOption _axiomatiseToInt;
         BooleanOption _lemmaPredicates;
 
         std::map<std::string, Option*> _allOptions;

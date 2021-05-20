@@ -85,7 +85,7 @@ namespace analysis {
         // {
         //     if (!v->isConstant)
         //     {
-        //         if (!v->isArray)
+        //         if (!v->isArray())
         //         {
         //             // Premise: it1<it2 & v(l(zero),t1)=v(l(zero),t2) & forall it. v(l(s(it)))=v(l(it))+1
         //             auto premise =

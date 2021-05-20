@@ -69,7 +69,7 @@ void declareSymbolForProgramVar(const program::Variable* var)
     {
         argSorts.push_back(logic::Sorts::timeSort());
     }
-    if (var->isArray)
+    if (var->isArray())
     {
         argSorts.push_back(logic::Sorts::intSort());
     }

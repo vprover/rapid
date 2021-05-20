@@ -30,6 +30,61 @@ namespace analysis {
         return v3;
     }
 
+
+    std::vector<std::shared_ptr<const program::Variable>> vecUnion(std::vector<std::shared_ptr<const program::Variable>> v1,
+                                                                   std::vector<std::shared_ptr<const program::Variable>> v2)
+    {
+        std::vector<std::shared_ptr<const program::Variable>> v3;
+
+        std::sort(v1.begin(), v1.end());
+        std::sort(v2.begin(), v2.end());
+
+        std::set_union(v1.begin(),v1.end(),
+                              v2.begin(),v2.end(),
+                              back_inserter(v3));
+        return v3;
+    }
+
+    std::vector<std::shared_ptr<const logic::Axiom>> 
+    Semantics::generateBounds()
+    {
+        std::vector<std::shared_ptr<const program::Variable>> allVars;
+
+        for (auto it : locationToActiveVars)
+        {
+            allVars = vecUnion(it.second, allVars);
+        } 
+
+        std::vector<std::shared_ptr<const logic::Axiom>> axioms;
+
+        auto locSymbol = locationSymbol("tp",0);
+        auto lVar = locVar();
+        auto z = logic::Theory::intConstant(0);
+ 
+        for(const auto& var : allVars)
+        {
+            if(var->isNat()){
+                for (const auto& trace : traceTerms(numberOfTraces))
+                {
+
+                    auto axiom = logic::Theory::intGreaterEqual(
+                                    toTerm(var,lVar,trace),
+                                    z
+                                );
+                    
+                    if(!var->isConstant){
+                        axiom =  logic::Formulas::universal({locSymbol}, axiom);
+                    }
+
+                    axioms.push_back(std::make_shared<logic::Axiom>(axiom));
+                }
+            }
+        }
+
+        return axioms;  
+    }
+
+
     std::pair<std::vector<std::shared_ptr<const logic::Axiom>>, InlinedVariableValues> Semantics::generateSemantics()
     {
         // generate semantics compositionally
@@ -111,9 +166,9 @@ namespace analysis {
         auto activeVars = intersection(locationToActiveVars.at(l1Name), locationToActiveVars.at(l2Name));
 
         // case 1: assignment to int var
-        if (intAssignment->lhs->type() == program::IntExpression::Type::IntVariableAccess)
+        if (intAssignment->lhs->type() == program::IntExpression::Type::IntOrNatVariableAccess)
         {
-            auto castedLhs = std::static_pointer_cast<const program::IntVariableAccess>(intAssignment->lhs);
+            auto castedLhs = std::static_pointer_cast<const program::IntOrNatVariableAccess>(intAssignment->lhs);
 
             if (util::Configuration::instance().inlineSemantics())
             {
@@ -136,7 +191,7 @@ namespace analysis {
                 {
                     if(!var->isConstant)
                     {
-                        if (!var->isArray)
+                        if (!var->isArray())
                         {
                             // forall other active non-const int-variables: v(l2) = v(l1)
                             if (*var != *castedLhs->var)
@@ -222,7 +277,7 @@ namespace analysis {
                 {
                     if(!var->isConstant)
                     {
-                        if (!var->isArray)
+                        if (!var->isArray())
                         {
                             // forall active non-const int-variables: v(l2) = v(l1)
                             auto eq =
@@ -349,7 +404,7 @@ namespace analysis {
 
             for (const auto& var : mergeVars)
             {
-                if (!var->isArray)
+                if (!var->isArray())
                 {
                     auto varLEnd = toTerm(var,lEnd,trace);
 
@@ -504,7 +559,7 @@ namespace analysis {
             inliner.currTimepoint = lStart0;
             for (const auto& var : assignedVars)
             {
-                if (!var->isArray)
+                if (!var->isArray())
                 {
                     conjPart1.push_back(
                         logic::Formulas::equalitySimp(
@@ -515,37 +570,14 @@ namespace analysis {
                 }
                 else
                 {
-
-                    auto cachedArrayTerm = inliner.toCachedTermFull(var, pos);
-
-                    auto f = logic::Formulas::universalSimp({posSymbol},
+                    conjPart1.push_back(
+                        logic::Formulas::universalSimp({posSymbol},
                             logic::Formulas::equalitySimp(
                                 toTerm(var,lStart0,pos,trace),
-                                cachedArrayTerm
+                                inliner.toCachedTermFull(var, pos)
                             )
-                        );
-
-
-                    // When a timepoint is used with a quantified variable like Itl9 instead nl9 when dereferencing terms for main_end, 
-                    // f needs to universally quantify over Itl9 as well.
-                    // This might occur when variable values are not changed throughout a loop, 
-                    // but are not propagated throughout all timepoints with inline semantics.
-                    // This variable will only have cached timepoints from where its values were used, but not from the end of the loop.
-                    auto tps = inliner.getCachedArrayVarTimepoints();
-                    auto cachedTimepoint =  tps[var];
-                    if(cachedTimepoint.get()->prettyString().find("nl") == std::string::npos) {
-                        auto cachedTimepointTerm = std::static_pointer_cast<const logic::FuncTerm>(cachedTimepoint);
-                            auto quantifiedSym = cachedTimepointTerm->subterms.back().get()->symbol;
-                            f = 
-                                logic::Formulas::universalSimp({posSymbol, quantifiedSym},
-                                    logic::Formulas::equalitySimp(
-                                        toTerm(var, lStart0, pos, trace),
-                                        toTerm(var, cachedTimepoint, pos, trace)
-                                    )
-                                );
-                    } 
-
-                    conjPart1.push_back(f);
+                        )
+                    );
                 }
             }
 
@@ -560,7 +592,7 @@ namespace analysis {
             inliner.currTimepoint = lStartIt;
             for (const auto& var : assignedVars)
             {
-                if (!var->isArray)
+                if (!var->isArray())
                 {
                     assert(!var->isConstant);
                     auto result = inliner.setIntVarValue(var,toTerm(var,lStartIt,trace));
@@ -590,7 +622,7 @@ namespace analysis {
             {
                 if (assignedVars.find(var) == assignedVars.end())
                 {
-                    if (var->isArray)
+                    if (var->isArray())
                     {
                         inlinedVariableValues.setArrayTimepoint(whileStatement, var, trace, inliner.getCachedArrayVarTimepoints().at(var));
                     }
@@ -614,7 +646,7 @@ namespace analysis {
             inliner.currTimepoint = lStartSuccOfIt;
             for (const auto& var : assignedVars)
             {
-                if (!var->isArray)
+                if (!var->isArray())
                 {
                     conjunctsBody.push_back(
                         logic::Formulas::equalitySimp(
@@ -652,7 +684,7 @@ namespace analysis {
             inliner.currTimepoint = lStartN;
             for (const auto& var : assignedVars)
             {
-                if (!var->isArray)
+                if (!var->isArray())
                 {
                     assert(!var->isConstant);
                     auto result = inliner.setIntVarValue(var, toTerm(var,lStartN,trace));

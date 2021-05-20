@@ -154,7 +154,7 @@ problem:
   {
     logic::Theory::declareTheories();
   }
-  program smtlib_problemitem_list
+  program smtlib_problemitem_list 
   {
     context.problemItems = $3;
   }
@@ -170,16 +170,16 @@ problem:
     logic::Theory::declareTheories();
     declareSymbolsForTraces(context.numberOfTraces);
   }
-  program smtlib_problemitem_list
+  program smtlib_problemitem_list 
   {
         context.problemItems = $7;
   }
 ;
 
 program:
-  function_list
-  {
-    context.program = std::unique_ptr<const program::Program>(new program::Program($1));
+  function_list 
+  { 
+    context.program = std::unique_ptr<const program::Program>(new program::Program($1)); 
   }
 ;
 
@@ -189,19 +189,19 @@ smtlib_problemitem_list:
 ;
 
 smtlib_problemitem:
-  LPAR AXIOM smtlib_formula RPAR
+  LPAR AXIOM smtlib_formula RPAR 
   {
     $$ = std::shared_ptr<const logic::Axiom>(new logic::Axiom($3, "user-axiom-" + std::to_string(context.numberOfAxioms)));
     context.numberOfAxioms++;
   }
 |
-  LPAR LEMMA smtlib_formula RPAR
+  LPAR LEMMA smtlib_formula RPAR 
   {
     $$ = std::shared_ptr<const logic::Lemma>(new logic::Lemma($3, "user-lemma-" + std::to_string(context.numberOfLemmas)));
     context.numberOfLemmas++;
   }
 |
-  LPAR CONJECTURE smtlib_formula RPAR
+  LPAR CONJECTURE smtlib_formula RPAR 
   {
     $$ = std::shared_ptr<const logic::Conjecture>(new logic::Conjecture($3, "user-conjecture-" + std::to_string(context.numberOfConjectures)));
     context.numberOfConjectures++;
@@ -215,18 +215,18 @@ smtlib_formula_list:
 smtlib_formula:
   TRUE                                       { $$ = logic::Theory::boolTrue();}
 | FALSE                                      { $$ = logic::Theory::boolFalse();}
-| LPAR ASSIGN smtlib_term smtlib_term RPAR
-  {
+| LPAR ASSIGN smtlib_term smtlib_term RPAR   
+  { 
     auto leftSort = $3->symbol->rngSort;
     auto rightSort = $4->symbol->rngSort;
-
+    
     if(leftSort != rightSort)
     {
       error(@4, "Argument types " + leftSort->name + " and " + rightSort->name + " don't match!");
     }
     $$ = logic::Formulas::equality(std::move($3), std::move($4));
   }
-| LPAR GT smtlib_term smtlib_term RPAR
+| LPAR GT smtlib_term smtlib_term RPAR       
 {
   if($3->symbol->rngSort != logic::Sorts::intSort())
   {
@@ -238,7 +238,7 @@ smtlib_formula:
   }
   $$ = logic::Theory::intGreater(std::move($3), std::move($4));
 }
-| LPAR GE smtlib_term smtlib_term RPAR
+| LPAR GE smtlib_term smtlib_term RPAR       
 {
   if($3->symbol->rngSort != logic::Sorts::intSort())
   {
@@ -247,11 +247,11 @@ smtlib_formula:
   if($4->symbol->rngSort != logic::Sorts::intSort())
   {
     error(@4, "Right argument type needs to be Int");
-  }
+  } 
   $$ = logic::Theory::intGreaterEqual(std::move($3), std::move($4));
 }
-| LPAR LT smtlib_term smtlib_term RPAR
-{
+| LPAR LT smtlib_term smtlib_term RPAR      
+{ 
   if($3->symbol->rngSort != logic::Sorts::intSort())
   {
     error(@3, "Left argument type needs to be Int");
@@ -259,11 +259,11 @@ smtlib_formula:
   if($4->symbol->rngSort != logic::Sorts::intSort())
   {
     error(@4, "Right argument type needs to be Int");
-  }
+  } 
   $$ = logic::Theory::intLess(std::move($3), std::move($4));
 }
-| LPAR LE smtlib_term smtlib_term RPAR
-{
+| LPAR LE smtlib_term smtlib_term RPAR      
+{ 
   if($3->symbol->rngSort != logic::Sorts::intSort())
   {
     error(@3, "Left argument type needs to be Int");
@@ -271,30 +271,30 @@ smtlib_formula:
   if($4->symbol->rngSort != logic::Sorts::intSort())
   {
     error(@4, "Right argument type needs to be Int");
-  }
+  } 
   $$ = logic::Theory::intLessEqual(std::move($3), std::move($4));
 }
 | LPAR ANDSMTLIB smtlib_formula_list RPAR    { $$ = logic::Formulas::conjunction(std::move($3));}
 | LPAR ORSMTLIB smtlib_formula_list RPAR     { $$ = logic::Formulas::disjunction(std::move($3));}
 | LPAR NOTSMTLIB smtlib_formula RPAR         { $$ = logic::Formulas::negation(std::move($3));}
 | LPAR IMPSMTLIB smtlib_formula smtlib_formula RPAR  { $$ = logic::Formulas::implication(std::move($3), std::move($4));}
-| LPAR FORALLSMTLIB LPAR smtlib_quantvar_list RPAR
+| LPAR FORALLSMTLIB LPAR smtlib_quantvar_list RPAR 
   {
     // TODO: propagate existing-var-error to parser and raise error
     context.pushQuantifiedVars($4);
-  }
-  smtlib_formula RPAR
-  {
+  } 
+  smtlib_formula RPAR 
+  { 
     context.popQuantifiedVars();
     $$ = logic::Formulas::universal(std::move($4), std::move($7));
   }
-| LPAR EXISTSSMTLIB LPAR smtlib_quantvar_list RPAR
+| LPAR EXISTSSMTLIB LPAR smtlib_quantvar_list RPAR 
   {
     // TODO: propagate existing-var-error to parser and raise error
     context.pushQuantifiedVars($4);
-  }
-  smtlib_formula RPAR
-  {
+  } 
+  smtlib_formula RPAR 
+  { 
     context.popQuantifiedVars();
     $$ = logic::Formulas::existential(std::move($4), std::move($7));
   }
@@ -306,14 +306,14 @@ smtlib_quantvar_list:
 ;
 
 smtlib_quantvar:
-  LPAR SMTLIB_ID TYPE RPAR
-  {
+  LPAR SMTLIB_ID TYPE RPAR 
+  { 
     if(context.isDeclared($2))
     {
       error(@2, $2 + " has already been declared");
     }
     if($3 == "Int")
-    {
+    { 
       $$ = logic::Signature::varSymbol($2, logic::Sorts::intSort());
     }
     else if($3 == "Bool")
@@ -345,13 +345,13 @@ smtlib_term_list:
 ;
 
 smtlib_term:
-SMTLIB_ID
+SMTLIB_ID                               
 {
   if(!context.isDeclared($1))
   {
     error(@1, $1 + " has not been declared");
   }
-  auto symbol = context.fetch($1);
+  auto symbol = context.fetch($1); 
 
   if(symbol->argSorts.size() > 0)
   {
@@ -359,17 +359,17 @@ SMTLIB_ID
   }
   $$ = logic::Terms::func(symbol, std::vector<std::shared_ptr<const logic::Term>>());
 }
-| INTEGER
+| INTEGER                                 
   {
     $$ = logic::Theory::intConstant($1);
   }
-| LPAR SMTLIB_ID smtlib_term_list RPAR
+| LPAR SMTLIB_ID smtlib_term_list RPAR    
 {
   if(!context.isDeclared($2))
   {
     error(@2, $2 + " has not been declared");
   }
-  auto symbol = context.fetch($2);
+  auto symbol = context.fetch($2); 
 
   if($3.size() < symbol->argSorts.size())
   {
@@ -388,7 +388,7 @@ SMTLIB_ID
   }
   $$ = logic::Terms::func(symbol, std::move($3));
 }
-| LPAR PLUS smtlib_term smtlib_term RPAR
+| LPAR PLUS smtlib_term smtlib_term RPAR 
 {
   if($3->symbol->rngSort != logic::Sorts::intSort())
   {
@@ -397,10 +397,10 @@ SMTLIB_ID
   if($4->symbol->rngSort != logic::Sorts::intSort())
   {
     error(@4, "Right argument type needs to be Int");
-  }
+  } 
   $$ = logic::Theory::intAddition(std::move($3), std::move($4));
 }
-| LPAR MINUS smtlib_term smtlib_term RPAR
+| LPAR MINUS smtlib_term smtlib_term RPAR 
 {
   if($3->symbol->rngSort != logic::Sorts::intSort())
   {
@@ -409,10 +409,10 @@ SMTLIB_ID
   if($4->symbol->rngSort != logic::Sorts::intSort())
   {
     error(@4, "Right argument type needs to be Int");
-  }
+  } 
   $$ = logic::Theory::intSubtraction(std::move($3), std::move($4));
 }
-| LPAR MOD smtlib_term smtlib_term RPAR
+| LPAR MOD smtlib_term smtlib_term RPAR 
 {
   if($3->symbol->rngSort != logic::Sorts::intSort())
   {
@@ -421,10 +421,10 @@ SMTLIB_ID
   if($4->symbol->rngSort != logic::Sorts::intSort())
   {
     error(@4, "Right argument type needs to be Int");
-  }
+  } 
   $$ = logic::Theory::intModulo(std::move($3), std::move($4));
 }
-| LPAR MUL smtlib_term smtlib_term RPAR
+| LPAR MUL smtlib_term smtlib_term RPAR 
 {
   if($3->symbol->rngSort != logic::Sorts::intSort())
   {
@@ -433,7 +433,7 @@ SMTLIB_ID
   if($4->symbol->rngSort != logic::Sorts::intSort())
   {
     error(@4, "Right argument type needs to be Int");
-  }
+  } 
   $$ = logic::Theory::intMultiplication(std::move($3), std::move($4));
 }
 ;
@@ -490,14 +490,14 @@ statement:
 ;
 
 assignment_statement:
-  location ASSIGN expr SCOL
+  location ASSIGN expr SCOL 
   {
-    if($1->type() == IntExpression::Type::IntVariableAccess)
+    if($1->type() == IntExpression::Type::IntOrNatVariableAccess)
     {
-      auto intVariableAccess = std::static_pointer_cast<const program::IntVariableAccess>($1);
-      if(intVariableAccess->var->isConstant)
+      auto variableAccess = std::static_pointer_cast<const program::IntOrNatVariableAccess>($1);
+      if(variableAccess->var->isConstant)
       {
-        error(@1, "Assignment to const var " + intVariableAccess->var->name);
+        error(@1, "Assignment to const var " + variableAccess->var->name);
       }
     }
     else
@@ -518,31 +518,31 @@ assignment_statement:
     declareSymbolForProgramVar($1.get());
 
     // construct location
-    if($1->isArray)
+    if($1->isArray())
     {
       error(@1, "Combined declaration and assignment not allowed, since " + $1->name + " is array variable");
     }
-    auto intVariableAccess = std::shared_ptr<const program::IntVariableAccess>(new IntVariableAccess(std::move($1)));
-
+    auto intVariableAccess = std::shared_ptr<const program::IntOrNatVariableAccess>(new IntOrNatVariableAccess(std::move($1)));
+   
     // build assignment
     $$ = std::shared_ptr<const program::IntAssignment>(new program::IntAssignment(@2.begin.line, std::move(intVariableAccess), std::move($3)));
   }
 ;
 
 if_else_statement:
-  IF LPAR formula RPAR
+  IF LPAR formula RPAR 
   {
     context.pushProgramVars();
   }
-  LCUR statement_list active_vars_dummy RCUR
+  LCUR statement_list active_vars_dummy RCUR 
   {
     context.popProgramVars();
   }
-  ELSE
+  ELSE 
   {
     context.pushProgramVars();
-  }
-  LCUR statement_list active_vars_dummy RCUR
+  }  
+  LCUR statement_list active_vars_dummy RCUR 
   {
     context.popProgramVars();
 
@@ -555,7 +555,7 @@ if_else_statement:
 ;
 
 while_statement:
-  WHILE formula
+  WHILE formula 
   {
     context.pushProgramVars();
   }
@@ -571,9 +571,9 @@ skip_statement:
 ;
 
 active_vars_dummy:
-  %empty
+  %empty 
   {
-    $$ = context.getActiveProgramVars();
+    $$ = context.getActiveProgramVars(); 
   }
 ;
 
@@ -584,11 +584,12 @@ var_definition_head:
     {
       error(@1, "Program variables of type Bool are not supported");
     }
-    if($1 == "Nat" || $1 == "Time" || $1 == "Trace")
+    if($1 == "Time" || $1 == "Trace")
     {
       error(@1, "Program variables can't have type " + $1);
     }
-    $$ = std::shared_ptr<const program::Variable>(new program::Variable($2, false, false, context.numberOfTraces));
+    program::VarType vt = $1 == "Nat" ? program::VarType::NAT : program::VarType::INTEGER; 
+    $$ = std::shared_ptr<const program::Variable>(new program::Variable($2, false, vt, context.numberOfTraces));
   }
 | CONST TYPE PROGRAM_ID
   {
@@ -596,11 +597,12 @@ var_definition_head:
     {
       error(@1, "Program variables of type Bool are not supported");
     }
-    if($2 == "Nat" || $2 == "Time" || $2 == "Trace")
+    if($2 == "Time" || $2 == "Trace")
     {
       error(@2, "Program variables can't have type " + $2);
     }
-    $$ = std::shared_ptr<const program::Variable>(new program::Variable($3, true, false, context.numberOfTraces));
+    program::VarType vt = $2 == "Nat" ? program::VarType::NAT : program::VarType::INTEGER; 
+    $$ = std::shared_ptr<const program::Variable>(new program::Variable($3, true, vt, context.numberOfTraces));
   }
 | TYPE LBRA RBRA PROGRAM_ID
   {
@@ -608,11 +610,11 @@ var_definition_head:
     {
       error(@1, "Program variables of type Bool are not supported");
     }
-    if($1 == "Nat" || $1 == "Time" || $1 == "Trace")
+    if($1 == "Time" || $1 == "Trace")
     {
       error(@1, "Program variables can't have type " + $1);
     }
-    $$ = std::shared_ptr<const program::Variable>(new program::Variable($4, false, true, context.numberOfTraces));
+    $$ = std::shared_ptr<const program::Variable>(new program::Variable($4, false, program::VarType::ARRAY, context.numberOfTraces));
   }
 | CONST TYPE LBRA RBRA PROGRAM_ID
   {
@@ -620,11 +622,11 @@ var_definition_head:
     {
       error(@1, "Program variables of type Bool are not supported");
     }
-    if($2 == "Nat" || $2 == "Time" || $2 == "Trace")
+    if($2 == "Time" || $2 == "Trace")
     {
       error(@2, "Program variables can't have type " + $2);
     }
-    $$ = std::shared_ptr<const program::Variable>(new program::Variable($5, true, true, context.numberOfTraces));
+    $$ = std::shared_ptr<const program::Variable>(new program::Variable($5, true, program::VarType::ARRAY, context.numberOfTraces));
   }
 ;
 
@@ -655,19 +657,19 @@ expr:
 ;
 
 location:
-  PROGRAM_ID
-  {
+  PROGRAM_ID                
+  { 
   	auto var = context.getProgramVar($1);
-    if(var->isArray)
+    if(var->isArray())
     {
       error(@1, "Array variable " + var->name + " needs index for access");
     }
-    $$ = std::shared_ptr<const program::IntVariableAccess>(new IntVariableAccess(std::move(var)));
+    $$ = std::shared_ptr<const program::IntOrNatVariableAccess>(new IntOrNatVariableAccess(std::move(var)));
   }
-| PROGRAM_ID LBRA expr RBRA
+| PROGRAM_ID LBRA expr RBRA 
   {
 	  auto var = context.getProgramVar($1);
-    if(!var->isArray)
+    if(!var->isArray())
     {
       error(@1, "Variable " + var->name + " is not an array");
     }
@@ -683,3 +685,4 @@ void parser::WhileParser::error(const location_type& l,
   context.errorFlag = true;
   exit(1);
 }
+

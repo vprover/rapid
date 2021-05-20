@@ -110,9 +110,9 @@ namespace analysis
             {
                 auto castedStatement = static_cast<const program::IntAssignment*>(statement);
                 // add variable on lhs to assignedVars, independently from whether those vars are simple ones or arrays.
-                if (castedStatement->lhs->type() == program::IntExpression::Type::IntVariableAccess)
+                if (castedStatement->lhs->type() == program::IntExpression::Type::IntOrNatVariableAccess)
                 {
-                    auto access = static_cast<const program::IntVariableAccess*>(castedStatement->lhs.get());
+                    auto access = static_cast<const program::IntOrNatVariableAccess*>(castedStatement->lhs.get());
                     assignedVars.insert(access->var);
                 }
                 else
@@ -231,9 +231,9 @@ namespace analysis
                 computeVariablesContainedInLoopCondition(castedExpr->child2, variables);
                 break;
             }
-            case program::IntExpression::Type::IntVariableAccess:
+            case program::IntExpression::Type::IntOrNatVariableAccess:
             {
-                auto castedExpr = std::static_pointer_cast<const program::IntVariableAccess>(expr);
+                auto castedExpr = std::static_pointer_cast<const program::IntOrNatVariableAccess>(expr);
                 variables.insert(castedExpr->var);
                 break;
             }

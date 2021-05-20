@@ -20,21 +20,36 @@
 #include "Expression.hpp"
 
 namespace program {
+
+    enum class VarType
+    {
+        INTEGER,
+        NAT,
+        ARRAY
+    };
     
     class Variable
     {
     public:
-        Variable(std::string name, bool isConstant, bool isArray, unsigned numberOfTraces) : name(name), isConstant(isConstant), isArray(isArray), numberOfTraces(numberOfTraces) {}
+        Variable(std::string name, bool isConstant, VarType vt, unsigned numberOfTraces) : name(name), isConstant(isConstant), vt(vt), numberOfTraces(numberOfTraces) {}
 
         const std::string name;
         const bool isConstant;
-        const bool isArray;
         const unsigned numberOfTraces;
+        const VarType vt;
+
+        bool isArray() const {
+            return vt == program::VarType::ARRAY;
+        }
+
+        bool isNat() const {
+            return vt == program::VarType::NAT;
+        }
 
         // sanity-assertion: if two variables have the same name, they agree on all other properties.
         bool operator==(const Variable& rhs) const { assert( !(name == rhs.name) ||
                                                             (isConstant == rhs.isConstant &&
-                                                             isArray    == rhs.isArray &&
+                                                             vt    == rhs.vt &&
                                                              numberOfTraces  == rhs.numberOfTraces)); return (name == rhs.name); }
         bool operator!=(const Variable& rhs) const { return !operator==(rhs); }
     };
@@ -57,22 +72,23 @@ namespace program {
     // hack needed for bison: std::vector has no overload for ostream, but these overloads are needed for bison
     std::ostream& operator<<(std::ostream& ostr, const std::vector< std::shared_ptr<const program::Variable>>& e);
     
-    class IntVariableAccess : public IntExpression
+    class IntOrNatVariableAccess : public IntExpression
     {
     public:
-        IntVariableAccess(std::shared_ptr<const Variable> var) : IntExpression(), var(var)
+        IntOrNatVariableAccess(std::shared_ptr<const Variable> var) : IntExpression(), var(var)
         {
             assert(this->var != nullptr);
-            assert(!this->var->isArray);
+            assert(this->var->vt == program::VarType::INTEGER ||
+                   this->var->vt == program::VarType::NAT);
         }
         
         const std::shared_ptr<const Variable> var;
 
-        IntExpression::Type type() const override {return IntExpression::Type::IntVariableAccess;}
+        IntExpression::Type type() const override {return IntExpression::Type::IntOrNatVariableAccess;}
         
         std::string toString() const override;
     };
-    
+
     class IntArrayApplication : public IntExpression
     {
     public:
@@ -80,7 +96,7 @@ namespace program {
         {
             assert(this->array != nullptr);
             assert(this->index != nullptr);
-            assert(this->array->isArray);
+            assert(this->array->vt == program::VarType::ARRAY);
         }
         
         const std::shared_ptr<const Variable> array;

@@ -13,8 +13,13 @@
 
 namespace analysis {
 
+    // attempts to compute the valuse a variable is decremented or incremented
+    // each round of a loop. If this is not possible, false is returned.
+    bool getDiff(std::shared_ptr<const program::Variable> v, const program::Statement*, int& diff, bool topLevel);
+
 # pragma mark - Methods for generating most used variables
     std::shared_ptr<const logic::LVariable> posVar();
+    std::shared_ptr<const logic::LVariable> locVar();
 
 # pragma mark - Methods for generating most used trace terms
     std::shared_ptr<const logic::Term> traceTerm(unsigned traceNumber);

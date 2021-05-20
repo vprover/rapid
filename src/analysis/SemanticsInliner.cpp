@@ -2,7 +2,6 @@
 #include "SemanticsInliner.hpp"
 #include "SemanticsHelper.hpp"
 #include "Theory.hpp"
-#include "Term.hpp"
 
 #include <cassert>
 
@@ -176,7 +175,7 @@ namespace analysis
     std::shared_ptr<const logic::Term> SemanticsInliner::toCachedTermFull(std::shared_ptr<const program::Variable> var)
     {
         assert(var != nullptr);
-        assert(!var->isArray);
+        assert(!var->isArray());
         assert(currTimepoint != nullptr);
 
         // if no value is cached yet, initialize cache (note that we use a free variable as trace (which has to be universally quantified later))
@@ -192,7 +191,7 @@ namespace analysis
     {
         assert(arrayVar != nullptr);
         assert(position != nullptr);
-        assert(arrayVar->isArray);
+        assert(arrayVar->isArray());
         assert(currTimepoint != nullptr);
 
         if(cachedArrayVarTimepoints.find(arrayVar) == cachedArrayVarTimepoints.end())
@@ -234,9 +233,9 @@ namespace analysis
                 auto castedExpr = std::static_pointer_cast<const program::Multiplication>(expr);
                 return logic::Theory::intMultiplication(toCachedTerm(castedExpr->factor1), toCachedTerm(castedExpr->factor2));
             }
-            case program::IntExpression::Type::IntVariableAccess:
+            case program::IntExpression::Type::IntOrNatVariableAccess:
             {
-                auto castedExpr = std::static_pointer_cast<const program::IntVariableAccess>(expr);
+                auto castedExpr = std::static_pointer_cast<const program::IntOrNatVariableAccess>(expr);
                 return toCachedTermFull(castedExpr->var);
             }
             case program::IntExpression::Type::IntArrayApplication:
@@ -318,7 +317,7 @@ namespace analysis
 
                 if (varTermShouldBeDefined)
                 {
-                    if (!var->isArray)
+                    if (!var->isArray())
                     {
                         auto currValue = toTerm(var, timepoint, trace);
 
@@ -346,7 +345,7 @@ namespace analysis
                         if (cachedArrayVarTimepoints.find(var) != cachedArrayVarTimepoints.end())
                         {
                             auto cachedTimepoint = cachedArrayVarTimepoints[var];
-                            
+
                             // add formula
                             auto posSymbol = posVarSymbol();
                             auto pos = posVar();
@@ -357,24 +356,6 @@ namespace analysis
                                         toTerm(var, cachedTimepoint, pos, trace)
                                     )
                                 );
-
-                            // When a timepoint is used with a quantified variable like Itl9 instead nl9 when dereferencing terms for main_end, 
-                            // f needs to universally quantify over Itl9 as well.
-                            // This might occur when variable values are not changed throughout a loop, 
-                            // but are not propagated throughout all timepoints with inline semantics.
-                            // This variable will only have cached timepoints from where its values were used, but not from the end of the loop.
-                            if(cachedTimepoint.get()->prettyString().find("nl") == std::string::npos) {
-                                auto cachedTimepointTerm = std::static_pointer_cast<const logic::FuncTerm>(cachedTimepoint);
-                                    auto quantifiedSym = cachedTimepointTerm->subterms.back().get()->symbol;
-                                    f = 
-                                        logic::Formulas::universalSimp({posSymbol, quantifiedSym},
-                                            logic::Formulas::equalitySimp(
-                                                toTerm(var, currTimepoint, pos, trace),
-                                                toTerm(var, cachedTimepoint, pos, trace)
-                                            )
-                                        );
-                            } 
-
                             conjuncts.push_back(f);
                         }
                         else
@@ -415,7 +396,7 @@ namespace analysis
 
             if (varTermShouldBeDefined)
             {
-                if (!var->isArray)
+                if (!var->isArray())
                 {
                     if (cachedIntVarValues.find(var) == cachedIntVarValues.end())
                     {
@@ -466,7 +447,7 @@ namespace analysis
     {
         assert(var != nullptr);
         assert(value != nullptr);
-        assert(!var->isArray);
+        assert(!var->isArray());
         assert(currTimepoint != nullptr);
 
         cachedIntVarValues[var] = value;
@@ -492,7 +473,7 @@ namespace analysis
     {
         assert(arrayVar != nullptr);
         assert(timepoint != nullptr);
-        assert(arrayVar->isArray);
+        assert(arrayVar->isArray());
 
         cachedArrayVarTimepoints[arrayVar] = timepoint;
 
@@ -533,7 +514,7 @@ namespace analysis
         assert(var != nullptr);
         assert(value != nullptr);
         assert(trace != nullptr);
-        assert(!var->isArray);
+        assert(!var->isArray());
         assert(AnalysisPreComputation::computeAssignedVars(whileStatement).count(var) == 0);
         values.at(trace);
         values.at(trace).at(whileStatement);
@@ -547,7 +528,7 @@ namespace analysis
         assert(arrayVar != nullptr);
         assert(trace != nullptr);
         assert(timepoint != nullptr);
-        assert(arrayVar->isArray);
+        assert(arrayVar->isArray());
         assert(AnalysisPreComputation::computeAssignedVars(whileStatement).count(arrayVar) == 0);
 
         arrayValues.at(trace).at(whileStatement)[arrayVar] = timepoint;
@@ -558,7 +539,7 @@ namespace analysis
         assert(whileStatement != nullptr);
         assert(var != nullptr);
         assert(trace != nullptr);
-        assert(!var->isArray);
+        assert(!var->isArray());
 
         return values.at(trace).at(whileStatement).at(var);
     }
@@ -568,7 +549,7 @@ namespace analysis
         assert(whileStatement != nullptr);
         assert(arrayVar != nullptr);
         assert(position != nullptr);
-        assert(arrayVar->isArray);
+        assert(arrayVar->isArray());
 
         auto timepoint = arrayValues.at(trace).at(whileStatement).at(arrayVar);
         return toTerm(arrayVar, timepoint, position, trace);
@@ -606,9 +587,9 @@ namespace analysis
                 auto castedExpr = std::static_pointer_cast<const program::Multiplication>(expr);
                 return logic::Theory::intMultiplication(toInlinedTerm(whileStatement, castedExpr->factor1, timepoint, trace), toInlinedTerm(whileStatement, castedExpr->factor2, timepoint, trace));
             }
-            case program::IntExpression::Type::IntVariableAccess:
+            case program::IntExpression::Type::IntOrNatVariableAccess:
             {
-                auto var = std::static_pointer_cast<const program::IntVariableAccess>(expr)->var;
+                auto var = std::static_pointer_cast<const program::IntOrNatVariableAccess>(expr)->var;
                 if (AnalysisPreComputation::computeAssignedVars(whileStatement).count(var) == 0)
                 {
                     // 'var' was not assigned to in 'whileStatement', so use inlined value (which must exist)

@@ -9,11 +9,120 @@
 #include "SymbolDeclarations.hpp"
 
 namespace analysis {
+
+    typedef std::shared_ptr<const program::Variable> programVar;
+
+    bool getDiff(programVar v, const program::Statement* s, int& diff, bool topLevel)
+    {
+        //basic first attempt ttype of thing. Lots of potential to expand
+        //here, but not sure how helpful it would be.
+
+        auto isVarV = [](programVar v, std::shared_ptr<const program::IntExpression> e)
+        {
+            if(e->type() == program::IntExpression::Type::IntOrNatVariableAccess)
+            {
+                auto castedExpr = std::static_pointer_cast<const program::IntOrNatVariableAccess>(e);
+                return castedExpr->var == v;
+            }
+            return false;
+        };
+
+        auto isIntConstant = [](std::shared_ptr<const program::IntExpression> e)
+        {
+            return e->type() == program::IntExpression::Type::ArithmeticConstant;
+        };
+
+        auto getIntConstant = [](std::shared_ptr<const program::IntExpression> e)
+        {
+            auto castedExpr = std::static_pointer_cast<const program::ArithmeticConstant>(e);
+            return castedExpr->value;
+        };
+   
+
+        if (s->type() == program::Statement::Type::IntAssignment)
+        {
+            auto castedStatement = static_cast<const program::IntAssignment*>(s);
+            
+            if(isVarV(v, castedStatement->lhs)){
+                //v = rhs
+                auto rhs = castedStatement->rhs;
+                if(rhs->type() == program::IntExpression::Type::Addition)
+                {
+                    auto castedAdd = std::static_pointer_cast<const program::Addition>(rhs);
+                    auto summand1 = castedAdd->summand1;
+                    auto summand2 = castedAdd->summand2;
+                    if(isVarV(v, summand1) && isIntConstant(summand2)) {
+                        diff = diff + getIntConstant(summand2);
+                        return true;
+                    } else if (isVarV(v, summand2) && isIntConstant(summand1)) {
+                        diff = diff + getIntConstant(summand1);
+                        return true;
+                    }
+                } else if (rhs->type() == program::IntExpression::Type::Subtraction){
+                    auto castedSub = std::static_pointer_cast<const program::Subtraction>(rhs);
+                    auto child1 = castedSub->child1;
+                    auto child2 = castedSub->child2;
+                    if(isVarV(v, child1) && isIntConstant(child2)) {
+                        diff = diff - getIntConstant(child2);
+                        return true;
+                    }
+                }
+                return false;
+            }
+            //updates some other variable
+            return true;
+        }
+        else if (s->type() == program::Statement::Type::IfElse)
+        {
+            auto castedStatement = static_cast<const program::IfElse*>(s);
+
+            int diff1 = 0;
+            int diff2 = 0;
+            for (auto statement : castedStatement->ifStatements){
+               bool canCalculate = getDiff(v, statement.get(), diff1, false);
+               if(!canCalculate) return false;
+            }
+
+            for (auto statement : castedStatement->elseStatements){
+               bool canCalculate = getDiff(v, statement.get(), diff2, false);
+               if(!canCalculate) return false;
+            }
+            if(diff1 != diff2){
+                return false;
+            }
+            diff = diff + diff1;
+            return true;            
+        }
+        else if (s->type() == program::Statement::Type::WhileStatement)
+        {
+            auto castedStatement = static_cast<const program::WhileStatement*>(s);
+            
+            int diff1 = 0;
+            for (auto statement : castedStatement->bodyStatements){
+               bool canCalculate = getDiff(v, statement.get(), diff1, false);
+               if(!canCalculate || (diff1 != 0 && !topLevel)) return false;
+            }
+            diff = diff + diff1;
+            return true;
+        }
+        else
+        {
+            assert(s->type() == program::Statement::Type::SkipStatement);
+            diff = diff + 0;
+            return true;
+        }      
+    }
+
 # pragma mark - Methods for generating most used variables
 
     std::shared_ptr<const logic::LVariable> posVar()
     {
         return logic::Terms::var(posVarSymbol());
+    }
+
+    std::shared_ptr<const logic::LVariable> locVar()
+    {
+        return logic::Terms::var(locationSymbol("tp",0));
     }
 
 # pragma mark - Methods for generating most used trace terms
@@ -123,7 +232,7 @@ namespace analysis {
         assert(var != nullptr);
         assert(trace != nullptr);
         
-        assert(!var->isArray);
+        assert(!var->isArray());
         
         std::vector<std::shared_ptr<const logic::Term>> arguments;
         
@@ -146,7 +255,7 @@ namespace analysis {
         assert(position != nullptr);
         assert(trace != nullptr);
         
-        assert(var->isArray);
+        assert(var->isArray());
         
         std::vector<std::shared_ptr<const logic::Term>> arguments;
         
@@ -198,9 +307,9 @@ namespace analysis {
                 auto castedExpr = std::static_pointer_cast<const program::Multiplication>(expr);
                 return logic::Theory::intMultiplication(toTerm(castedExpr->factor1, timePoint, trace), toTerm(castedExpr->factor2, timePoint, trace));
             }
-            case program::IntExpression::Type::IntVariableAccess:
+            case program::IntExpression::Type::IntOrNatVariableAccess:
             {
-                auto castedExpr = std::static_pointer_cast<const program::IntVariableAccess>(expr);
+                auto castedExpr = std::static_pointer_cast<const program::IntOrNatVariableAccess>(expr);
                 return toTerm(castedExpr->var, timePoint, trace);
             }
             case program::IntExpression::Type::IntArrayApplication:
@@ -260,7 +369,7 @@ namespace analysis {
 
     std::shared_ptr<const logic::Formula> varEqual(std::shared_ptr<const program::Variable> v, std::shared_ptr<const logic::Term> timePoint1, std::shared_ptr<const logic::Term> timePoint2, std::shared_ptr<const logic::Term> trace)
     {
-        if(!v->isArray)
+        if(!v->isArray())
         {
             return
                 logic::Formulas::equality(

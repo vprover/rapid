@@ -6,6 +6,7 @@ set(SPECTRE_ANALYSIS_SOURCES
     TraceLemmas.cpp
     TheoryAxioms.cpp
     ProgramTraverser.cpp
+    LemmasVariableDiffs.cpp
     LemmasVariableValues.cpp
     LemmasIterators.cpp
     LemmasOther.cpp
@@ -19,6 +20,7 @@ set(SPECTRE_ANALYSIS_HEADERS
     TraceLemmas.hpp
     TheoryAxioms.hpp
     ProgramTraverser.hpp
+    LemmasVariableDiffs.hpp    
     LemmasVariableValues.hpp
     LemmasIterators.hpp
     LemmasOther.hpp

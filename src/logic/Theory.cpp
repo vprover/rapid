@@ -25,6 +25,8 @@ namespace logic {
         natSucc(zero);
         natPre(zero);
         natSub(zero, zero);
+
+        toInt(zero);
     }
 
     std::shared_ptr<const FuncTerm> Theory::intConstant(int i)
@@ -55,6 +57,11 @@ namespace logic {
     std::shared_ptr<const FuncTerm> Theory::intAbsolute(std::shared_ptr<const Term> t)
     {
         return Terms::func("abs", {t}, Sorts::intSort(), true);
+    }
+
+    std::shared_ptr<const FuncTerm> Theory::toInt(std::shared_ptr<const Term> t)
+    {
+        return Terms::func("to-int", {t}, Sorts::intSort(), false);
     }
     
     std::shared_ptr<const Formula> Theory::intLess(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2, std::string label)

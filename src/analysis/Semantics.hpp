@@ -30,6 +30,7 @@ namespace analysis {
         numberOfTraces(numberOfTraces),
         inlinedVariableValues(traceTerms(numberOfTraces)) {}
         std::pair<std::vector<std::shared_ptr<const logic::Axiom>>, InlinedVariableValues> generateSemantics();
+        std::vector<std::shared_ptr<const logic::Axiom>> generateBounds();
 
     private:
 

@@ -28,7 +28,7 @@ namespace program {
             Subtraction,
             Modulo,
             Multiplication,
-            IntVariableAccess,
+            IntOrNatVariableAccess,
             IntArrayApplication,
         };
         virtual Type type() const = 0;

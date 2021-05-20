@@ -106,7 +106,7 @@ namespace parser
         for (const auto& pairNameVar : programVarsDeclarations)
         {
             auto var = pairNameVar.second;
-            if (!var->isArray)
+            if (!var->isArray())
             {
                 activeVars.push_back(var);
             } else

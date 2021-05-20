@@ -7,6 +7,7 @@
 #include "Statements.hpp"
 #include "Program.hpp"
 
+std::shared_ptr<const logic::Symbol> locationSymbol(std::string location, unsigned numberOfLoops);
 std::shared_ptr<const logic::Symbol> locationSymbolForStatement(const program::Statement* statement);
 std::shared_ptr<const logic::Symbol> locationSymbolEndLocation(const program::Function* function);
 
