@@ -5,7 +5,6 @@ func main()
 	Int[] a;
 	const Int[] b;
 	const Int blength;
-
 	Int alength = 0;
 	Int i = 0;
 	while(i < blength)
@@ -18,7 +17,7 @@ func main()
 
 (axiom
 	(forall ((it Nat))
-		(<= (alength (l11 it)) (i (l11 it)))
+		(<= (alength (l10 it)) (i (l10 it)))
 	)
 )
 

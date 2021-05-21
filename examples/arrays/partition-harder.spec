@@ -9,12 +9,10 @@ func main()
 {
   const Int[] a;
   const Int alength;
-
   Int[] b;
   Int blength = 0;
   Int[] c;
   Int clength = 0;
-
 	Int i = 0;
 	while(i < alength)
 	{
@@ -35,18 +33,21 @@ func main()
 (axiom
   (forall ((it Nat))
     (<=
-      (blength (l19 it))
-      (i (l19 it))
+      (blength (l17 it))
+      (i (l17 it))
     )
   )
 )
 (axiom
   (forall ((it Nat))
     (<=
-      (clength (l19 it))
-      (i (l19 it))
+      (clength (l17 it))
+      (i (l17 it))
     )
   )
+)
+(axiom
+  (<= 0 alength)
 )
 
 (conjecture

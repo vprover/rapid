@@ -3,9 +3,7 @@ func main()
 	const Int[] a;
 	const Int[] b;
 	Int[] c;
-
 	const Int length;
-
 	Int i = 0;
 	Int clength = 0;
 	while(i < length)
@@ -45,7 +43,7 @@ func main()
 
 (axiom
 	(forall ((it Nat))
-		(<= (clength (l11 it)) (i (l11 it)))
+		(<= (clength (l9 it)) (i (l9 it)))
 	)
 )
 
