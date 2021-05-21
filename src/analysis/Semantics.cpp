@@ -80,8 +80,8 @@ namespace analysis {
                         auto symInit = initTargetSymbol(variable);
                         auto symFinal = finalTargetSymbol(variable);
                         colorSymbol(variable);
-                        auto lEnd = endTimePointMap.at(function->statements.back().get());
-                        // hack to get the start timepoint of the first while loop 
+                        // hack to get the start and end timepoint of the first (outermost) while loop 
+                        auto lEnd = loopEndTimePoints.front();
                         auto lStart = loopStartTimePoints.front();
 
                         //add definitions for final and initial values
@@ -503,7 +503,7 @@ namespace analysis {
         auto lStartN = timepointForLoopStatement(whileStatement, n);
         auto lBodyStartIt = startTimepointForStatement(whileStatement->bodyStatements.front().get());
         auto lEnd = endTimePointMap.at(whileStatement);
-
+        loopEndTimePoints.push_back(lEnd);
         auto posSymbol = posVarSymbol();
         auto pos = posVar();
 

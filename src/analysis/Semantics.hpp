@@ -44,6 +44,8 @@ namespace analysis {
         std::unordered_map<std::string, std::shared_ptr<const program::Variable>> coloredSymbols;
         //used to track start timepoints of all loops to find the first relevant timepoint for target symbols
         std::vector<std::shared_ptr<const logic::Term>> loopStartTimePoints;
+                //used to track start timepoints of all loops to find the last relevant timepoint for target symbols
+        std::vector<std::shared_ptr<const logic::Term>> loopEndTimePoints;
 
 
         std::shared_ptr<const logic::Formula> generateSemantics(const program::Statement* statement, SemanticsInliner& inliner, std::shared_ptr<const logic::Term> trace);
