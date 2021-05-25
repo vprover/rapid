@@ -393,6 +393,67 @@ namespace analysis {
                             fromItems = {inductionAxBCDef->name, inductionAxICDef->name, inductionAxiomConDef->name, inductionAxiom->name, denseDef->name};
                         }
                         items.push_back(std::make_shared<logic::Lemma>(lemma, name, logic::ProblemItem::Visibility::Implicit, fromItems));
+
+                        // Note for integer encoding it makes sense to add a second notion of strict density to derive i(l(0)) + it = i(l(it))
+                        // PART 2A: Add definition for strict dense
+                        auto denseStrict = logic::Formulas::lemmaPredicate("Dense-strict-" + nameSuffix, freeVars1);
+                        // Dense_v: forall it. (0≤it<n => ( v(l(s(it))    )=v(l(it)    )+1 ) )         , or
+                        //          forall it. (0≤it<n => ( v(l(s(it)),pos)=v(l(it),pos)+1 ) )
+                        auto denseStrictFormula =
+                            logic::Formulas::universal({itSymbol},
+                                logic::Formulas::implication(
+                                    logic::Formulas::conjunction({
+                                        logic::Theory::intLessEqual(logic::Theory::intZero(),it),
+                                        logic::Theory::intLess(it, n),
+                                    }),
+                                    logic::Formulas::equality(
+                                        v->isArray ? toTerm(v,lStartSuccOfIt,pos,trace) : toTerm(v,lStartSuccOfIt,trace),
+                                        logic::Theory::intAddition(
+                                            v->isArray ?  toTerm(v,lStartIt,pos,trace) : toTerm(v,lStartIt,trace),
+                                            logic::Theory::intConstant(1)
+                                        )
+                                    )
+                                    
+                                )
+                            );
+                        auto denseStrictDef =
+                            std::make_shared<logic::Definition>(
+                                logic::Formulas::universal(freeVarSymbols1,
+                                    logic::Formulas::equivalence(
+                                        denseStrict,
+                                        denseStrictFormula
+                                    )
+                                ),
+                                "Dense-strict for " + nameSuffix,
+                                logic::ProblemItem::Visibility::Implicit
+                            );
+
+                        items.push_back(denseStrictDef);
+
+                        // PART 3B: Add lemma
+                        // Dense-strict-v-l => forall it. (0≤it<n => ( v(l(it)) = v(l(0)) + it ) )
+                        auto lemmaStrict =
+                            logic::Formulas::implication(denseStrict, 
+                                logic::Formulas::universal({itSymbol},
+                                    logic::Formulas::implication(
+                                        logic::Formulas::conjunction({
+                                            logic::Theory::intLessEqual(logic::Theory::intZero(),it),
+                                            logic::Theory::intLess(it, n),
+                                        }),
+                                        logic::Formulas::equality(
+                                            v->isArray ? toTerm(v,lStartIt,pos,trace) : toTerm(v,lStartIt,trace),
+                                            logic::Theory::intAddition(
+                                                v->isArray ?  toTerm(v,lStartIt,pos,trace) : toTerm(v,lStartIt,trace),
+                                                it
+                                            )
+                                        )
+                                    )
+                                )
+                            );
+                        
+                        items.push_back(std::make_shared<logic::Definition>(lemmaStrict, "Strict density for " + nameSuffix,logic::ProblemItem::Visibility::Implicit));
+
+                            
                     }
                 }
             }
