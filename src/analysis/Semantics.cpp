@@ -503,7 +503,7 @@ namespace analysis {
         auto lStartN = timepointForLoopStatement(whileStatement, n);
         auto lBodyStartIt = startTimepointForStatement(whileStatement->bodyStatements.front().get());
         auto lEnd = endTimePointMap.at(whileStatement);
-        loopEndTimePoints.push_back(lEnd);
+        loopEndTimePoints.push_back(lStartN);
         auto posSymbol = posVarSymbol();
         auto pos = posVar();
 
