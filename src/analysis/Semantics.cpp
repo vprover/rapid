@@ -132,9 +132,9 @@ namespace analysis {
 
     std::shared_ptr<const logic::Formula> Semantics::generateSemantics(const program::Statement* statement, SemanticsInliner& inliner, std::shared_ptr<const logic::Term> trace)
     {
-        if (statement->type() == program::Statement::Type::IntAssignment)
+        if (statement->type() == program::Statement::Type::Assignment)
         {
-            auto castedStatement = static_cast<const program::IntAssignment*>(statement);
+            auto castedStatement = static_cast<const program::Assignment*>(statement);
             return generateSemantics(castedStatement, inliner, trace);
         }
         else if (statement->type() == program::Statement::Type::IfElse)
@@ -155,7 +155,7 @@ namespace analysis {
         }
     }
 
-    std::shared_ptr<const logic::Formula> Semantics::generateSemantics(const program::IntAssignment* intAssignment, SemanticsInliner& inliner, std::shared_ptr<const logic::Term> trace)
+    std::shared_ptr<const logic::Formula> Semantics::generateSemantics(const program::Assignment* intAssignment, SemanticsInliner& inliner, std::shared_ptr<const logic::Term> trace)
     {
         std::vector<std::shared_ptr<const logic::Formula>> conjuncts;
 
@@ -166,9 +166,10 @@ namespace analysis {
         auto activeVars = intersection(locationToActiveVars.at(l1Name), locationToActiveVars.at(l2Name));
 
         // case 1: assignment to int var
-        if (intAssignment->lhs->type() == program::IntExpression::Type::IntOrNatVariableAccess)
+        if (intAssignment->lhs->type() == program::Type::IntOrNatVariableAccess)
         {
             auto castedLhs = std::static_pointer_cast<const program::IntOrNatVariableAccess>(intAssignment->lhs);
+            auto castedRhs = std::static_pointer_cast<const program::IntExpression>(intAssignment->rhs);
 
             if (util::Configuration::instance().inlineSemantics())
             {
@@ -176,7 +177,7 @@ namespace analysis {
                 auto f1 = inliner.handlePersistence(l1, locationToActiveVars.at(l1Name));
                 conjuncts.push_back(f1);
 
-                auto f2 = inliner.setIntVarValue(castedLhs->var, inliner.toCachedTerm(intAssignment->rhs));
+                auto f2 = inliner.setIntVarValue(castedLhs->var, inliner.toCachedTerm(castedRhs));
                 conjuncts.push_back(f2);
 
                 return logic::Formulas::conjunctionSimp(conjuncts, "Update variable " + castedLhs->var->name + " at location " + intAssignment->location);
@@ -184,7 +185,7 @@ namespace analysis {
             else
             {
                 // lhs(l2) = rhs(l1)
-                auto eq = logic::Formulas::equality(toTerm(castedLhs,l2,trace), toTerm(intAssignment->rhs,l1,trace));
+                auto eq = logic::Formulas::equality(toTerm(castedLhs,l2,trace), toTerm(castedRhs,l1,trace));
                 conjuncts.push_back(eq);
 
                 for (const auto& var : activeVars)
@@ -227,8 +228,9 @@ namespace analysis {
         // case 2: assignment to int-array var
         else
         {
-            assert(intAssignment->lhs->type() == program::IntExpression::Type::IntArrayApplication);
+            assert(intAssignment->lhs->type() == program::Type::IntArrayApplication);
             auto application = std::static_pointer_cast<const program::IntArrayApplication>(intAssignment->lhs);
+            auto castedRhs = std::static_pointer_cast<const program::IntExpression>(intAssignment->rhs);
 
             if (util::Configuration::instance().inlineSemantics())
             {
@@ -238,7 +240,7 @@ namespace analysis {
 
                 // a(l2, cached(e)) = cached(rhs)
                 auto eq1Lhs = toTerm(application->array,l2,inliner.toCachedTerm(application->index),trace);
-                auto eq1Rhs = inliner.toCachedTerm(intAssignment->rhs);
+                auto eq1Rhs = inliner.toCachedTerm(castedRhs);
                 auto eq1 = logic::Formulas::equality(eq1Lhs, eq1Rhs);
                 conjuncts.push_back(eq1);
 
@@ -260,7 +262,7 @@ namespace analysis {
             {
                 // a(l2, e(l1)) = rhs(l1)
                 auto eq1Lhs = toTerm(application->array,l2,toTerm(application->index,l1,trace),trace);
-                auto eq1Rhs = toTerm(intAssignment->rhs,l1,trace);
+                auto eq1Rhs = toTerm(castedRhs,l1,trace);
                 auto eq1 = logic::Formulas::equality(eq1Lhs, eq1Rhs);
                 conjuncts.push_back(eq1);
 

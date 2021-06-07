@@ -239,18 +239,18 @@ namespace analysis {
 
         switch (statement->type())
         {
-            case program::Statement::Type::IntAssignment:
+            case program::Statement::Type::Assignment:
             {
-                auto castedStatement = static_cast<const program::IntAssignment*>(statement);
+                auto castedStatement = static_cast<const program::Assignment*>(statement);
                 // add variable on lhs to assignedVars, independently from whether those vars are simple ones or arrays.
-                if (castedStatement->lhs->type() == program::IntExpression::Type::IntOrNatVariableAccess)
+                if (castedStatement->lhs->type() == program::Type::IntOrNatVariableAccess)
                 {
                     auto access = static_cast<const program::IntOrNatVariableAccess*>(castedStatement->lhs.get());
                     assignedVars.insert(access->var);
                 }
                 else
                 {
-                    assert(castedStatement->lhs->type() == program::IntExpression::Type::IntArrayApplication);
+                    assert(castedStatement->lhs->type() == program::Type::IntArrayApplication);
                     auto arrayAccess = static_cast<const program::IntArrayApplication*>(castedStatement->lhs.get());
                     assignedVars.insert(arrayAccess->array);
                 }

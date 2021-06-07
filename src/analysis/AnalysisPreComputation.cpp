@@ -51,7 +51,7 @@ namespace analysis
         // set endTimepoint for atomic statement
         else
         {
-            assert(statement->type() == program::Statement::Type::IntAssignment ||
+            assert(statement->type() == program::Statement::Type::Assignment ||
                    statement->type() == program::Statement::Type::SkipStatement);
             endTimePointMap[statement] = nextTimepoint;
         }
@@ -106,18 +106,18 @@ namespace analysis
 
         switch (statement->type())
         {
-            case program::Statement::Type::IntAssignment:
+            case program::Statement::Type::Assignment:
             {
-                auto castedStatement = static_cast<const program::IntAssignment*>(statement);
+                auto castedStatement = static_cast<const program::Assignment*>(statement);
                 // add variable on lhs to assignedVars, independently from whether those vars are simple ones or arrays.
-                if (castedStatement->lhs->type() == program::IntExpression::Type::IntOrNatVariableAccess)
+                if (castedStatement->lhs->type() == program::Type::IntOrNatVariableAccess)
                 {
                     auto access = static_cast<const program::IntOrNatVariableAccess*>(castedStatement->lhs.get());
                     assignedVars.insert(access->var);
                 }
                 else
                 {
-                    assert(castedStatement->lhs->type() == program::IntExpression::Type::IntArrayApplication);
+                    assert(castedStatement->lhs->type() == program::Type::IntArrayApplication);
                     auto arrayAccess = static_cast<const program::IntArrayApplication*>(castedStatement->lhs.get());
                     assignedVars.insert(arrayAccess->array);
                 }
@@ -203,48 +203,48 @@ namespace analysis
         assert(expr != nullptr);
         switch (expr->type())
         {
-            case program::IntExpression::Type::Addition:
+            case program::Type::Addition:
             {
                 auto castedExpr = std::static_pointer_cast<const program::Addition>(expr);
                 computeVariablesContainedInLoopCondition(castedExpr->summand1, variables);
                 computeVariablesContainedInLoopCondition(castedExpr->summand2, variables);
                 break;
             }
-            case program::IntExpression::Type::Subtraction:
+            case program::Type::Subtraction:
             {
                 auto castedExpr = std::static_pointer_cast<const program::Subtraction>(expr);
                 computeVariablesContainedInLoopCondition(castedExpr->child1, variables);
                 computeVariablesContainedInLoopCondition(castedExpr->child2, variables);
                 break;
             }
-            case program::IntExpression::Type::Multiplication:
+            case program::Type::Multiplication:
             {
                 auto castedExpr = std::static_pointer_cast<const program::Multiplication>(expr);
                 computeVariablesContainedInLoopCondition(castedExpr->factor1, variables);
                 computeVariablesContainedInLoopCondition(castedExpr->factor2, variables);
                 break;
             }
-            case program::IntExpression::Type::Modulo:
+            case program::Type::Modulo:
             {
                 auto castedExpr = std::static_pointer_cast<const program::Modulo>(expr);
                 computeVariablesContainedInLoopCondition(castedExpr->child1, variables);
                 computeVariablesContainedInLoopCondition(castedExpr->child2, variables);
                 break;
             }
-            case program::IntExpression::Type::IntOrNatVariableAccess:
+            case program::Type::IntOrNatVariableAccess:
             {
                 auto castedExpr = std::static_pointer_cast<const program::IntOrNatVariableAccess>(expr);
                 variables.insert(castedExpr->var);
                 break;
             }
-            case program::IntExpression::Type::IntArrayApplication:
+            case program::Type::IntArrayApplication:
             {
                 auto castedExpr = std::static_pointer_cast<const program::IntArrayApplication>(expr);
                 variables.insert(castedExpr->array);
                 computeVariablesContainedInLoopCondition(castedExpr->index, variables);
                 break;
             }
-            case program::IntExpression::Type::ArithmeticConstant:
+            case program::Type::ArithmeticConstant:
             {
                 // do nothing
                 break;

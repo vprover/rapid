@@ -9,7 +9,7 @@ namespace program
 {
     std::ostream& operator<<(std::ostream& ostr, const Statement& v){ostr << v.toString(0); return ostr;};
 
-    std::string IntAssignment::toString(int indentation) const
+    std::string Assignment::toString(int indentation) const
     {
         return std::string(indentation, ' ') + lhs->toString() + " = " + rhs->toString() + " @" + location;
     }

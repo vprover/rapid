@@ -41,7 +41,7 @@ namespace analysis
     private:
         void visitStatement(const program::Statement* statement, OutputType& output);
         
-        virtual void generateOutputFor(const program::IntAssignment* statement,  OutputType& output);
+        virtual void generateOutputFor(const program::Assignment* statement,  OutputType& output);
         virtual void generateOutputFor(const program::IfElse* statement,         OutputType& output);
         virtual void generateOutputFor(const program::WhileStatement* statement, OutputType& output);
         virtual void generateOutputFor(const program::SkipStatement* statement,  OutputType& output);
@@ -65,9 +65,9 @@ namespace analysis
     {
         switch (statement->type())
         {
-            case program::Statement::Type::IntAssignment:
+            case program::Statement::Type::Assignment:
             {
-                auto castedAssignment = static_cast<const program::IntAssignment*>(statement);
+                auto castedAssignment = static_cast<const program::Assignment*>(statement);
                 // generate output
                 generateOutputFor(castedAssignment, output);
                 break;
@@ -124,7 +124,7 @@ namespace analysis
     }
     
     template <class OutputType>
-    void ProgramTraverser<OutputType>::generateOutputFor(const program::IntAssignment* statement, OutputType& output){}
+    void ProgramTraverser<OutputType>::generateOutputFor(const program::Assignment* statement, OutputType& output){}
     template <class OutputType>
     void ProgramTraverser<OutputType>::generateOutputFor(const program::IfElse* statement, OutputType& output){}
     template <class OutputType>

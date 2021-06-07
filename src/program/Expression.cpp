@@ -7,7 +7,7 @@
 #include "Options.hpp"
 
 namespace program {
-    
+   
     std::string ArithmeticConstant::toString() const
     {
         return std::to_string(value);
@@ -70,6 +70,11 @@ namespace program {
     }
     
     std::ostream& operator<<(std::ostream& ostr, const IntExpression& e)
+    {
+        ostr << e.toString();
+        return ostr;
+    }
+    std::ostream& operator<<(std::ostream& ostr, const PointerExpression& e)
     {
         ostr << e.toString();
         return ostr;

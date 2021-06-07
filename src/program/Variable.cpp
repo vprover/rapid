@@ -26,5 +26,15 @@ namespace program {
     {
         return array->name + "[" + index->toString() + "]";
     }
+
+    std::string PointerVariableAccess::toString() const
+    {
+        return var->name;
+    }
+
+    std::string VarReference::toString() const
+    {
+        return "&" + referent->name;
+    } 
 }
 

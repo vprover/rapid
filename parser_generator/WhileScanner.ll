@@ -83,6 +83,7 @@ exists      	{ return parser::WhileParser::make_EXISTSSMTLIB(loc); }
 "]"          { return parser::WhileParser::make_RBRA(loc); }
 "{"          { return parser::WhileParser::make_LCUR(loc); }
 "}"          { return parser::WhileParser::make_RCUR(loc); }
+"&"          { return parser::WhileParser::make_REFERENCE(loc); }
 
 ";"          { return parser::WhileParser::make_SCOL(loc); }
 

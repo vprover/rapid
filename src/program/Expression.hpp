@@ -15,27 +15,37 @@
 #include <utility>
 
 namespace program {
-    
-    class IntExpression
+
+    enum class Type
+    {
+        ArithmeticConstant,
+        Addition,
+        Subtraction,
+        Modulo,
+        Multiplication,
+        IntOrNatVariableAccess,
+        PointerVariableAccess,
+        PointerDeref,
+        IntArrayApplication,
+        VarReference,
+    };
+
+    class Expression
     {
     public:
-        virtual ~IntExpression() {}
+        virtual ~Expression() {}
         
-        enum class Type
-        {
-            ArithmeticConstant,
-            Addition,
-            Subtraction,
-            Modulo,
-            Multiplication,
-            IntOrNatVariableAccess,
-            IntArrayApplication,
-        };
+
         virtual Type type() const = 0;
         
         virtual std::string toString() const = 0;
     };
+
+    class IntExpression : public Expression
+    {
+    };
     std::ostream& operator<<(std::ostream& ostr, const IntExpression& e);
+
 
     class ArithmeticConstant : public IntExpression
     {
@@ -44,7 +54,7 @@ namespace program {
         
         const int value;
         
-        Type type() const override { return IntExpression::Type::ArithmeticConstant; }
+        Type type() const override { return program::Type::ArithmeticConstant; }
         std::string toString() const override;
     };
     
@@ -57,7 +67,7 @@ namespace program {
         const std::shared_ptr<const IntExpression> summand1;
         const std::shared_ptr<const IntExpression> summand2;
         
-        Type type() const override { return IntExpression::Type::Addition; }
+        Type type() const override { return program::Type::Addition; }
         std::string toString() const override;
     };
 
@@ -70,7 +80,7 @@ namespace program {
         const std::shared_ptr<const IntExpression> child1;
         const std::shared_ptr<const IntExpression> child2;
         
-        Type type() const override { return IntExpression::Type::Subtraction; }
+        Type type() const override { return program::Type::Subtraction; }
         std::string toString() const override;
     };
     
@@ -83,7 +93,7 @@ namespace program {
         const std::shared_ptr<const IntExpression> child1;
         const std::shared_ptr<const IntExpression> child2;
         
-        Type type() const override { return IntExpression::Type::Modulo; }
+        Type type() const override { return program::Type::Modulo; }
         std::string toString() const override;
     };
     
@@ -96,10 +106,16 @@ namespace program {
         const std::shared_ptr<const IntExpression> factor1;
         const std::shared_ptr<const IntExpression> factor2;
         
-        Type type() const override { return IntExpression::Type::Multiplication; }
+        Type type() const override { return program::Type::Multiplication; }
         std::string toString() const override;
     };
     
+    class PointerExpression : public Expression
+    {
+    };
+    std::ostream& operator<<(std::ostream& ostr, const IntExpression& e);
+
+
     class BoolExpression
     {
     public:

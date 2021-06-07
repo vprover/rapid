@@ -34,7 +34,7 @@ namespace program
          */
         std::unique_ptr<std::vector<const WhileStatement*>> enclosingLoops;
         
-        enum class Type{ IntAssignment, IfElse, WhileStatement, SkipStatement };
+        enum class Type{ Assignment, IfElse, WhileStatement, SkipStatement };
         virtual Type type() const = 0;
         
         virtual std::string toString(int indentation) const = 0;
@@ -50,16 +50,16 @@ namespace program
     // hack needed for bison: std::vector has no overload for ostream, but these overloads are needed for bison
     std::ostream& operator<<(std::ostream& ostr, const std::vector< std::shared_ptr<const program::Statement>>& e);
     
-    class IntAssignment : public Statement
+    class Assignment : public Statement
     {
     public:
         
-        IntAssignment(unsigned lineNumber, std::shared_ptr<const IntExpression> lhs, std::shared_ptr<const IntExpression> rhs) : Statement(lineNumber), lhs(std::move(lhs)), rhs(std::move(rhs)){}
+        Assignment(unsigned lineNumber, std::shared_ptr<const Expression> lhs, std::shared_ptr<const Expression> rhs) : Statement(lineNumber), lhs(std::move(lhs)), rhs(std::move(rhs)){}
         
-        const std::shared_ptr<const IntExpression> lhs;
-        const std::shared_ptr<const IntExpression> rhs;
+        const std::shared_ptr<const Expression> lhs;
+        const std::shared_ptr<const Expression> rhs;
         
-        Type type() const override {return Type::IntAssignment;}
+        Type type() const override {return Type::Assignment;}
         std::string toString(int indentation) const override;
     };
     

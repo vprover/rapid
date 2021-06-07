@@ -208,37 +208,37 @@ namespace analysis
 
         switch (expr->type())
         {
-            case program::IntExpression::Type::ArithmeticConstant:
+            case program::Type::ArithmeticConstant:
             {
                 auto castedExpr = std::static_pointer_cast<const program::ArithmeticConstant>(expr);
                 return logic::Theory::intConstant(castedExpr->value);
             }
-            case program::IntExpression::Type::Addition:
+            case program::Type::Addition:
             {
                 auto castedExpr = std::static_pointer_cast<const program::Addition>(expr);
                 return logic::Theory::intAddition(toCachedTerm(castedExpr->summand1), toCachedTerm(castedExpr->summand2));
             }
-            case program::IntExpression::Type::Subtraction:
+            case program::Type::Subtraction:
             {
                 auto castedExpr = std::static_pointer_cast<const program::Subtraction>(expr);
                 return logic::Theory::intSubtraction(toCachedTerm(castedExpr->child1), toCachedTerm(castedExpr->child2));
             }
-            case program::IntExpression::Type::Modulo:
+            case program::Type::Modulo:
             {
                 auto castedExpr = std::static_pointer_cast<const program::Modulo>(expr);
                 return logic::Theory::intModulo(toCachedTerm(castedExpr->child1), toCachedTerm(castedExpr->child2));
             }
-            case program::IntExpression::Type::Multiplication:
+            case program::Type::Multiplication:
             {
                 auto castedExpr = std::static_pointer_cast<const program::Multiplication>(expr);
                 return logic::Theory::intMultiplication(toCachedTerm(castedExpr->factor1), toCachedTerm(castedExpr->factor2));
             }
-            case program::IntExpression::Type::IntOrNatVariableAccess:
+            case program::Type::IntOrNatVariableAccess:
             {
                 auto castedExpr = std::static_pointer_cast<const program::IntOrNatVariableAccess>(expr);
                 return toCachedTermFull(castedExpr->var);
             }
-            case program::IntExpression::Type::IntArrayApplication:
+            case program::Type::IntArrayApplication:
             {
                 auto castedExpr = std::static_pointer_cast<const program::IntArrayApplication>(expr);
                 return toCachedTermFull(castedExpr->array, toCachedTerm(castedExpr->index));
@@ -562,32 +562,32 @@ namespace analysis
 
         switch (expr->type())
         {
-            case program::IntExpression::Type::ArithmeticConstant:
+            case program::Type::ArithmeticConstant:
             {
                 auto castedExpr = std::static_pointer_cast<const program::ArithmeticConstant>(expr);
                 return logic::Theory::intConstant(castedExpr->value);
             }
-            case program::IntExpression::Type::Addition:
+            case program::Type::Addition:
             {
                 auto castedExpr = std::static_pointer_cast<const program::Addition>(expr);
                 return logic::Theory::intAddition(toInlinedTerm(whileStatement, castedExpr->summand1, timepoint, trace), toInlinedTerm(whileStatement, castedExpr->summand2, timepoint, trace));
             }
-            case program::IntExpression::Type::Subtraction:
+            case program::Type::Subtraction:
             {
                 auto castedExpr = std::static_pointer_cast<const program::Subtraction>(expr);
                 return logic::Theory::intSubtraction(toInlinedTerm(whileStatement, castedExpr->child1, timepoint, trace), toInlinedTerm(whileStatement, castedExpr->child2, timepoint, trace));
             }
-            case program::IntExpression::Type::Modulo:
+            case program::Type::Modulo:
             {
                 auto castedExpr = std::static_pointer_cast<const program::Modulo>(expr);
                 return logic::Theory::intModulo(toInlinedTerm(whileStatement, castedExpr->child1, timepoint, trace), toInlinedTerm(whileStatement, castedExpr->child2, timepoint, trace));
             }
-            case program::IntExpression::Type::Multiplication:
+            case program::Type::Multiplication:
             {
                 auto castedExpr = std::static_pointer_cast<const program::Multiplication>(expr);
                 return logic::Theory::intMultiplication(toInlinedTerm(whileStatement, castedExpr->factor1, timepoint, trace), toInlinedTerm(whileStatement, castedExpr->factor2, timepoint, trace));
             }
-            case program::IntExpression::Type::IntOrNatVariableAccess:
+            case program::Type::IntOrNatVariableAccess:
             {
                 auto var = std::static_pointer_cast<const program::IntOrNatVariableAccess>(expr)->var;
                 if (AnalysisPreComputation::computeAssignedVars(whileStatement).count(var) == 0)
@@ -601,7 +601,7 @@ namespace analysis
                     return toTerm(var, timepoint, trace);
                 }
             }
-            case program::IntExpression::Type::IntArrayApplication:
+            case program::Type::IntArrayApplication:
             {
                 auto castedExpr = std::static_pointer_cast<const program::IntArrayApplication>(expr);
                 auto arrayVar = castedExpr->array;

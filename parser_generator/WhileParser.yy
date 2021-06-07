@@ -88,6 +88,7 @@ YY_DECL;
   EQ            "=="
   NEQ           "!="
   OR            "||"
+  REFERENCE     "&"
   AND           "&&"
   ANDSMTLIB     "and"
   ORSMTLIB      "or"
@@ -126,14 +127,17 @@ YY_DECL;
 %type < std::vector<std::shared_ptr<const program::Statement>> > statement_list
 %type < std::shared_ptr<const program::Statement> > statement
 %type < std::vector<std::shared_ptr<const program::Variable>> > active_vars_dummy
-%type < std::shared_ptr<const program::IntAssignment> > assignment_statement
+%type < std::shared_ptr<const program::Assignment> > assignment_statement
 %type < std::shared_ptr<const program::IfElse> > if_else_statement
 %type < std::shared_ptr<const program::WhileStatement> > while_statement
 %type < std::shared_ptr<const program::SkipStatement> > skip_statement
 
+%type < std::shared_ptr<const program::VarType>> type_dec
+
 %type < std::shared_ptr<const program::BoolExpression> > formula
-%type < std::shared_ptr<const program::IntExpression> > expr
-%type < std::shared_ptr<const program::IntExpression> > location
+%type < std::shared_ptr<const program::IntExpression> > int_expr
+%type < std::shared_ptr<const program::VarReference> > ref_expr
+%type < std::shared_ptr<const program::Expression> > location
 
 %printer { yyoutput << $$; } <*>;
 
@@ -490,9 +494,9 @@ statement:
 ;
 
 assignment_statement:
-  location ASSIGN expr SCOL 
+  location ASSIGN int_expr SCOL 
   {
-    if($1->type() == IntExpression::Type::IntOrNatVariableAccess)
+    if($1->type() == program::Type::IntOrNatVariableAccess)
     {
       auto variableAccess = std::static_pointer_cast<const program::IntOrNatVariableAccess>($1);
       if(variableAccess->var->isConstant)
@@ -502,16 +506,16 @@ assignment_statement:
     }
     else
     {
-      assert($1->type() == IntExpression::Type::IntArrayApplication);
+      assert($1->type() == program::Type::IntArrayApplication);
       auto intArrayApplication = std::static_pointer_cast<const program::IntArrayApplication>($1);
       if(intArrayApplication->array->isConstant)
       {
         error(@1, "Assignment to const var " + intArrayApplication->array->name);
       }
     }
-    $$ = std::shared_ptr<const program::IntAssignment>(new program::IntAssignment(@2.begin.line, std::move($1), std::move($3)));
+    $$ = std::shared_ptr<const program::Assignment>(new program::Assignment(@2.begin.line, std::move($1), std::move($3)));
   }
-| var_definition_head ASSIGN expr SCOL
+| var_definition_head ASSIGN int_expr SCOL
   {
     // declare var
     context.addProgramVar($1);
@@ -525,7 +529,37 @@ assignment_statement:
     auto intVariableAccess = std::shared_ptr<const program::IntOrNatVariableAccess>(new IntOrNatVariableAccess(std::move($1)));
    
     // build assignment
-    $$ = std::shared_ptr<const program::IntAssignment>(new program::IntAssignment(@2.begin.line, std::move(intVariableAccess), std::move($3)));
+    $$ = std::shared_ptr<const program::Assignment>(new program::Assignment(@2.begin.line, std::move(intVariableAccess), std::move($3)));
+  } 
+| location ASSIGN ref_expr SCOL
+  {
+    if($1->type() != program::Type::PointerVariableAccess)
+    {
+      error(@1, "Assignment of reference to non-pointer variable " + $1->toString());
+    } 
+    auto variableAccess = std::static_pointer_cast<const program::PointerVariableAccess>($1);
+    if(variableAccess->var->isConstant)
+    {
+      error(@1, "Assignment to const var " + variableAccess->var->name);
+    }
+   
+    $$ = std::shared_ptr<const program::Assignment>(new program::Assignment(@2.begin.line, std::move($1), std::move($3)));
+  } 
+| var_definition_head ASSIGN ref_expr SCOL
+  {
+    // declare var
+    context.addProgramVar($1);
+    declareSymbolForProgramVar($1.get());
+
+    // construct location
+    if(!$1->isPointer())
+    {
+      error(@1, "Cannot assign a reference to variable of non-pointer type " + $1->name);
+    }
+    auto variableAccess = std::shared_ptr<const program::PointerVariableAccess>(new PointerVariableAccess(std::move($1)));
+   
+    // build assignment
+    $$ = std::shared_ptr<const program::Assignment>(new program::Assignment(@2.begin.line, std::move(variableAccess), std::move($3)));    
   }
 ;
 
@@ -578,82 +612,77 @@ active_vars_dummy:
 ;
 
 var_definition_head:
-  TYPE PROGRAM_ID
+  type_dec PROGRAM_ID
   {
-    if($1 == "Bool")
-    {
-      error(@1, "Program variables of type Bool are not supported");
-    }
-    if($1 == "Time" || $1 == "Trace")
-    {
-      error(@1, "Program variables can't have type " + $1);
-    }
-    program::VarType vt = $1 == "Nat" ? program::VarType::NAT : program::VarType::INTEGER; 
-    $$ = std::shared_ptr<const program::Variable>(new program::Variable($2, false, vt, context.numberOfTraces));
+    $$ = std::shared_ptr<const program::Variable>(new program::Variable($2, false,  std::move($1), context.numberOfTraces));
   }
-| CONST TYPE PROGRAM_ID
+| CONST type_dec PROGRAM_ID
   {
-    if($2 == "Bool")
-    {
-      error(@1, "Program variables of type Bool are not supported");
-    }
-    if($2 == "Time" || $2 == "Trace")
-    {
-      error(@2, "Program variables can't have type " + $2);
-    }
-    program::VarType vt = $2 == "Nat" ? program::VarType::NAT : program::VarType::INTEGER; 
-    $$ = std::shared_ptr<const program::Variable>(new program::Variable($3, true, vt, context.numberOfTraces));
-  }
-| TYPE LBRA RBRA PROGRAM_ID
-  {
-    if($1 == "Bool")
-    {
-      error(@1, "Program variables of type Bool are not supported");
-    }
-    if($1 == "Time" || $1 == "Trace")
-    {
-      error(@1, "Program variables can't have type " + $1);
-    }
-    $$ = std::shared_ptr<const program::Variable>(new program::Variable($4, false, program::VarType::ARRAY, context.numberOfTraces));
-  }
-| CONST TYPE LBRA RBRA PROGRAM_ID
-  {
-    if($2 == "Bool")
-    {
-      error(@1, "Program variables of type Bool are not supported");
-    }
-    if($2 == "Time" || $2 == "Trace")
-    {
-      error(@2, "Program variables can't have type " + $2);
-    }
-    $$ = std::shared_ptr<const program::Variable>(new program::Variable($5, true, program::VarType::ARRAY, context.numberOfTraces));
+    $$ = std::shared_ptr<const program::Variable>(new program::Variable($3, true, std::move($2), context.numberOfTraces));
   }
 ;
+
+type_dec:
+  TYPE
+  {
+    program::VariableType vt = program::VariableType::INTEGER;
+    if($1 == "Int"){}
+    else if($1 == "Nat"){
+      vt = program::VariableType::NAT;
+    } else {
+      error(@1, "Only program variables of type Nat and Int are currently supported");
+    }
+    $$ = std::shared_ptr<const program::VarType>(new program::VarType(vt));
+  }
+| TYPE LBRA RBRA
+  {
+    if($1 != "Int"){
+      error(@1, "Only integer arrays are currently supported");
+    }
+    $$ = std::shared_ptr<const program::VarType>(new program::VarType(program::VariableType::ARRAY));
+  }
+| type_dec MUL {$$ = std::shared_ptr<const program::PointerVarType>(new program::PointerVarType(std::move($1)));}
+;
+
 
 formula:
   LPAR formula RPAR        { $$ = std::move($2); }
 | TRUE                     { $$ = std::shared_ptr<const program::BooleanConstant>(new program::BooleanConstant(true)); }
 | FALSE                    { $$ = std::shared_ptr<const program::BooleanConstant>(new program::BooleanConstant(false)); }
-| expr GT expr             { $$ = std::shared_ptr<const program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::GT, std::move($1), std::move($3)));}
-| expr GE expr             { $$ = std::shared_ptr<const program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::GE, std::move($1), std::move($3)));}
-| expr LT expr             { $$ = std::shared_ptr<const program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::LT, std::move($1), std::move($3)));}
-| expr LE expr             { $$ = std::shared_ptr<const program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::LE, std::move($1), std::move($3)));}
-| expr EQ expr             { $$ = std::shared_ptr<const program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::EQ, std::move($1), std::move($3)));}
-| expr NEQ expr            { auto formula = std::shared_ptr<const program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::EQ, std::move($1), std::move($3)));
+| int_expr GT int_expr     { $$ = std::shared_ptr<const program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::GT, std::move($1), std::move($3)));}
+| int_expr GE int_expr     { $$ = std::shared_ptr<const program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::GE, std::move($1), std::move($3)));}
+| int_expr LT int_expr     { $$ = std::shared_ptr<const program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::LT, std::move($1), std::move($3)));}
+| int_expr LE int_expr     { $$ = std::shared_ptr<const program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::LE, std::move($1), std::move($3)));}
+| int_expr EQ int_expr     { $$ = std::shared_ptr<const program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::EQ, std::move($1), std::move($3)));}
+| int_expr NEQ int_expr    { auto formula = std::shared_ptr<const program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::EQ, std::move($1), std::move($3)));
                              $$ = std::shared_ptr<const program::BooleanNot>(new program::BooleanNot(std::move(formula)));}
 | formula AND formula      { $$ = std::shared_ptr<const program::BooleanAnd>(new program::BooleanAnd(std::move($1), std::move($3)));}
 | formula OR formula       { $$ = std::shared_ptr<const program::BooleanOr>(new program::BooleanOr(std::move($1), std::move($3)));}
 | NOT formula              { $$ = std::shared_ptr<const program::BooleanNot>(new program::BooleanNot(std::move($2)));}
 ;
 
-expr:
-  LPAR expr RPAR           { $$ = std::move($2); }
-| location                 { $$ = std::move($1); }
+int_expr:
+  LPAR int_expr RPAR       { $$ = std::move($2); }
+| location                 
+  { 
+    if($1->type() == program::Type::VarReference){
+      error(@1, "Pointer varaiable " + $1->toString() + " cannot be used in an arithmetic expression"); 
+    }
+    $$ = std::move(std::static_pointer_cast<const program::IntExpression>($1)); 
+  }
 | INTEGER                  { $$ = std::shared_ptr<const program::ArithmeticConstant>(new program::ArithmeticConstant(std::move($1)));}
-| expr MUL expr            { $$ = std::shared_ptr<const program::Multiplication>(new program::Multiplication(std::move($1),std::move($3)));}
-| expr PLUS expr           { $$ = std::shared_ptr<const program::Addition>(new program::Addition(std::move($1),std::move($3)));}
-| expr MINUS expr          { $$ = std::shared_ptr<const program::Subtraction>(new program::Subtraction(std::move($1),std::move($3)));}
-| expr MOD expr            { $$ = std::shared_ptr<const program::Modulo>(new program::Modulo(std::move($1),std::move($3)));}
+| int_expr MUL int_expr    { $$ = std::shared_ptr<const program::Multiplication>(new program::Multiplication(std::move($1),std::move($3)));}
+| int_expr PLUS int_expr   { $$ = std::shared_ptr<const program::Addition>(new program::Addition(std::move($1),std::move($3)));}
+| int_expr MINUS int_expr  { $$ = std::shared_ptr<const program::Subtraction>(new program::Subtraction(std::move($1),std::move($3)));}
+| int_expr MOD int_expr    { $$ = std::shared_ptr<const program::Modulo>(new program::Modulo(std::move($1),std::move($3)));}
+;
+
+ref_expr:
+  REFERENCE PROGRAM_ID
+  {
+    auto var = context.getProgramVar($2);    
+    $$ = std::shared_ptr<const program::VarReference>(new VarReference(std::move(var)));    
+  }
 ;
 
 location:
@@ -664,9 +693,26 @@ location:
     {
       error(@1, "Array variable " + var->name + " needs index for access");
     }
-    $$ = std::shared_ptr<const program::IntOrNatVariableAccess>(new IntOrNatVariableAccess(std::move(var)));
+    if(!var->isPointer()){
+      $$ = std::shared_ptr<const program::IntOrNatVariableAccess>(new IntOrNatVariableAccess(std::move(var)));
+    } else {
+      $$ = std::shared_ptr<const program::PointerVariableAccess>(new PointerVariableAccess(std::move(var)));      
+    }
   }
-| PROGRAM_ID LBRA expr RBRA 
+| MUL PROGRAM_ID
+  {
+    auto var = context.getProgramVar($2);
+    if(!var->isPointer())
+    {
+      error(@1, "Cannot dereference non-pointer variable " + var->name);
+    }
+    auto pointedToType = static_pointer_cast<const program::PointerVarType>(var->vt)->child;
+    if(child->type() == program::VariableType::Pointer){
+      //pointer to a pointer
+      
+    }   
+  }
+| PROGRAM_ID LBRA int_expr RBRA 
   {
 	  auto var = context.getProgramVar($1);
     if(!var->isArray())
@@ -675,6 +721,7 @@ location:
     }
 	  $$ = std::shared_ptr<const program::IntArrayApplication>(new IntArrayApplication(std::move(var), std::move($3)));
   }
+
 ;
 
 %%

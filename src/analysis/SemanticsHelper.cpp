@@ -14,12 +14,12 @@ namespace analysis {
 
     bool getDiff(programVar v, const program::Statement* s, int& diff, bool topLevel)
     {
-        //basic first attempt ttype of thing. Lots of potential to expand
+        //basic first attempt type of thing. Lots of potential to expand
         //here, but not sure how helpful it would be.
 
-        auto isVarV = [](programVar v, std::shared_ptr<const program::IntExpression> e)
+        auto isVarV = [](programVar v, std::shared_ptr<const program::Expression> e)
         {
-            if(e->type() == program::IntExpression::Type::IntOrNatVariableAccess)
+            if(e->type() == program::Type::IntOrNatVariableAccess)
             {
                 auto castedExpr = std::static_pointer_cast<const program::IntOrNatVariableAccess>(e);
                 return castedExpr->var == v;
@@ -27,26 +27,26 @@ namespace analysis {
             return false;
         };
 
-        auto isIntConstant = [](std::shared_ptr<const program::IntExpression> e)
+        auto isIntConstant = [](std::shared_ptr<const program::Expression> e)
         {
-            return e->type() == program::IntExpression::Type::ArithmeticConstant;
+            return e->type() == program::Type::ArithmeticConstant;
         };
 
-        auto getIntConstant = [](std::shared_ptr<const program::IntExpression> e)
+        auto getIntConstant = [](std::shared_ptr<const program::Expression> e)
         {
             auto castedExpr = std::static_pointer_cast<const program::ArithmeticConstant>(e);
             return castedExpr->value;
         };
    
 
-        if (s->type() == program::Statement::Type::IntAssignment)
+        if (s->type() == program::Statement::Type::Assignment)
         {
-            auto castedStatement = static_cast<const program::IntAssignment*>(s);
+            auto castedStatement = static_cast<const program::Assignment*>(s);
             
             if(isVarV(v, castedStatement->lhs)){
                 //v = rhs
                 auto rhs = castedStatement->rhs;
-                if(rhs->type() == program::IntExpression::Type::Addition)
+                if(rhs->type() == program::Type::Addition)
                 {
                     auto castedAdd = std::static_pointer_cast<const program::Addition>(rhs);
                     auto summand1 = castedAdd->summand1;
@@ -58,7 +58,7 @@ namespace analysis {
                         diff = diff + getIntConstant(summand1);
                         return true;
                     }
-                } else if (rhs->type() == program::IntExpression::Type::Subtraction){
+                } else if (rhs->type() == program::Type::Subtraction){
                     auto castedSub = std::static_pointer_cast<const program::Subtraction>(rhs);
                     auto child1 = castedSub->child1;
                     auto child2 = castedSub->child2;
@@ -282,37 +282,37 @@ namespace analysis {
         
         switch (expr->type())
         {
-            case program::IntExpression::Type::ArithmeticConstant:
+            case program::Type::ArithmeticConstant:
             {
                 auto castedExpr = std::static_pointer_cast<const program::ArithmeticConstant>(expr);
                 return logic::Theory::intConstant(castedExpr->value);
             }
-            case program::IntExpression::Type::Addition:
+            case program::Type::Addition:
             {
                 auto castedExpr = std::static_pointer_cast<const program::Addition>(expr);
                 return logic::Theory::intAddition(toTerm(castedExpr->summand1, timePoint, trace), toTerm(castedExpr->summand2, timePoint, trace));
             }
-            case program::IntExpression::Type::Subtraction:
+            case program::Type::Subtraction:
             {
                 auto castedExpr = std::static_pointer_cast<const program::Subtraction>(expr);
                 return logic::Theory::intSubtraction(toTerm(castedExpr->child1, timePoint, trace), toTerm(castedExpr->child2, timePoint, trace));
             }
-            case program::IntExpression::Type::Modulo:
+            case program::Type::Modulo:
             {
                 auto castedExpr = std::static_pointer_cast<const program::Modulo>(expr);
                 return logic::Theory::intModulo(toTerm(castedExpr->child1, timePoint, trace), toTerm(castedExpr->child2, timePoint, trace));
             }
-            case program::IntExpression::Type::Multiplication:
+            case program::Type::Multiplication:
             {
                 auto castedExpr = std::static_pointer_cast<const program::Multiplication>(expr);
                 return logic::Theory::intMultiplication(toTerm(castedExpr->factor1, timePoint, trace), toTerm(castedExpr->factor2, timePoint, trace));
             }
-            case program::IntExpression::Type::IntOrNatVariableAccess:
+            case program::Type::IntOrNatVariableAccess:
             {
                 auto castedExpr = std::static_pointer_cast<const program::IntOrNatVariableAccess>(expr);
                 return toTerm(castedExpr->var, timePoint, trace);
             }
-            case program::IntExpression::Type::IntArrayApplication:
+            case program::Type::IntArrayApplication:
             {
                 auto castedExpr = std::static_pointer_cast<const program::IntArrayApplication>(expr);
                 return toTerm(castedExpr->array, timePoint, toTerm(castedExpr->index, timePoint, trace), trace);
