@@ -132,11 +132,11 @@ YY_DECL;
 %type < std::shared_ptr<const program::WhileStatement> > while_statement
 %type < std::shared_ptr<const program::SkipStatement> > skip_statement
 
-%type < std::shared_ptr<const program::VarType>> type_dec
+%type < std::shared_ptr<const program::ExprType>> type_dec
 
 %type < std::shared_ptr<const program::BoolExpression> > formula
 %type < std::shared_ptr<const program::IntExpression> > int_expr
-%type < std::shared_ptr<const program::VarReference> > ref_expr
+%type < std::shared_ptr<const program::PointerExpression> > pointer_expr
 %type < std::shared_ptr<const program::Expression> > location
 
 %printer { yyoutput << $$; } <*>;
@@ -531,7 +531,7 @@ assignment_statement:
     // build assignment
     $$ = std::shared_ptr<const program::Assignment>(new program::Assignment(@2.begin.line, std::move(intVariableAccess), std::move($3)));
   } 
-| location ASSIGN ref_expr SCOL
+| location ASSIGN pointer_expr SCOL
   {
     if($1->type() != program::Type::PointerVariableAccess)
     {
@@ -545,7 +545,7 @@ assignment_statement:
    
     $$ = std::shared_ptr<const program::Assignment>(new program::Assignment(@2.begin.line, std::move($1), std::move($3)));
   } 
-| var_definition_head ASSIGN ref_expr SCOL
+| var_definition_head ASSIGN pointer_expr SCOL
   {
     // declare var
     context.addProgramVar($1);
@@ -625,23 +625,23 @@ var_definition_head:
 type_dec:
   TYPE
   {
-    program::VariableType vt = program::VariableType::INTEGER;
+    program::BasicType vt = program::BasicType::INTEGER;
     if($1 == "Int"){}
     else if($1 == "Nat"){
-      vt = program::VariableType::NAT;
+      vt = program::BasicType::NAT;
     } else {
       error(@1, "Only program variables of type Nat and Int are currently supported");
     }
-    $$ = std::shared_ptr<const program::VarType>(new program::VarType(vt));
+    $$ = std::shared_ptr<const program::ExprType>(new program::ExprType(vt));
   }
 | TYPE LBRA RBRA
   {
     if($1 != "Int"){
       error(@1, "Only integer arrays are currently supported");
     }
-    $$ = std::shared_ptr<const program::VarType>(new program::VarType(program::VariableType::ARRAY));
+    $$ = std::shared_ptr<const program::ExprType>(new program::ExprType(program::BasicType::ARRAY));
   }
-| type_dec MUL {$$ = std::shared_ptr<const program::PointerVarType>(new program::PointerVarType(std::move($1)));}
+| type_dec MUL {$$ = std::shared_ptr<const program::PointerExprType>(new program::PointerExprType(std::move($1)));}
 ;
 
 
@@ -663,9 +663,17 @@ formula:
 
 int_expr:
   LPAR int_expr RPAR       { $$ = std::move($2); }
+| MUL pointer_expr
+  {
+    if($2->type->getChild()->type() != program::BasicType::INTEGER)
+    {
+      error(@2, "Dereferencing " + $2->toString() + " does not result in an expression of integer type");
+    }
+    $$ = std::shared_ptr<const program::DerefP2IExpression>(new DerefP2IExpression(std::move($2)));      
+  }
 | location                 
   { 
-    if($1->type() == program::Type::VarReference){
+    if($1->type() == program::Type::PointerVariableAccess){
       error(@1, "Pointer varaiable " + $1->toString() + " cannot be used in an arithmetic expression"); 
     }
     $$ = std::move(std::static_pointer_cast<const program::IntExpression>($1)); 
@@ -677,12 +685,28 @@ int_expr:
 | int_expr MOD int_expr    { $$ = std::shared_ptr<const program::Modulo>(new program::Modulo(std::move($1),std::move($3)));}
 ;
 
-ref_expr:
-  REFERENCE PROGRAM_ID
+pointer_expr:
+  location                 
+  { 
+    if($1->type() != program::Type::PointerVariableAccess){
+      error(@1, "Non-pointer varaiable " + $1->toString() + " cannot be used in a pointer expression"); 
+    }
+    $$ = std::move(std::static_pointer_cast<const program::PointerExpression>($1)); 
+  }
+| REFERENCE PROGRAM_ID
   {
     auto var = context.getProgramVar($2);    
     $$ = std::shared_ptr<const program::VarReference>(new VarReference(std::move(var)));    
   }
+| MUL pointer_expr
+  {
+    if($2->type->getChild()->type() != program::BasicType::POINTER)
+    {
+      error(@2, "Dereferencing " + $2->toString() + " does not result in an expression of pointer type");
+    }
+    //pointer to a pointer
+    $$ = std::shared_ptr<const program::DerefP2PExpression>(new DerefP2PExpression(std::move($2)));       
+  } 
 ;
 
 location:
@@ -699,19 +723,6 @@ location:
       $$ = std::shared_ptr<const program::PointerVariableAccess>(new PointerVariableAccess(std::move(var)));      
     }
   }
-| MUL PROGRAM_ID
-  {
-    auto var = context.getProgramVar($2);
-    if(!var->isPointer())
-    {
-      error(@1, "Cannot dereference non-pointer variable " + var->name);
-    }
-    auto pointedToType = static_pointer_cast<const program::PointerVarType>(var->vt)->child;
-    if(child->type() == program::VariableType::Pointer){
-      //pointer to a pointer
-      
-    }   
-  }
 | PROGRAM_ID LBRA int_expr RBRA 
   {
 	  auto var = context.getProgramVar($1);
@@ -721,7 +732,6 @@ location:
     }
 	  $$ = std::shared_ptr<const program::IntArrayApplication>(new IntArrayApplication(std::move(var), std::move($3)));
   }
-
 ;
 
 %%

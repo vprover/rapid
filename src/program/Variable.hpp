@@ -21,7 +21,7 @@
 
 namespace program {
 
-    enum VariableType
+    enum BasicType
     {
         INTEGER,
         NAT,
@@ -29,30 +29,36 @@ namespace program {
         POINTER
     };
 
-    class VarType
+    class ExprType
     {
     public:
-        VarType(VariableType vt) : 
+        ExprType(BasicType vt) : 
             vt(vt) {}
-        virtual ~VarType() {}
+        virtual ~ExprType() {}
 
+
+        virtual std::shared_ptr<const ExprType> getChild() const
+        {return std::shared_ptr<const ExprType>(this); }
         //virtual std::string toString();
-        program::VariableType type() const { return vt; };
+        program::BasicType type() const { return vt; };
 
     private:
-        program::VariableType vt;
+        program::BasicType vt;
     };
 
-    class PointerVarType
-       : public VarType
+    class PointerExprType
+       : public ExprType
     {
     public:
-        PointerVarType(std::shared_ptr<const VarType> child) : 
-            VarType(program::VariableType::POINTER),
+        PointerExprType(std::shared_ptr<const ExprType> child) : 
+            ExprType(program::BasicType::POINTER),
             child(std::move(child)) {}
-        ~PointerVarType() {}
+        ~PointerExprType() {}
 
-        const std::shared_ptr<const VarType> child;
+        virtual std::shared_ptr<const ExprType> getChild() const
+        { return child; }
+
+        const std::shared_ptr<const ExprType> child;
         //virtual std::string toString();
     };
     
@@ -60,7 +66,7 @@ namespace program {
     {
     public:
         Variable(std::string name, bool isConstant, 
-                 std::shared_ptr<const VarType> vt, 
+                 std::shared_ptr<const ExprType> vt, 
                  unsigned numberOfTraces) : 
                    name(name), 
                    isConstant(isConstant), 
@@ -70,18 +76,18 @@ namespace program {
         const std::string name;
         const bool isConstant;
         const unsigned numberOfTraces;
-        const std::shared_ptr<const VarType> vt;
+        const std::shared_ptr<const ExprType> vt;
 
         bool isPointer() const {
-          return vt->type() == program::VariableType::POINTER;
+            return vt->type() == program::BasicType::POINTER;
         }
 
         bool isArray() const {
-            return vt->type() == program::VariableType::ARRAY;
+            return vt->type() == program::BasicType::ARRAY;
         }
 
         bool isNat() const {
-            return vt->type() == program::VariableType::NAT;
+            return vt->type() == program::BasicType::NAT;
         }
 
         // sanity-assertion: if two variables have the same name, they agree on all other properties.
@@ -116,8 +122,8 @@ namespace program {
         IntOrNatVariableAccess(std::shared_ptr<const Variable> var) : IntExpression(), var(var)
         {
             assert(this->var != nullptr);
-            assert(this->var->vt->type() == program::VariableType::INTEGER ||
-                   this->var->vt->type() == program::VariableType::NAT);
+            assert(this->var->vt->type() == program::BasicType::INTEGER ||
+                   this->var->vt->type() == program::BasicType::NAT);
         }
         
         const std::shared_ptr<const Variable> var;
@@ -134,7 +140,7 @@ namespace program {
         {
             assert(this->array != nullptr);
             assert(this->index != nullptr);
-            assert(this->array->vt->type() == program::VariableType::ARRAY);
+            assert(this->array->vt->type() == program::BasicType::ARRAY);
         }
         
         const std::shared_ptr<const Variable> array;
@@ -145,13 +151,44 @@ namespace program {
         std::string toString() const override;
     };
 
+    class PointerExpression : public Expression
+    {
+    public:
+        PointerExpression(std::shared_ptr<const ExprType> type) 
+                        : type(type) 
+        {
+            assert(type->type() == program::BasicType::POINTER);            
+        }
+
+      const std::shared_ptr<const ExprType> type;
+    };
+    std::ostream& operator<<(std::ostream& ostr, const IntExpression& e);
+
+    class DerefP2IExpression : public IntExpression
+    {
+    public:
+        DerefP2IExpression(std::shared_ptr<const PointerExpression> expr) : expr(expr)
+        {
+            assert(this->expr != nullptr);
+            assert(this->expr->type->type() == program::BasicType::POINTER);
+            assert(expr->type->getChild()->type() == program::BasicType::INTEGER);
+        }
+
+        const std::shared_ptr<const PointerExpression> expr;
+
+        program::Type type() const override {return program::Type::PointerDeref;}
+
+        std::string toString() const override;
+    };
+
     class PointerVariableAccess : public PointerExpression
     {
     public:
-        PointerVariableAccess(std::shared_ptr<const Variable> var) : var(var)
+        PointerVariableAccess(std::shared_ptr<const Variable> var) 
+        : PointerExpression(var->vt), var(var)
         {
             assert(this->var != nullptr);
-            assert(this->var->vt->type() == program::VariableType::POINTER);
+            assert(this->var->vt->type() == program::BasicType::POINTER);
         }
 
         const std::shared_ptr<const Variable> var;
@@ -161,25 +198,29 @@ namespace program {
         std::string toString() const override;
     };
 
-    class DerefExpression : public PointerExpression
+    class DerefP2PExpression : public PointerExpression
     {
     public:
-        DerefPointerExpression(std::shared_ptr<const Variable> var) : var(var)
+        DerefP2PExpression(std::shared_ptr<const PointerExpression> expr) 
+        : PointerExpression(expr->type->getChild()), expr(expr)
         {
-            assert(this->var != nullptr);
-            assert(this->var->vt->type() == program::VariableType::POINTER);
-            assert(static_pointer_cast<const program::PointerVarType>(this->var->vt)->child->type() == program::VariableType::POINTER);
+            assert(this->expr != nullptr);
+            assert(expr->type->getChild()->type() == program::BasicType::POINTER);
         }
+
+        const std::shared_ptr<const PointerExpression> expr;
 
         program::Type type() const override {return program::Type::PointerDeref;}
 
         std::string toString() const override;
-    }
+    };
 
     class VarReference : public PointerExpression
     {
     public:
-        VarReference(std::shared_ptr<const Variable> var) : referent(var){}
+        VarReference(std::shared_ptr<const Variable> var) 
+        : PointerExpression(std::shared_ptr<const program::PointerExprType>(new PointerExprType(var->vt))), 
+          referent(var){}
 
         const std::shared_ptr<const Variable> referent;
         

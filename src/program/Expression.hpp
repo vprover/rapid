@@ -109,11 +109,6 @@ namespace program {
         Type type() const override { return program::Type::Multiplication; }
         std::string toString() const override;
     };
-    
-    class PointerExpression : public Expression
-    {
-    };
-    std::ostream& operator<<(std::ostream& ostr, const IntExpression& e);
 
 
     class BoolExpression

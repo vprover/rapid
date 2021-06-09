@@ -74,11 +74,6 @@ namespace program {
         ostr << e.toString();
         return ostr;
     }
-    std::ostream& operator<<(std::ostream& ostr, const PointerExpression& e)
-    {
-        ostr << e.toString();
-        return ostr;
-    }
     std::ostream& operator<<(std::ostream& ostr, const BoolExpression& e)
     {
         ostr << e.toString();

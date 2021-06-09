@@ -32,9 +32,20 @@ namespace program {
         return var->name;
     }
 
+    std::string DerefP2PExpression::toString() const
+    {
+        return "*" + expr->toString();
+    } 
+
     std::string VarReference::toString() const
     {
         return "&" + referent->name;
     } 
+
+    std::ostream& operator<<(std::ostream& ostr, const PointerExpression& e)
+    {
+        ostr << e.toString();
+        return ostr;
+    }
 }
 
