@@ -16,6 +16,52 @@
 
 namespace program {
 
+    enum BasicType
+    {
+        INTEGER,
+        NAT,
+        ARRAY,
+        POINTER
+    };
+
+    class ExprType
+    {
+    public:
+        ExprType(BasicType bt) : bt(bt) {}
+        ExprType(std::shared_ptr<const ExprType> child) : 
+            bt(program::BasicType::POINTER),
+            child(child) {}
+        ~ExprType() {}
+
+
+        std::shared_ptr<const ExprType> getChild() const { return child; }
+        std::string toString() const {
+            if(bt == BasicType::POINTER){
+                return "->" + child->toString();
+            } else if(bt == BasicType::INTEGER){
+                return "Int";
+            } else if(bt == BasicType::ARRAY){
+                return "Arr";
+            } else {
+                return "Nat";
+            }
+        }
+        program::BasicType type() const { return bt; };
+
+        //recursive equality def
+        bool operator==(const ExprType &other) const {
+            return other.bt == bt && (other.child == child || *child == *other.child);
+        }
+
+        bool operator!=(const ExprType &other) const {
+            return !(*this == other);
+        }
+
+    private:
+        const std::shared_ptr<const ExprType> child;
+        program::BasicType bt;
+    };
+
     enum class Type
     {
         ArithmeticConstant,
@@ -35,14 +81,29 @@ namespace program {
     public:
         virtual ~Expression() {}
         
+        virtual bool isPointerExpr() const = 0; 
 
+        virtual bool containsReference() const { return false; }
+
+        virtual bool isConstVar() const { return false; }
+   
         virtual Type type() const = 0;
         
         virtual std::string toString() const = 0;
+
+        virtual const std::shared_ptr<const ExprType> exprType() const { return exprtype; }
+
+    protected:
+        std::shared_ptr<const ExprType> exprtype;
     };
 
     class IntExpression : public Expression
     {
+    public:
+        IntExpression() {
+            exprtype = std::shared_ptr<const ExprType>(new ExprType(program::BasicType::INTEGER));
+        }
+        virtual bool isPointerExpr() const override { return false; }
     };
     std::ostream& operator<<(std::ostream& ostr, const IntExpression& e);
 

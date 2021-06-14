@@ -64,7 +64,7 @@ std::shared_ptr<const logic::Symbol> traceSymbol(unsigned traceNumber)
 
 void declareSymbolForProgramVar(const program::Variable* var)
 {
-    std::vector<const logic::Sort*> argSorts;
+    /*std::vector<const logic::Sort*> argSorts;
     if (!var->isConstant)
     {
         argSorts.push_back(logic::Sorts::timeSort());
@@ -76,9 +76,9 @@ void declareSymbolForProgramVar(const program::Variable* var)
     if(var->numberOfTraces > 1)
     {
         argSorts.push_back(logic::Sorts::traceSort());
-    }
+    }*/
     
-    logic::Signature::add(var->name, argSorts, logic::Sorts::intSort());
+    logic::Signature::add(var->name, argSorts, logic::Sorts::locSort());
 }
 
 void declareSymbolsForTraces(unsigned numberOfTraces)

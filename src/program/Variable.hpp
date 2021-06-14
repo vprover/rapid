@@ -20,47 +20,6 @@
 #include "Expression.hpp"
 
 namespace program {
-
-    enum BasicType
-    {
-        INTEGER,
-        NAT,
-        ARRAY,
-        POINTER
-    };
-
-    class ExprType
-    {
-    public:
-        ExprType(BasicType vt) : 
-            vt(vt) {}
-        virtual ~ExprType() {}
-
-
-        virtual std::shared_ptr<const ExprType> getChild() const
-        {return std::shared_ptr<const ExprType>(this); }
-        //virtual std::string toString();
-        program::BasicType type() const { return vt; };
-
-    private:
-        program::BasicType vt;
-    };
-
-    class PointerExprType
-       : public ExprType
-    {
-    public:
-        PointerExprType(std::shared_ptr<const ExprType> child) : 
-            ExprType(program::BasicType::POINTER),
-            child(std::move(child)) {}
-        ~PointerExprType() {}
-
-        virtual std::shared_ptr<const ExprType> getChild() const
-        { return child; }
-
-        const std::shared_ptr<const ExprType> child;
-        //virtual std::string toString();
-    };
     
     class Variable
     {
@@ -70,7 +29,7 @@ namespace program {
                  unsigned numberOfTraces) : 
                    name(name), 
                    isConstant(isConstant), 
-                   vt(std::move(vt)), 
+                   vt(vt), 
                    numberOfTraces(numberOfTraces) {}
 
         const std::string name;
@@ -93,7 +52,7 @@ namespace program {
         // sanity-assertion: if two variables have the same name, they agree on all other properties.
         bool operator==(const Variable& rhs) const { assert( !(name == rhs.name) ||
                                                             (isConstant == rhs.isConstant &&
-                                                             vt->type()    == rhs.vt->type() &&
+                                                             *vt  == *rhs.vt &&
                                                              numberOfTraces  == rhs.numberOfTraces)); return (name == rhs.name); }
         bool operator!=(const Variable& rhs) const { return !operator==(rhs); }
     };
@@ -128,6 +87,8 @@ namespace program {
         
         const std::shared_ptr<const Variable> var;
 
+        bool isConstVar() const override { return var->isConstant; };
+
         program::Type type() const override {return program::Type::IntOrNatVariableAccess;}
         
         std::string toString() const override;
@@ -146,6 +107,8 @@ namespace program {
         const std::shared_ptr<const Variable> array;
         const std::shared_ptr<const IntExpression> index;
         
+        bool isConstVar() const override { return array->isConstant; };
+
         program::Type type() const override {return program::Type::IntArrayApplication;}
 
         std::string toString() const override;
@@ -155,12 +118,12 @@ namespace program {
     {
     public:
         PointerExpression(std::shared_ptr<const ExprType> type) 
-                        : type(type) 
         {
+            exprtype = type;
             assert(type->type() == program::BasicType::POINTER);            
         }
 
-      const std::shared_ptr<const ExprType> type;
+        virtual bool isPointerExpr() const override { return true; }
     };
     std::ostream& operator<<(std::ostream& ostr, const IntExpression& e);
 
@@ -169,12 +132,14 @@ namespace program {
     public:
         DerefP2IExpression(std::shared_ptr<const PointerExpression> expr) : expr(expr)
         {
-            assert(this->expr != nullptr);
-            assert(this->expr->type->type() == program::BasicType::POINTER);
-            assert(expr->type->getChild()->type() == program::BasicType::INTEGER);
+            assert(expr != nullptr);
+            assert(expr->exprType()->type() == program::BasicType::POINTER);
+            assert(expr->exprType()->getChild()->type() == program::BasicType::INTEGER);
         }
-
+ 
         const std::shared_ptr<const PointerExpression> expr;
+
+        bool containsReference() const override { return expr->containsReference(); }
 
         program::Type type() const override {return program::Type::PointerDeref;}
 
@@ -192,6 +157,8 @@ namespace program {
         }
 
         const std::shared_ptr<const Variable> var;
+
+        bool isConstVar() const override { return var->isConstant; };
         
         program::Type type() const override {return program::Type::PointerVariableAccess;}
 
@@ -202,13 +169,15 @@ namespace program {
     {
     public:
         DerefP2PExpression(std::shared_ptr<const PointerExpression> expr) 
-        : PointerExpression(expr->type->getChild()), expr(expr)
+        : PointerExpression(expr->exprType()->getChild()), expr(expr)
         {
-            assert(this->expr != nullptr);
-            assert(expr->type->getChild()->type() == program::BasicType::POINTER);
+            assert(expr != nullptr);
+            assert(expr->exprType()->getChild()->type() == program::BasicType::POINTER);
         }
 
         const std::shared_ptr<const PointerExpression> expr;
+
+        virtual bool containsReference() const override { return expr->containsReference(); }
 
         program::Type type() const override {return program::Type::PointerDeref;}
 
@@ -218,11 +187,16 @@ namespace program {
     class VarReference : public PointerExpression
     {
     public:
-        VarReference(std::shared_ptr<const Variable> var) 
-        : PointerExpression(std::shared_ptr<const program::PointerExprType>(new PointerExprType(var->vt))), 
-          referent(var){}
+        VarReference(std::shared_ptr<const Expression> expr) 
+        : PointerExpression(std::shared_ptr<const program::ExprType>(new ExprType(expr->exprType()))), 
+          referent(expr)
+        {
+     //       assert(this->referent->type() ==  program::Type::PointerVariableAccess);            
+        }
 
-        const std::shared_ptr<const Variable> referent;
+        const std::shared_ptr<const Expression> referent;
+
+        bool containsReference() const override { return true; }
         
         program::Type type() const override {return program::Type::VarReference;}
 

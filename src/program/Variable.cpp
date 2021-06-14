@@ -32,6 +32,11 @@ namespace program {
         return var->name;
     }
 
+    std::string DerefP2IExpression::toString() const
+    {
+        return "*" + expr->toString();
+    } 
+
     std::string DerefP2PExpression::toString() const
     {
         return "*" + expr->toString();
@@ -39,7 +44,7 @@ namespace program {
 
     std::string VarReference::toString() const
     {
-        return "&" + referent->name;
+        return "&" + referent->toString();
     } 
 
     std::ostream& operator<<(std::ostream& ostr, const PointerExpression& e)
