@@ -43,8 +43,8 @@ namespace analysis {
                                 auto lStartArg = timepointForLoopStatement(statement, arg);
                                 return
                                     logic::Formulas::equality(
-                                        v->isArray() ? toTerm(v, lStartArg, pos, t1) : toTerm(v, lStartArg, t1),
-                                        v->isArray() ? toTerm(v, lStartArg, pos, t2) : toTerm(v, lStartArg, t2)
+                                        /*v->isArray() ? toTerm(v, lStartArg, pos, t1) :*/ toTerm(v, lStartArg, t1),
+                                        /*v->isArray() ? toTerm(v, lStartArg, pos, t2) :*/ toTerm(v, lStartArg, t2)
                                     );
                             };
 
@@ -113,7 +113,7 @@ namespace analysis {
                             (!inlineSemantics && !v->isConstant))
                         {
                             if (v->isArray())
-                            {
+                            {/*
                                 auto posSymbol = posVarSymbol();
                                 auto pos = posVar();
                                 conjuncts.push_back(
@@ -124,7 +124,7 @@ namespace analysis {
                                             toTerm(v, lStartArg, pos, t2)
                                         )
                                     )
-                                );
+                                );*/
                             }
                             else
                             {
@@ -160,7 +160,7 @@ namespace analysis {
                     {
                         if (v->isArray())
                         {
-                            auto posSymbol = posVarSymbol();
+                          /*  auto posSymbol = posVarSymbol();
                             auto pos = posVar();
                             premiseConjuncts.push_back(
                                 logic::Formulas::universal(
@@ -170,7 +170,7 @@ namespace analysis {
                                         inlineSemantics ? inlinedVarValues.toInlinedTerm(statement, v, pos, t2) : toTerm(v, nullptr, pos, t2)
                                     )
                                 )
-                            );
+                            );*/
                         }
                         else
                         {

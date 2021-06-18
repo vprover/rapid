@@ -77,8 +77,7 @@ namespace analysis
         void computePersistentTermsRec(std::shared_ptr<const logic::Formula> f);
         void computePersistentTermsRec(std::shared_ptr<const logic::Term> t);
 
-        typedef std::unordered_map<std::shared_ptr<const program::Variable>, std::shared_ptr<const logic::Term>> IntVarValues;
-        typedef std::unordered_map<std::shared_ptr<const program::Variable>, std::shared_ptr<const logic::Term>> ArrayVarValues;
+        typedef std::unordered_map<std::shared_ptr<const program::Variable>, std::shared_ptr<const logic::Term>> VarValues;
         /*
          * dictionaries to keep track of the current variable values.
          * for array-variables we keep track of the last timepoint the array was assigned
@@ -86,8 +85,8 @@ namespace analysis
          * - we keep track of the term describing the actual value of the variable
          * - note that this is not possible for arrays, since the actual value of all positions might not be expressible in our language
          */
-        IntVarValues cachedIntVarValues;
-        ArrayVarValues cachedArrayVarTimepoints;
+        VarValues cachedIntVarValues;
+        VarValues cachedArrayVarTimepoints;
     };
 
     /*

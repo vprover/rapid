@@ -44,6 +44,7 @@ namespace logic {
         static Sort* intSort() { return fetchOrDeclare("Int"); }
         static Sort* natSort() { return fetchOrDeclare("Nat"); }
         static Sort* locSort() { return fetchOrDeclare("Location"); } //memory locations
+        static Sort* arraySort() { return fetchOrDeclare("Array"); }
         static Sort* timeSort() { return fetchOrDeclare("Time"); }
         static Sort* traceSort() { return fetchOrDeclare("Trace"); }
 

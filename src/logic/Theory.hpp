@@ -16,7 +16,9 @@ namespace logic {
     class Theory {
     public:
         static void declareTheories();
-        
+        //TODO move memory management to its own file?
+        static void declareMemoryArrays();
+
         static std::shared_ptr<const FuncTerm> intConstant(int i);
         static std::shared_ptr<const FuncTerm> intAddition(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2);
         static std::shared_ptr<const FuncTerm> intSubtraction(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2);
@@ -38,6 +40,13 @@ namespace logic {
         static std::shared_ptr<const FuncTerm> natPre(std::shared_ptr<const Term> term);
         static std::shared_ptr<const Formula> natSub(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2, std::string label="");
         static std::shared_ptr<const Formula> natSubEq(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2, std::string label="");
+  
+        //Memory management
+        static std::shared_ptr<const FuncTerm> nullLoc();
+        static std::shared_ptr<const FuncTerm> arbitraryTP();        
+        static std::shared_ptr<const FuncTerm> valueAtInt(std::shared_ptr<const Term> timePoint, std::shared_ptr<const Term> location);   
+        static std::shared_ptr<const FuncTerm> valueAtArray(std::shared_ptr<const Term> timePoint, std::shared_ptr<const Term> location);            
+        static std::shared_ptr<const FuncTerm> deref(std::shared_ptr<const Term> timePoint, std::shared_ptr<const Term> location, unsigned level = 1);        
     };
     
     /*

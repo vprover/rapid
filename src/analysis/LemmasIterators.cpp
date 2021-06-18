@@ -54,7 +54,7 @@ namespace analysis {
                         {
                             auto lStartArg = timepointForLoopStatement(statement, arg);
                             return logic::Theory::intLessEqual(
-                                v->isArray() ? toTerm(v, lStartArg, pos, trace) : toTerm(v, lStartArg, trace),
+                                /*v->isArray() ? toTerm(v, lStartArg, pos, trace) :*/ toTerm(v, lStartArg, trace),
                                 x
                             );
                         };
@@ -95,13 +95,13 @@ namespace analysis {
                                     logic::Theory::natSub(it, n),
                                     logic::Formulas::disjunction({
                                         logic::Formulas::equality(
-                                            v->isArray() ? toTerm(v,lStartSuccOfIt,pos,trace) : toTerm(v,lStartSuccOfIt,trace),
-                                            v->isArray() ? toTerm(v,lStartIt,pos,trace) : toTerm(v,lStartIt,trace)
+                                            /*v->isArray() ? toTerm(v,lStartSuccOfIt,pos,trace) :*/ toTerm(v,lStartSuccOfIt,trace),
+                                            /*v->isArray() ? toTerm(v,lStartIt,pos,trace) :*/ toTerm(v,lStartIt,trace)
                                         ),
                                         logic::Formulas::equality(
-                                            v->isArray() ? toTerm(v,lStartSuccOfIt,pos,trace) : toTerm(v,lStartSuccOfIt,trace),
+                                            /*v->isArray() ? toTerm(v,lStartSuccOfIt,pos,trace) :*/ toTerm(v,lStartSuccOfIt,trace),
                                             logic::Theory::intAddition(
-                                                v->isArray() ?  toTerm(v,lStartIt,pos,trace) : toTerm(v,lStartIt,trace),
+                                                /*v->isArray() ?  toTerm(v,lStartIt,pos,trace) :*/ toTerm(v,lStartIt,trace),
                                                 logic::Theory::intConstant(1)
                                             )
                                         )
@@ -129,12 +129,12 @@ namespace analysis {
                         auto premiseFormula =
                             logic::Formulas::conjunction({
                                 logic::Theory::intLessEqual(
-                                    v->isArray() ? toTerm(v,lStartZero,pos,trace) : toTerm(v,lStartZero,trace),
+                                    /*v->isArray() ? toTerm(v,lStartZero,pos,trace) :*/ toTerm(v,lStartZero,trace),
                                     x
                                 ),
                                 logic::Theory::intLess(
                                     x,
-                                    v->isArray() ? toTerm(v,lStartN,pos,trace) : toTerm(v,lStartN,trace)
+                                    /*v->isArray() ? toTerm(v,lStartN,pos,trace) :*/ toTerm(v,lStartN,trace)
                                 ),
                                 dense
                             });
@@ -160,13 +160,13 @@ namespace analysis {
                                 logic::Formulas::conjunction({
                                     logic::Theory::natSub(it2,n),
                                     logic::Formulas::equality(
-                                        v->isArray() ? toTerm(v,lStartIt2,pos,trace) : toTerm(v,lStartIt2,trace),
+                                        /*v->isArray() ? toTerm(v,lStartIt2,pos,trace) :*/ toTerm(v,lStartIt2,trace),
                                         x
                                     ),
                                     logic::Formulas::equality(
-                                        v->isArray() ? toTerm(v,lStartSuccOfIt2,pos,trace) : toTerm(v,lStartSuccOfIt2,trace),
+                                        /*v->isArray() ? toTerm(v,lStartSuccOfIt2,pos,trace) :*/ toTerm(v,lStartSuccOfIt2,trace),
                                         logic::Theory::intAddition(
-                                            v->isArray() ? toTerm(v,lStartIt2,pos,trace) : toTerm(v,lStartIt2,trace),
+                                            /*v->isArray() ? toTerm(v,lStartIt2,pos,trace) :*/ toTerm(v,lStartIt2,trace),
                                             logic::Theory::intConstant(1)
                                         )
                                     ),

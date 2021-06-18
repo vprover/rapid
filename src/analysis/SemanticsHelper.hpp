@@ -20,6 +20,7 @@ namespace analysis {
 # pragma mark - Methods for generating most used variables
     std::shared_ptr<const logic::LVariable> posVar();
     std::shared_ptr<const logic::LVariable> locVar();
+    std::shared_ptr<const logic::LVariable> memLocVar();
 
 # pragma mark - Methods for generating most used trace terms
     std::shared_ptr<const logic::Term> traceTerm(unsigned traceNumber);
@@ -37,18 +38,23 @@ namespace analysis {
     std::vector<std::shared_ptr<const logic::Symbol>> enclosingIteratorsSymbols(const program::Statement* statement);
     
 # pragma mark - Methods for generating most used terms/predicates denoting program-expressions
+    std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::Expression> expr, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> trace, bool lhsOfAssignment = false);
     /*
      * convert a program variable to a logical term refering to the value of Variable var at the Timepoint timepoint in the Trace trace.
      * The first version must only be used for non-array variables, the second version must only be used for array-variables (where position refers to the position in the array).
      */
     std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::Variable> var, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> trace);
-    std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::Variable> arrayVar, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> position, std::shared_ptr<const logic::Term> trace);
+    std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::IntArrayApplication> app, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> trace);
+    std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::DerefP2IExpression> e, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> trace);
+    std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::DerefP2PExpression> e, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> trace);    
+    
+    /*std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::Variable> arrayVar, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> position, std::shared_ptr<const logic::Term> trace);*/
     
     /*
      * convert the expression expr to a logical term refering to the value of the Expression expr at the Timepoint timepoint.
      * calls toTerm(var,...) internally.
      */
-    std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::IntExpression> expr, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> trace);
+    std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::IntExpression> expr, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> trace, bool lhsOfAssignment = false);
     
     /*
      * convert the boolean expression expr to a logical predicate refering to the value of the Expression expr at the Timepoint timepoint.

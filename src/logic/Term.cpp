@@ -99,6 +99,33 @@ namespace logic {
     {
         return std::shared_ptr<const LVariable>(new LVariable(symbol));
     }
+  
+    std::shared_ptr<const FuncTerm> Terms::locConstant(std::string name, bool noDeclaration)
+    {
+        std::vector<std::shared_ptr<const Term>> subterms;
+        return Terms::func(name, subterms, logic::Sorts::locSort(),noDeclaration);
+    } 
+
+    std::shared_ptr<const FuncTerm> Terms::arrayStore(std::shared_ptr<const Term> array, std::shared_ptr<const Term> index, std::shared_ptr<const Term> toStore)
+    {
+        assert(array->symbol->rngSort == Sorts::arraySort());
+        assert(index->symbol->rngSort == Sorts::intSort());
+        assert(toStore->symbol->rngSort == Sorts::intSort());
+
+        auto symbol = Signature::fetchArrayStore();
+        std::vector<std::shared_ptr<const Term>> subterms = {array, index, toStore};
+        return std::shared_ptr<const FuncTerm>(new FuncTerm(symbol, subterms));
+    }
+
+    std::shared_ptr<const FuncTerm> Terms::arraySelect(std::shared_ptr<const Term> array, std::shared_ptr<const Term> index)
+    {
+        assert(array->symbol->rngSort == Sorts::arraySort());
+        assert(index->symbol->rngSort == Sorts::intSort());
+
+        auto symbol = Signature::fetchArraySelect();
+        std::vector<std::shared_ptr<const Term>> subterms = {array, index};
+        return std::shared_ptr<const FuncTerm>(new FuncTerm(symbol, subterms));
+    }         
     
     std::shared_ptr<const FuncTerm> Terms::func(std::string name, std::vector<std::shared_ptr<const Term>> subterms, const Sort* sort, bool noDeclaration)
     {

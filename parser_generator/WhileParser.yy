@@ -158,6 +158,7 @@ YY_DECL;
 problem:
   {
     logic::Theory::declareTheories();
+    logic::Theory::declareMemoryArrays();
   }
   program smtlib_problemitem_list 
   {

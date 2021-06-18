@@ -125,6 +125,11 @@ namespace analysis {
         return logic::Terms::var(locationSymbol("tp",0));
     }
 
+    std::shared_ptr<const logic::LVariable> memLocVar()
+    {
+        return logic::Terms::var(locVarSymbol());
+    }
+
 # pragma mark - Methods for generating most used trace terms
     
     std::shared_ptr<const logic::Term> traceTerm(unsigned traceNumber)
@@ -227,55 +232,115 @@ namespace analysis {
 
     
 # pragma mark - Methods for generating most used terms/predicates denoting program-expressions
+    std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::Expression> expr, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> trace, bool lhsOfAssignment)
+    {
+        assert(expr != nullptr);
+        assert(timePoint != nullptr);
+        
+        switch (expr->type())
+        {
+            case program::Type::ArithmeticConstant:
+            case program::Type::Addition:
+            case program::Type::Subtraction:
+            case program::Type::Modulo:
+            case program::Type::Multiplication:
+            case program::Type::IntOrNatVariableAccess:
+            case program::Type::IntArrayApplication:
+            {
+                auto castedExpr = std::static_pointer_cast<const program::IntExpression>(expr);
+                return toTerm(castedExpr, timePoint, trace, lhsOfAssignment);
+            }
+            case program::Type::PointerVariableAccess:
+            {
+                auto castedExpr = std::static_pointer_cast<const program::PointerVariableAccess>(expr);
+                return toTerm(castedExpr->var, timePoint, trace);                
+            }
+            case program::Type::Pointer2IntDeref:
+            {
+                auto castedExpr = std::static_pointer_cast<const program::DerefP2IExpression>(expr);
+                return toTerm(castedExpr, timePoint, trace);                
+            }                         
+            case program::Type::Pointer2PointerDeref:
+            {
+                auto castedExpr = std::static_pointer_cast<const program::DerefP2PExpression>(expr);
+                return toTerm(castedExpr, timePoint, trace);                
+            } 
+        }
+        assert(false);
+        //to silence compiler warnings, but we should never reach here
+        return toTerm(expr, timePoint, trace);
+    }
+
+    std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::IntArrayApplication> app, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> trace)
+    {
+        auto array = toTerm(app->array, timePoint, trace);
+        auto index = toTerm(app->index, timePoint, trace);
+        return logic::Terms::arraySelect(array, index);
+    }
+
+    //TODO code duplication with the next two functions. Look into changing to a 
+    //diamond hierarchy. 
+    std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::DerefP2IExpression> e, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> trace)
+    {
+        std::shared_ptr<const logic::Term> exprToTerm;
+        //the expression being dereferenced
+        auto expr = e->expr;
+        if(expr->type() == program::Type::PointerVariableAccess){
+           exprToTerm = logic::Terms::locConstant(expr->toString());
+        } else {
+           assert(expr->type() == program::Type::Pointer2PointerDeref);
+           auto castedExpr = std::static_pointer_cast<const program::DerefP2PExpression>(expr);
+           exprToTerm = toTerm(castedExpr, timePoint, trace);
+        }
+        return logic::Theory::deref(timePoint, exprToTerm);
+    }
+
+    std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::DerefP2PExpression> e, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> trace)
+    {
+        std::shared_ptr<const logic::Term> exprToTerm;
+        //the expression being dereferenced
+        auto expr = e->expr;
+        if(expr->type() == program::Type::PointerVariableAccess){
+           exprToTerm = logic::Terms::locConstant(expr->toString());
+        } else {
+           assert(expr->type() == program::Type::Pointer2PointerDeref);
+           auto castedExpr = std::static_pointer_cast<const program::DerefP2PExpression>(expr);
+           exprToTerm = toTerm(castedExpr, timePoint, trace);
+        }
+        return logic::Theory::deref(timePoint, exprToTerm);
+    }
+
+
     std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::Variable> var, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> trace)
     {
         assert(var != nullptr);
         assert(trace != nullptr);
-        
-        assert(!var->isArray());
-        
-        std::vector<std::shared_ptr<const logic::Term>> arguments;
-        
-        if (!var->isConstant)
-        {
-            assert(timePoint != nullptr);
-            arguments.push_back(timePoint);
+                
+    //    std::vector<std::shared_ptr<const logic::Term>> arguments;
+
+    //TODO make a separate function for const variables val_int_const :: loc -> int
+    //    if (!var->isConstant)
+    //    {
+        assert(timePoint != nullptr);
+    //    arguments.push_back(timePoint);
+
+        auto varAsConst = logic::Terms::func(logic::Signature::fetch(var->name),{});
+    //    arguments.push_back(varAsConst);        
+    //    }
+    //    if (var->numberOfTraces > 1)
+    //    {
+    //        arguments.push_back(trace);
+    //    }
+
+        if(var->isPointer()){ 
+            return logic::Theory::deref(timePoint, varAsConst);
+        } else if(var->isArray()){
+            return logic::Theory::valueAtArray(timePoint, varAsConst);
         }
-        if (var->numberOfTraces > 1)
-        {
-            arguments.push_back(trace);
-        }
-        
-        return logic::Terms::func(var->name, arguments, logic::Sorts::intSort());
+        return logic::Theory::valueAtInt(timePoint, varAsConst);
     }
     
-    std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::Variable> var, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> position, std::shared_ptr<const logic::Term> trace)
-    {
-        assert(var != nullptr);
-        assert(position != nullptr);
-        assert(trace != nullptr);
-        
-        assert(var->isArray());
-        
-        std::vector<std::shared_ptr<const logic::Term>> arguments;
-        
-        if (!var->isConstant)
-        {
-            assert(timePoint != nullptr);
-            arguments.push_back(timePoint);
-        }
-        
-        arguments.push_back(position);
-        
-        if (var->numberOfTraces > 1)
-        {
-            arguments.push_back(trace);
-        }
-        
-        return logic::Terms::func(var->name, arguments, logic::Sorts::intSort());
-    }
-    
-    std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::IntExpression> expr, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> trace)
+    std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::IntExpression> expr, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> trace, bool lhsOfAssignment)
     {
         assert(expr != nullptr);
         assert(timePoint != nullptr);
@@ -315,9 +380,16 @@ namespace analysis {
             case program::Type::IntArrayApplication:
             {
                 auto castedExpr = std::static_pointer_cast<const program::IntArrayApplication>(expr);
-                return toTerm(castedExpr->array, timePoint, toTerm(castedExpr->index, timePoint, trace), trace);
-            }
+                if(lhsOfAssignment){
+                    return toTerm(castedExpr->array, timePoint, trace);
+                } else {
+                    return toTerm(castedExpr, timePoint, trace);
+                }
+            }            
         }
+        assert(false);
+        //to silence compiler warnings, but we should never reach here
+        return toTerm(expr, timePoint, trace);        
     }
 
     std::shared_ptr<const logic::Formula> toFormula(std::shared_ptr<const program::BoolExpression> expr, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> trace)
@@ -365,6 +437,9 @@ namespace analysis {
                 }
             }
         }
+        assert(false);
+        //to silence compiler warnings, but we should never reach here
+        return toFormula(expr, timePoint, trace);        
     }
 
     std::shared_ptr<const logic::Formula> varEqual(std::shared_ptr<const program::Variable> v, std::shared_ptr<const logic::Term> timePoint1, std::shared_ptr<const logic::Term> timePoint2, std::shared_ptr<const logic::Term> trace)
@@ -379,7 +454,7 @@ namespace analysis {
         }
         else
         {
-            auto posSymbol = posVarSymbol();
+        /*    auto posSymbol = posVarSymbol();
             auto pos = posVar();
             return
                 logic::Formulas::universal({posSymbol},
@@ -387,7 +462,7 @@ namespace analysis {
                         toTerm(v,timePoint1,pos,trace),
                         toTerm(v,timePoint2,pos,trace)
                     )
-                );
+                );*/
         }
     }
 

@@ -91,6 +91,18 @@ namespace logic {
         _signatureOrderedByInsertion.push_back(symbol);
         return symbol;
     }
+
+    std::shared_ptr<const Symbol> Signature::fetchArraySelect()
+    {  
+       //TODO possibly clashing name here?
+       return Signature::fetchOrAdd("select", {Sorts::arraySort(), Sorts::intSort()} , Sorts::intSort(), false, true);
+    }
+
+    std::shared_ptr<const Symbol> Signature::fetchArrayStore()
+    {
+       //TODO possibly clashing name here?
+       return Signature::fetchOrAdd("store", {Sorts::arraySort(), Sorts::intSort(), Sorts::intSort()} , Sorts::arraySort(), false, true);
+    }
     
     std::shared_ptr<const Symbol> Signature::fetch(std::string name)
     {

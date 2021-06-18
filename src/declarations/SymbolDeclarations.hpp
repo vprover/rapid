@@ -15,6 +15,7 @@ std::shared_ptr<const logic::Symbol> iteratorSymbol(const program::WhileStatemen
 std::shared_ptr<const logic::Symbol> lastIterationSymbol(const program::WhileStatement* whileStatement, unsigned numberOfTraces);
 
 std::shared_ptr<const logic::Symbol> posVarSymbol();
+std::shared_ptr<const logic::Symbol> locVarSymbol(); //memory location
 
 std::shared_ptr<const logic::Symbol> traceSymbol(unsigned traceNumber);
 

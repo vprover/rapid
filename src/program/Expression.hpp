@@ -71,7 +71,8 @@ namespace program {
         Multiplication,
         IntOrNatVariableAccess,
         PointerVariableAccess,
-        PointerDeref,
+        Pointer2IntDeref,
+        Pointer2PointerDeref,
         IntArrayApplication,
         VarReference,
     };

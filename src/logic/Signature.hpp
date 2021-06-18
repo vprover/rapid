@@ -42,7 +42,8 @@ namespace logic {
         noDeclaration(noDeclaration)
         {
             assert(!name.empty());
-            assert(!isLemmaPredicate || isPredicateSymbol());
+            //TODO assertion below does not account for array select and store
+            //assert(!isLemmaPredicate || isPredicateSymbol());
         }
      
     public:
@@ -106,6 +107,9 @@ namespace logic {
         static std::shared_ptr<const Symbol> add(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool noDeclaration=false);
         static std::shared_ptr<const Symbol> fetch(std::string name);
         static std::shared_ptr<const Symbol> fetchOrAdd(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool isLemmaPredicate=false, bool noDeclaration=false);
+        static std::shared_ptr<const Symbol> fetchArraySelect();
+        static std::shared_ptr<const Symbol> fetchArrayStore();
+
 
         // check that variable doesn't use name which already occurs in Signature
         // return Symbol without adding it to Signature

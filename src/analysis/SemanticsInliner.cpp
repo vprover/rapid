@@ -189,7 +189,7 @@ namespace analysis
 
     std::shared_ptr<const logic::Term> SemanticsInliner::toCachedTermFull(std::shared_ptr<const program::Variable> arrayVar, std::shared_ptr<const logic::Term> position)
     {
-        assert(arrayVar != nullptr);
+    /*    assert(arrayVar != nullptr);
         assert(position != nullptr);
         assert(arrayVar->isArray());
         assert(currTimepoint != nullptr);
@@ -199,7 +199,7 @@ namespace analysis
             cachedArrayVarTimepoints[arrayVar] = currTimepoint;
         }
         auto cachedTimepoint = cachedArrayVarTimepoints.at(arrayVar);
-        return toTerm(arrayVar, cachedTimepoint, position, trace);
+        return toTerm(arrayVar, cachedTimepoint, position, trace);*/
     }
 
     std::shared_ptr<const logic::Term> SemanticsInliner::toCachedTerm(std::shared_ptr<const program::IntExpression> expr)
@@ -342,7 +342,7 @@ namespace analysis
                     }
                     else
                     {
-                        if (cachedArrayVarTimepoints.find(var) != cachedArrayVarTimepoints.end())
+                     /*   if (cachedArrayVarTimepoints.find(var) != cachedArrayVarTimepoints.end())
                         {
                             auto cachedTimepoint = cachedArrayVarTimepoints[var];
 
@@ -362,7 +362,7 @@ namespace analysis
                         {
                             // note: cf. comment about why we need this case in the corresponding int-var case above
                             cachedArrayVarTimepoints[var] = currTimepoint;
-                        }
+                        }*/
                     }
                 }
             }
@@ -418,7 +418,7 @@ namespace analysis
                 else
                 {
 
-                    if (cachedArrayVarTimepoints.find(var) == cachedArrayVarTimepoints.end())
+                  /*  if (cachedArrayVarTimepoints.find(var) == cachedArrayVarTimepoints.end())
                     {
                         // set x(l(zero)) as cachedValue, so that other references share the same cachedValue
                         // this edge case does matter e.g. in the following edge case:
@@ -434,7 +434,7 @@ namespace analysis
                             toTerm(var, iterationTimepoint, pos, trace),
                             toTerm(var, cachedArrayVarTimepoints[var], pos, trace)
                         );
-                    conjuncts.push_back(f);
+                    conjuncts.push_back(f);*/
                 }
             }
         }
@@ -546,13 +546,13 @@ namespace analysis
 
     std::shared_ptr<const logic::Term> InlinedVariableValues::toInlinedTerm(const program::WhileStatement* whileStatement, std::shared_ptr<const program::Variable> arrayVar, std::shared_ptr<const logic::Term> position, std::shared_ptr<const logic::Term> trace)
     {
-        assert(whileStatement != nullptr);
+    /*    assert(whileStatement != nullptr);
         assert(arrayVar != nullptr);
         assert(position != nullptr);
         assert(arrayVar->isArray());
 
         auto timepoint = arrayValues.at(trace).at(whileStatement).at(arrayVar);
-        return toTerm(arrayVar, timepoint, position, trace);
+        return toTerm(arrayVar, timepoint, position, trace);*/
     }
 
     std::shared_ptr<const logic::Term> InlinedVariableValues::toInlinedTerm(const program::WhileStatement* whileStatement, std::shared_ptr<const program::IntExpression> expr, std::shared_ptr<const logic::Term> timepoint, std::shared_ptr<const logic::Term> trace)
@@ -603,7 +603,7 @@ namespace analysis
             }
             case program::Type::IntArrayApplication:
             {
-                auto castedExpr = std::static_pointer_cast<const program::IntArrayApplication>(expr);
+            /*    auto castedExpr = std::static_pointer_cast<const program::IntArrayApplication>(expr);
                 auto arrayVar = castedExpr->array;
                 auto arrayIndex = castedExpr->index;
 
@@ -617,7 +617,7 @@ namespace analysis
                 {
                     // 'arrayVar' was assigned to in 'whileStatement', so use original value
                     return toTerm(arrayVar, timepoint, position, trace);
-                }
+                }*/
             }
         }
     }

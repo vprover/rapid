@@ -141,7 +141,7 @@ namespace program {
 
         bool containsReference() const override { return expr->containsReference(); }
 
-        program::Type type() const override {return program::Type::PointerDeref;}
+        program::Type type() const override {return program::Type::Pointer2IntDeref;}
 
         std::string toString() const override;
     };
@@ -179,7 +179,7 @@ namespace program {
 
         virtual bool containsReference() const override { return expr->containsReference(); }
 
-        program::Type type() const override {return program::Type::PointerDeref;}
+        program::Type type() const override {return program::Type::Pointer2PointerDeref;}
 
         std::string toString() const override;
     };
@@ -195,6 +195,29 @@ namespace program {
         }
 
         const std::shared_ptr<const Expression> referent;
+
+        unsigned numberOfRefs() const {
+            if(referent->type() == program::Type::VarReference){
+                return std::static_pointer_cast<const VarReference>(referent)->numberOfRefs() + 1;
+            }
+            return 1;
+        }
+
+        std::shared_ptr<const Variable> referencedVar() const  {
+            if(referent->type() == program::Type::PointerVariableAccess){
+                auto castedReferent = std::static_pointer_cast<const PointerVariableAccess>(referent);
+                return castedReferent->var;
+            }
+
+            if(referent->type() == program::Type::IntOrNatVariableAccess){
+                auto castedReferent = std::static_pointer_cast<const PointerVariableAccess>(referent);
+                return castedReferent->var;
+            }
+            assert(referent->type() == program::Type::VarReference);
+
+            auto castedReferent = std::static_pointer_cast<const VarReference>(referent);
+            return castedReferent->referencedVar();
+        }
 
         bool containsReference() const override { return true; }
         

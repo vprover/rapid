@@ -29,6 +29,15 @@ namespace logic {
         toInt(zero);
     }
 
+    void Theory::declareMemoryArrays()
+    {
+        auto null = nullLoc();
+        auto tp = arbitraryTP();
+
+        valueAtInt(tp, null);
+        deref(tp, null);
+    }
+
     std::shared_ptr<const FuncTerm> Theory::intConstant(int i)
     {
         return Terms::func(std::to_string(i), {}, Sorts::intSort(), true);
@@ -119,6 +128,37 @@ namespace logic {
     {
         // encode t1<=t2 as t1 < s(t2).
         return Theory::natSub(t1,natSucc(t2), label);
+    }
+
+    std::shared_ptr<const FuncTerm> Theory::arbitraryTP()
+    {
+        return Terms::func("arbitrary-tp", {}, Sorts::timeSort(), true);
+    }
+
+    std::shared_ptr<const FuncTerm> Theory::nullLoc()
+    {
+        return Terms::func("null-loc", {}, Sorts::locSort(), true);
+    }
+
+    std::shared_ptr<const FuncTerm> Theory::valueAtInt(std::shared_ptr<const Term> timePoint, std::shared_ptr<const Term> location)
+    {
+        return Terms::func("value_int", {timePoint,location}, Sorts::intSort(), false);
+    }
+
+    std::shared_ptr<const FuncTerm> Theory::valueAtArray(std::shared_ptr<const Term> timePoint, std::shared_ptr<const Term> location)
+    {
+        return Terms::func("value_arr", {timePoint,location}, Sorts::arraySort(), false);
+    }
+    
+    std::shared_ptr<const FuncTerm> Theory::deref(std::shared_ptr<const Term> timePoint, std::shared_ptr<const Term> location, unsigned level)
+    {
+        assert(level >= 1);
+
+        auto term = Terms::func("deref", {timePoint,location}, Sorts::locSort(), false);
+        for(unsigned i = 0; i < level - 1; i++){            
+            term = Terms::func("deref", {timePoint,term}, Sorts::locSort(), false);
+        }
+        return term;
     }
 
     std::tuple<

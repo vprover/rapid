@@ -155,24 +155,33 @@ namespace analysis {
         }
     }
 
-    std::shared_ptr<const logic::Formula> Semantics::generateSemantics(const program::Assignment* intAssignment, SemanticsInliner& inliner, std::shared_ptr<const logic::Term> trace)
+    std::shared_ptr<const logic::Formula> Semantics::generateSemantics(const program::Assignment*  assignment, SemanticsInliner& inliner, std::shared_ptr<const logic::Term> trace)
     {
         std::vector<std::shared_ptr<const logic::Formula>> conjuncts;
 
-        auto l1 = startTimepointForStatement(intAssignment);
-        auto l2 = endTimePointMap.at(intAssignment);
+        auto l1 = startTimepointForStatement(assignment);
+        auto l2 = endTimePointMap.at(assignment);
         auto l1Name = l1->symbol->name;
         auto l2Name = l2->symbol->name;
         auto activeVars = intersection(locationToActiveVars.at(l1Name), locationToActiveVars.at(l2Name));
 
-        // case 1: assignment to int var
-        if (intAssignment->lhs->type() == program::Type::IntOrNatVariableAccess)
+        std::cout << "active vars at location " + l1Name << std::endl;
+        for (const auto& var : activeVars)
         {
-            auto castedLhs = std::static_pointer_cast<const program::IntOrNatVariableAccess>(intAssignment->lhs);
-            auto castedRhs = std::static_pointer_cast<const program::IntExpression>(intAssignment->rhs);
+          std::cout << var->name << std::endl;
+        }
+
+        // case 1: assignment to int var
+        /*if (assignment->lhs->type() == program::Type::IntOrNatVariableAccess ||
+            assignment->lhs->type() == program::Type::PointerVariableAccess ||
+            assignment->lhs->type() == program::Type::PointerDeref)
+        {*/
 
             if (util::Configuration::instance().inlineSemantics())
             {
+                auto castedLhs = std::static_pointer_cast<const program::IntOrNatVariableAccess>(assignment->lhs);
+                auto castedRhs = std::static_pointer_cast<const program::IntOrNatVariableAccess>(assignment->rhs);
+
                 inliner.currTimepoint = l1;
                 auto f1 = inliner.handlePersistence(l1, locationToActiveVars.at(l1Name));
                 conjuncts.push_back(f1);
@@ -180,15 +189,127 @@ namespace analysis {
                 auto f2 = inliner.setIntVarValue(castedLhs->var, inliner.toCachedTerm(castedRhs));
                 conjuncts.push_back(f2);
 
-                return logic::Formulas::conjunctionSimp(conjuncts, "Update variable " + castedLhs->var->name + " at location " + intAssignment->location);
+                return logic::Formulas::conjunctionSimp(conjuncts, "Update variable " + castedLhs->var->name + " at location " + assignment->location);
             }
             else
             {
-                // lhs(l2) = rhs(l1)
-                auto eq = logic::Formulas::equality(toTerm(castedLhs,l2,trace), toTerm(castedRhs,l1,trace));
-                conjuncts.push_back(eq);
+                
+                //case 2: assignment to a pointer variable or the dereferencing of one. For now we ignore the inliner
+                //assignment must be of the form:
+                // x = t
+                // x = #....#y
+                // *...*x = t
+                // *...*x = #...#y
+                // x[expr] = expr
 
-                for (const auto& var : activeVars)
+                auto lhs = assignment->lhs;
+                auto rhs = assignment->rhs;
+
+                auto isVar = [](std::shared_ptr<const program::Expression> e) {
+                    return
+                    (e->type() == program::Type::PointerVariableAccess ||
+                     e->type() == program::Type::IntOrNatVariableAccess);
+                };
+
+                auto isDerefExpr = [](std::shared_ptr<const program::Expression> e) {
+                    return
+                    (e->type() == program::Type::Pointer2IntDeref ||
+                     e->type() == program::Type::Pointer2PointerDeref);
+                };
+
+                auto isRefExpr = [](std::shared_ptr<const program::Expression> e) {
+                    return
+                    (e->type() == program::Type::VarReference);
+                };
+
+                auto isIntArrayApp = [](std::shared_ptr<const program::Expression> e) {
+                    return
+                    (e->type() == program::Type::IntArrayApplication);
+                };
+
+
+                auto isNonVarIntExpr = [](std::shared_ptr<const program::Expression> e) {
+                    return
+                    (e->type() != program::Type::IntOrNatVariableAccess) &&
+                    (!e->isPointerExpr());
+                };
+                
+                std::shared_ptr<const logic::Term> lhsTerm; 
+                std::shared_ptr<const logic::Term> rhsTerm;
+
+                //x = y
+                if(isVar(lhs) && (isVar(rhs) || isNonVarIntExpr(rhs))){
+                    lhsTerm = toTerm(lhs, l2, trace);
+                    rhsTerm = toTerm(rhs, l1, trace);
+                } 
+
+                //*...*x = y
+                if(isDerefExpr(lhs) && isVar(rhs)){
+                    lhsTerm = toTerm(lhs, l2, trace);
+                    rhsTerm = logic::Terms::locConstant(rhs->toString());
+                }
+
+                //*...*x = int_expr
+                if(isDerefExpr(lhs) && isNonVarIntExpr(rhs)){
+                    lhsTerm = toTerm(lhs, l2, trace);
+                    lhsTerm = logic::Theory::valueAtInt(l2, lhsTerm);                    
+                    rhsTerm = toTerm(rhs, l1, trace);
+                }
+
+                //x = #...#y
+                if(isVar(lhs) && isRefExpr(rhs)){                    
+                    auto castedRhs = std::static_pointer_cast<const program::VarReference>(rhs);            
+                    unsigned numberOfRefs = castedRhs->numberOfRefs();
+                    rhsTerm = logic::Terms::locConstant(castedRhs->referencedVar()->name);
+
+                    lhsTerm = logic::Terms::locConstant(lhs->toString());              
+                    lhsTerm = logic::Theory::deref(lhsTerm, l2, numberOfRefs);     
+                }
+
+                //*...*x = #...#y
+                if(isDerefExpr(lhs) && isRefExpr(rhs)){                    
+                    auto castedRhs = std::static_pointer_cast<const program::VarReference>(rhs);            
+                    unsigned numberOfRefs = castedRhs->numberOfRefs();
+                    rhsTerm = logic::Terms::locConstant(castedRhs->referencedVar()->name);
+
+                    lhsTerm = toTerm(lhs, l2, trace, true);                
+                    lhsTerm = logic::Theory::deref(lhsTerm, l2, numberOfRefs);     
+                }
+
+                //a[expr1] = expr2
+                if(isIntArrayApp(lhs)){                    
+                    auto asArrayApp = std::static_pointer_cast<const program::IntArrayApplication>(lhs);          
+                    auto index = toTerm(asArrayApp->index, l1, trace);
+                    auto toStore = toTerm(rhs, l1, trace);
+                    auto array = toTerm(asArrayApp->array, l1, trace);
+                    rhsTerm = logic::Terms::arrayStore(array, index, toStore);  
+                    lhsTerm = toTerm(lhs, l2, trace, true);
+                }
+
+                // lhs(l2) = rhs(l1);
+                auto eq = logic::Formulas::equality(lhsTerm, rhsTerm);
+
+                conjuncts.push_back(eq);
+                 
+                auto lhsAsFunc = std::static_pointer_cast<const logic::FuncTerm>(lhsTerm);
+
+                // forall positions pos. (pos!=e(l1) => a(l2,pos) = a(l1,pos))
+                auto locSymbol = locVarSymbol();
+                auto loc = memLocVar();
+              
+                auto lhs2 = lhsAsFunc->isDerefAt() ?  logic::Theory::deref(l2, loc) : 
+                            (lhsAsFunc->isValueAt() ? logic::Theory::valueAtInt(l2, loc) : logic::Theory::valueAtArray(l2, loc));
+
+                auto rhs2 = lhsAsFunc->isDerefAt() ?  logic::Theory::deref(l1, loc) : 
+                            (lhsAsFunc->isValueAt() ? logic::Theory::valueAtInt(l1, loc) : logic::Theory::valueAtArray(l1, loc));
+
+                auto premise = logic::Formulas::disequality(loc, lhsAsFunc->subterms[1]);
+                auto eq2 = logic::Formulas::equality(lhs2, rhs2);
+                auto conjunct = logic::Formulas::universal({locSymbol}, logic::Formulas::implication(premise, eq2));
+ 
+                conjuncts.push_back(conjunct);
+               
+                /*for (const auto& var : activeVars)
                 {
                     if(!var->isConstant)
                     {
@@ -220,17 +341,18 @@ namespace analysis {
                             conjuncts.push_back(conjunct);
                         }
                     }
-                }
+                }*/
 
-                return logic::Formulas::conjunction(conjuncts, "Update variable " + castedLhs->var->name + " at location " + intAssignment->location);
+                return logic::Formulas::conjunction(conjuncts, "Update variable " + lhs->toString() + " at location " + assignment->location);
+            
             }
-        }
-        // case 2: assignment to int-array var
+        /*}
+        // case 3: assignment to int-array var
         else
         {
-            assert(intAssignment->lhs->type() == program::Type::IntArrayApplication);
-            auto application = std::static_pointer_cast<const program::IntArrayApplication>(intAssignment->lhs);
-            auto castedRhs = std::static_pointer_cast<const program::IntExpression>(intAssignment->rhs);
+            assert(assignment->lhs->type() == program::Type::IntArrayApplication);
+            auto application = std::static_pointer_cast<const program::IntArrayApplication>(assignment->lhs);
+            auto castedRhs = std::static_pointer_cast<const program::IntExpression>(assignment->rhs);
 
             if (util::Configuration::instance().inlineSemantics())
             {
@@ -256,7 +378,7 @@ namespace analysis {
                 // set last assignment of a to l2
                 inliner.setArrayVarTimepoint(application->array, l2);
 
-                return logic::Formulas::conjunctionSimp(conjuncts, "Update array variable " + application->array->name + " at location " + intAssignment->location);
+                return logic::Formulas::conjunctionSimp(conjuncts, "Update array variable " + application->array->name + " at location " + assignment->location);
             }
             else
             {
@@ -308,9 +430,9 @@ namespace analysis {
                         }
                     }
                 }
-                return logic::Formulas::conjunction(conjuncts, "Update array variable " + application->array->name + " at location " + intAssignment->location);
+                return logic::Formulas::conjunction(conjuncts, "Update array variable " + application->array->name + " at location " + assignment->location);
             }
-        }
+        }*/
     }
 
     std::shared_ptr<const logic::Formula> Semantics::generateSemantics(const program::IfElse* ifElse, SemanticsInliner& inliner, std::shared_ptr<const logic::Term> trace)
@@ -430,7 +552,7 @@ namespace analysis {
                 }
                 else
                 {
-                    assert(cachedArrayVarTimepointsLeft.find(var) != cachedArrayVarTimepointsLeft.end());
+                 /*   assert(cachedArrayVarTimepointsLeft.find(var) != cachedArrayVarTimepointsLeft.end());
                     assert(cachedArrayVarTimepointsRight.find(var) != cachedArrayVarTimepointsRight.end());
 
                     auto posSymbol = posVarSymbol();
@@ -457,7 +579,7 @@ namespace analysis {
 
                     // cache the fact that lEnd is the last timepoint where var was set
                     assert(!var->isConstant);
-                    inliner.setArrayVarTimepoint(var, lEnd);
+                    inliner.setArrayVarTimepoint(var, lEnd);*/
                 }
             }
 
@@ -572,14 +694,14 @@ namespace analysis {
                 }
                 else
                 {
-                    conjPart1.push_back(
+                 /*   conjPart1.push_back(
                         logic::Formulas::universalSimp({posSymbol},
                             logic::Formulas::equalitySimp(
                                 toTerm(var,lStart0,pos,trace),
                                 inliner.toCachedTermFull(var, pos)
                             )
                         )
-                    );
+                    );*/
                 }
             }
 
@@ -660,7 +782,7 @@ namespace analysis {
                 }
                 else
                 {
-                    conjunctsBody.push_back(
+                    /*conjunctsBody.push_back(
                         logic::Formulas::universalSimp({posSymbol},
                             logic::Formulas::equalitySimp(
                                 toTerm(var,lStartSuccOfIt,pos,trace),
@@ -668,7 +790,7 @@ namespace analysis {
                             ),
                             "Define value of array variable " + var->name + " at beginning of next iteration"
                         )
-                    );
+                    );*/
                 }
             }
 

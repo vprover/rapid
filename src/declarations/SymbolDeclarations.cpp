@@ -56,6 +56,11 @@ std::shared_ptr<const logic::Symbol> posVarSymbol()
     return logic::Signature::varSymbol("pos", logic::Sorts::intSort());
 }
 
+std::shared_ptr<const logic::Symbol> locVarSymbol()
+{
+    return logic::Signature::varSymbol("mem-loc", logic::Sorts::locSort());
+}
+
 std::shared_ptr<const logic::Symbol> traceSymbol(unsigned traceNumber)
 {
     std::string traceName = "t" + std::to_string(traceNumber);
@@ -64,8 +69,9 @@ std::shared_ptr<const logic::Symbol> traceSymbol(unsigned traceNumber)
 
 void declareSymbolForProgramVar(const program::Variable* var)
 {
-    /*std::vector<const logic::Sort*> argSorts;
-    if (!var->isConstant)
+    //variables are now constants of sort location
+    std::vector<const logic::Sort*> argSorts;
+    /*if (!var->isConstant)
     {
         argSorts.push_back(logic::Sorts::timeSort());
     }

@@ -22,6 +22,11 @@ namespace logic {
         {
             return "Bool";
         }
+        else if (name == "Array")
+        {   
+            //only integer indexed integer arrays at the moment
+            return "(Array Int Int)";
+        }
         else
         {
             return name;
@@ -30,9 +35,9 @@ namespace logic {
     
     std::string declareSortSMTLIB(const Sort& s)
     {
-        if (s.toSMTLIB() == "Int" || s.toSMTLIB() == "Bool")
+        if (s.toSMTLIB() == "Int" || s.toSMTLIB() == "Bool" || s.toSMTLIB() == "(Array Int Int)")
         {
-            // SMTLIB already knows Int and Bool.
+            // SMTLIB already knows Int, Array and Bool.
             return "";
         }
         else if (s.toSMTLIB() == "Nat")
