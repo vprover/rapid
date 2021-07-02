@@ -14,6 +14,7 @@
 
 namespace program
 {
+   
     class WhileStatement;
     class Statement
     {
@@ -58,7 +59,7 @@ namespace program
         
         const std::shared_ptr<const Expression> lhs;
         const std::shared_ptr<const Expression> rhs;
-        
+
         Type type() const override {return Type::Assignment;}
         std::string toString(int indentation) const override;
     };

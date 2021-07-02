@@ -95,12 +95,12 @@ namespace logic {
     
     std::shared_ptr<const Formula> Theory::boolTrue(std::string label)
     {
-        return Formulas::predicate("true", {}, label, true);
+        return Formulas::trueFormula(label);
     }
     
     std::shared_ptr<const Formula> Theory::boolFalse(std::string label)
     {
-        return Formulas::predicate("false", {}, label, true);
+        return Formulas::falseFormula(label);
     }
     
     std::shared_ptr<const FuncTerm> Theory::natZero()

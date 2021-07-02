@@ -5,6 +5,8 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <set>
+#include <tuple>
 
 #include "Formula.hpp"
 #include "Program.hpp"
@@ -19,6 +21,7 @@ namespace analysis {
     class Semantics
     {
     public:
+
         Semantics(const program::Program& program,
                   std::unordered_map<std::string, std::vector<std::shared_ptr<const program::Variable>>> locationToActiveVars,
                   std::vector<std::shared_ptr<const logic::ProblemItem>>& problemItems,
@@ -33,6 +36,7 @@ namespace analysis {
         std::vector<std::shared_ptr<const logic::Axiom>> generateBounds();
 
     private:
+
 
         const program::Program& program;
         const EndTimePointMap endTimePointMap;

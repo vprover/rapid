@@ -580,6 +580,7 @@ skip_statement:
   SKIP SCOL {$$ = std::shared_ptr<const program::SkipStatement>(new program::SkipStatement(@1.begin.line));}
 ;
 
+
 active_vars_dummy:
   %empty 
   {
@@ -767,6 +768,18 @@ location:
     auto asIntExpr = std::static_pointer_cast<const program::IntExpression>($3);     
 	  $$ = std::shared_ptr<const program::IntArrayApplication>(new IntArrayApplication(std::move(var), std::move(asIntExpr)));
   }
+| REFERENCE PROGRAM_ID
+  {
+    auto var = context.getProgramVar($2);
+    if(var->isArray())
+    {
+      error(@1, "Cannot currently reference an array variable " + var->name);
+    }  
+    if(var->isConstant){
+      error(@2, "Cannot take the reference of constant variable " +  var->name);      
+    }
+    $$ = std::shared_ptr<const program::VarReference>(new VarReference(std::move(var)));    
+  }  
 | MUL location
   {
     if(!$2->isPointerExpr()){
@@ -779,16 +792,6 @@ location:
     } else {
       $$ = std::shared_ptr<const program::DerefP2PExpression>(new DerefP2PExpression(std::move(asPointExpr)));
     }
-  }
-| REFERENCE location
-  {
-    if($2->type() == program::Type::IntArrayApplication){
-      error(@2, "Cannot currently take the reference of an array access");
-    }
-    if($2->isConstVar()){
-      error(@2, "Cannot take the reference of constant variable " +  $2->toString());      
-    }
-    $$ = std::shared_ptr<const program::VarReference>(new VarReference(std::move($2)));    
   }
 ;
 

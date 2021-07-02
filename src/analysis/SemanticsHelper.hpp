@@ -38,6 +38,9 @@ namespace analysis {
     std::vector<std::shared_ptr<const logic::Symbol>> enclosingIteratorsSymbols(const program::Statement* statement);
     
 # pragma mark - Methods for generating most used terms/predicates denoting program-expressions
+    /* The parameter lhsOfAssignment is used when converting an array access. 
+     * The conversion of these depends on the side of the assignment they occur. 
+     */
     std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::Expression> expr, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> trace, bool lhsOfAssignment = false);
     /*
      * convert a program variable to a logical term refering to the value of Variable var at the Timepoint timepoint in the Trace trace.
@@ -46,7 +49,8 @@ namespace analysis {
     std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::Variable> var, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> trace);
     std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::IntArrayApplication> app, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> trace);
     std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::DerefP2IExpression> e, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> trace);
-    std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::DerefP2PExpression> e, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> trace);    
+    std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::DerefP2PExpression> e, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> trace); 
+  
     
     /*std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::Variable> arrayVar, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> position, std::shared_ptr<const logic::Term> trace);*/
     

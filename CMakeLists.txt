@@ -4,8 +4,8 @@ cmake_minimum_required (VERSION 3.6.3)
 project (Rapid)
 ################################################################
 
-# require the compiler to use C++17
-set(CMAKE_CXX_STANDARD 17)
+# require the compiler to use C++20
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # add directoy, where we store all custom files for finding libraries which are not build using cmake (i.e. currently nothing), to the search path of cmake

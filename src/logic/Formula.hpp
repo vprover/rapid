@@ -35,7 +35,7 @@ namespace logic {
         };
         virtual Type type() const = 0;
         
-        virtual std::string toSMTLIB(unsigned indentation = 0) const = 0;
+        virtual std::string toSMTLIB(unsigned indentation = 0, bool singleLine = false) const = 0;
         virtual std::string prettyString(unsigned indentation = 0) const = 0;
         
     protected:
@@ -63,7 +63,7 @@ namespace logic {
         const std::vector<std::shared_ptr<const Term>> subterms;
 
         Type type() const override { return Formula::Type::Predicate; }
-        std::string toSMTLIB(unsigned indentation = 0) const override;
+        std::string toSMTLIB(unsigned indentation = 0, bool singleLine = false) const override;
         std::string prettyString(unsigned indentation = 0) const override;
     };
     
@@ -81,7 +81,7 @@ namespace logic {
         const std::shared_ptr<const Term> right;
         
         Type type() const override { return Formula::Type::Equality; }
-        std::string toSMTLIB(unsigned indentation = 0) const override;
+        std::string toSMTLIB(unsigned indentation = 0, bool singleLine = false) const override;
         std::string prettyString(unsigned indentation = 0) const override;
     };
     
@@ -95,7 +95,7 @@ namespace logic {
         const std::vector<std::shared_ptr<const Formula>> conj;
 
         Type type() const override { return Formula::Type::Conjunction; }
-        std::string toSMTLIB(unsigned indentation = 0) const override;
+        std::string toSMTLIB(unsigned indentation = 0, bool singleLine = false) const override;
         std::string prettyString(unsigned indentation = 0) const override;
     };
     
@@ -109,7 +109,7 @@ namespace logic {
         const std::vector<std::shared_ptr<const Formula>> disj;
 
         Type type() const override { return Formula::Type::Disjunction; }
-        std::string toSMTLIB(unsigned indentation = 0) const override;
+        std::string toSMTLIB(unsigned indentation = 0, bool singleLine = false) const override;
         std::string prettyString(unsigned indentation = 0) const override;
     };
     
@@ -123,7 +123,7 @@ namespace logic {
         const std::shared_ptr<const Formula> f;
 
         Type type() const override { return Formula::Type::Negation; }
-        std::string toSMTLIB(unsigned indentation = 0) const override;
+        std::string toSMTLIB(unsigned indentation = 0, bool singleLine = false) const override;
         std::string prettyString(unsigned indentation = 0) const override;
         
     };
@@ -146,7 +146,7 @@ namespace logic {
         const std::shared_ptr<const Formula> f;
         
         Type type() const override { return Formula::Type::Existential; }
-        std::string toSMTLIB(unsigned indentation = 0) const override;
+        std::string toSMTLIB(unsigned indentation = 0, bool singleLine = false) const override;
         std::string prettyString(unsigned indentation = 0) const override;
     };
     
@@ -168,7 +168,7 @@ namespace logic {
         const std::shared_ptr<const Formula> f;
         
         Type type() const override { return Formula::Type::Universal; }
-        std::string toSMTLIB(unsigned indentation = 0) const override;
+        std::string toSMTLIB(unsigned indentation = 0, bool singleLine = false) const override;
         std::string prettyString(unsigned indentation = 0) const override;
     };
     
@@ -184,7 +184,7 @@ namespace logic {
         const std::shared_ptr<const Formula> f2;
         
         Type type() const override { return Formula::Type::Implication; }
-        std::string toSMTLIB(unsigned indentation = 0) const override;
+        std::string toSMTLIB(unsigned indentation = 0, bool singleLine = false) const override;
         std::string prettyString(unsigned indentation = 0) const override;
     };
 
@@ -200,7 +200,7 @@ namespace logic {
         const std::shared_ptr<const Formula> f2;
 
         Type type() const override { return Formula::Type::Equivalence; }
-        std::string toSMTLIB(unsigned indentation = 0) const override;
+        std::string toSMTLIB(unsigned indentation = 0, bool singleLine = false) const override;
         std::string prettyString(unsigned indentation = 0) const override;
     };
 
@@ -212,7 +212,7 @@ namespace logic {
         TrueFormula(std::string label = "") : Formula(label) {}
         
         Type type() const override { return Formula::Type::True; }
-        std::string toSMTLIB(unsigned indentation = 0) const override;
+        std::string toSMTLIB(unsigned indentation = 0, bool singleLine = false) const override;
         std::string prettyString(unsigned indentation = 0) const override;
     };
     
@@ -224,7 +224,7 @@ namespace logic {
         FalseFormula(std::string label = "") : Formula(label) {}
         
         Type type() const override { return Formula::Type::False; }
-        std::string toSMTLIB(unsigned indentation = 0) const override;
+        std::string toSMTLIB(unsigned indentation = 0, bool singleLine = false) const override;
         std::string prettyString(unsigned indentation = 0) const override;
     };
     inline std::ostream& operator<<(std::ostream& ostr, const Formula& e) { ostr << e.toSMTLIB(); return ostr; }

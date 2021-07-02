@@ -21,7 +21,7 @@ namespace logic {
         return str;
     }
 
-    std::string PredicateFormula::toSMTLIB(unsigned indentation) const
+    std::string PredicateFormula::toSMTLIB(unsigned indentation, bool singleLine) const
     {
         std::string str = stringForLabel(indentation);
         str += std::string(indentation, ' ');
@@ -41,7 +41,7 @@ namespace logic {
         return str;
     }
 
-    std::string EqualityFormula::toSMTLIB(unsigned indentation) const
+    std::string EqualityFormula::toSMTLIB(unsigned indentation, bool singleLine) const
     {
         std::string str = stringForLabel(indentation);
         str += std::string(indentation, ' ');
@@ -56,46 +56,55 @@ namespace logic {
         return str;
     }
 
-    std::string ConjunctionFormula::toSMTLIB(unsigned indentation) const
+    std::string ConjunctionFormula::toSMTLIB(unsigned indentation, bool singleLine) const
     {
         std::string str = stringForLabel(indentation);
         if (conj.size() == 0)
         {
             return str + std::string(indentation, ' ') + "true";
         }
-        str += std::string(indentation, ' ') + "(and\n";
+        std::string newLine = singleLine ? " " : "\n";
+        int indentIncrease = singleLine ? 0 : 3;
+
+        str += std::string(indentation, ' ') + "(and" + newLine;
         for (unsigned i = 0; i < conj.size(); i++) {
-            str += conj[i]->toSMTLIB(indentation + 3) + "\n";
+            str += conj[i]->toSMTLIB(indentation + indentIncrease, singleLine) + newLine;
         }
         str += std::string(indentation, ' ') + ")";
         return str;
     }
     
-    std::string DisjunctionFormula::toSMTLIB(unsigned indentation) const
+    std::string DisjunctionFormula::toSMTLIB(unsigned indentation, bool singleLine) const
     {
         std::string str = stringForLabel(indentation);
         if (disj.size() == 0)
         {
             return str + std::string(indentation, ' ') + "false";
         }
-        str = std::string(indentation, ' ') + "(or\n";
+        std::string newLine = singleLine ? " " : "\n";    
+        int indentIncrease = singleLine ? 0 : 3;
+          
+        str = std::string(indentation, ' ') + "(or" + newLine;
         for (unsigned i = 0; i < disj.size(); i++) {
-            str += disj[i]->toSMTLIB(indentation + 3) + "\n";
+            str += disj[i]->toSMTLIB(indentation + indentIncrease, singleLine) + newLine;
         }
         str += std::string(indentation, ' ') + ")";
         return str;
     }
     
-    std::string NegationFormula::toSMTLIB(unsigned indentation) const
+    std::string NegationFormula::toSMTLIB(unsigned indentation, bool singleLine) const
     {
         std::string str = stringForLabel(indentation);
-        str += std::string(indentation, ' ') + "(not\n";
-        str += f->toSMTLIB(indentation + 3) + "\n";
+        std::string newLine = singleLine ? " " : "\n";
+        int indentIncrease = singleLine ? 0 : 3;
+
+        str += std::string(indentation, ' ') + "(not" + newLine;
+        str += f->toSMTLIB(indentation + indentIncrease) + newLine;
         str += std::string(indentation, ' ') + ")";
         return  str;
     }
     
-    std::string ExistentialFormula::toSMTLIB(unsigned indentation) const
+    std::string ExistentialFormula::toSMTLIB(unsigned indentation, bool singleLine) const
     {
         std::string str = stringForLabel(indentation);
         str += std::string(indentation, ' ') + "(exists ";
@@ -115,7 +124,7 @@ namespace logic {
         return str;
     }
 
-    std::string UniversalFormula::toSMTLIB(unsigned indentation) const
+    std::string UniversalFormula::toSMTLIB(unsigned indentation, bool singleLine) const
     {
         std::string str = stringForLabel(indentation);
         str += std::string(indentation, ' ') + "(forall ";
@@ -135,35 +144,39 @@ namespace logic {
         return str;
     }
     
-    std::string ImplicationFormula::toSMTLIB(unsigned indentation) const
+    std::string ImplicationFormula::toSMTLIB(unsigned indentation, bool singleLine) const
     {
         std::string str = stringForLabel(indentation);
+        std::string newLine = singleLine ? " " : "\n";
+        int indentIncrease = singleLine ? 0 : 3;
 
-        str += std::string(indentation, ' ') + "(=>\n";
-        str += f1->toSMTLIB(indentation + 3) + "\n";
-        str += f2->toSMTLIB(indentation + 3) + "\n";
+        str += std::string(indentation, ' ') + "(=>" + newLine;
+        str += f1->toSMTLIB(indentation + indentIncrease) + newLine;
+        str += f2->toSMTLIB(indentation + indentIncrease) + newLine;
         str += std::string(indentation, ' ') + ")";
         return  str;
     }
 
-    std::string EquivalenceFormula::toSMTLIB(unsigned indentation) const
+    std::string EquivalenceFormula::toSMTLIB(unsigned indentation, bool singleLine) const
     {
         std::string str = stringForLabel(indentation);
+        std::string newLine = singleLine ? " " : "\n";
+        int indentIncrease = singleLine ? 0 : 3;
 
-        str += std::string(indentation, ' ') + "(=\n";
-        str += f1->toSMTLIB(indentation + 3) + "\n";
-        str += f2->toSMTLIB(indentation + 3) + "\n";
+        str += std::string(indentation, ' ') + "(=" + newLine;
+        str += f1->toSMTLIB(indentation + indentIncrease) + newLine;
+        str += f2->toSMTLIB(indentation + indentIncrease) + newLine;
         str += std::string(indentation, ' ') + ")";
         return  str;
     }
 
-    std::string TrueFormula::toSMTLIB(unsigned indentation) const
+    std::string TrueFormula::toSMTLIB(unsigned indentation, bool singleLine) const
     {
         std::string str = stringForLabel(indentation);
         return str + std::string(indentation, ' ') + "true";
     }
 
-    std::string FalseFormula::toSMTLIB(unsigned indentation) const
+    std::string FalseFormula::toSMTLIB(unsigned indentation, bool singleLine) const
     {
         std::string str = stringForLabel(indentation);
         return str + std::string(indentation, ' ') + "false";
@@ -391,7 +404,7 @@ namespace logic {
     }
     
     std::shared_ptr<const Formula>  Formulas::negationSimp(std::shared_ptr<const Formula> f, std::string label)
-    {
+    {    
         if (f->type() == Formula::Type::True)
         {
             return falseFormula(label);
@@ -400,7 +413,11 @@ namespace logic {
         {
             return trueFormula(label);
         }
-        
+        else if(f->type() == Formula::Type::Negation){
+            //double negation, get rid of both, we are not constructivists!
+            return std::static_pointer_cast<const logic::NegationFormula>(f)->f;
+        }
+
         return negation(f, label);
     }
     

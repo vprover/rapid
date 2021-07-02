@@ -115,9 +115,8 @@ namespace analysis
                     auto access = static_cast<const program::IntOrNatVariableAccess*>(castedStatement->lhs.get());
                     assignedVars.insert(access->var);
                 }
-                else
+                else if(castedStatement->lhs->type() == program::Type::IntArrayApplication)
                 {
-                    assert(castedStatement->lhs->type() == program::Type::IntArrayApplication);
                     auto arrayAccess = static_cast<const program::IntArrayApplication*>(castedStatement->lhs.get());
                     assignedVars.insert(arrayAccess->array);
                 }

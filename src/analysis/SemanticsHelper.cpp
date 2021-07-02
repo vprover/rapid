@@ -246,6 +246,7 @@ namespace analysis {
             case program::Type::Multiplication:
             case program::Type::IntOrNatVariableAccess:
             case program::Type::IntArrayApplication:
+            case program::Type::Pointer2IntDeref:
             {
                 auto castedExpr = std::static_pointer_cast<const program::IntExpression>(expr);
                 return toTerm(castedExpr, timePoint, trace, lhsOfAssignment);
@@ -254,12 +255,7 @@ namespace analysis {
             {
                 auto castedExpr = std::static_pointer_cast<const program::PointerVariableAccess>(expr);
                 return toTerm(castedExpr->var, timePoint, trace);                
-            }
-            case program::Type::Pointer2IntDeref:
-            {
-                auto castedExpr = std::static_pointer_cast<const program::DerefP2IExpression>(expr);
-                return toTerm(castedExpr, timePoint, trace);                
-            }                         
+            }                       
             case program::Type::Pointer2PointerDeref:
             {
                 auto castedExpr = std::static_pointer_cast<const program::DerefP2PExpression>(expr);
@@ -292,7 +288,7 @@ namespace analysis {
            auto castedExpr = std::static_pointer_cast<const program::DerefP2PExpression>(expr);
            exprToTerm = toTerm(castedExpr, timePoint, trace);
         }
-        return logic::Theory::deref(timePoint, exprToTerm);
+        return logic::Theory::valueAtInt(timePoint, logic::Theory::deref(timePoint, exprToTerm));
     }
 
     std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::DerefP2PExpression> e, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> trace)
@@ -385,7 +381,12 @@ namespace analysis {
                 } else {
                     return toTerm(castedExpr, timePoint, trace);
                 }
-            }            
+            } 
+            case program::Type::Pointer2IntDeref:
+            {
+                auto castedExpr = std::static_pointer_cast<const program::DerefP2IExpression>(expr);
+                return toTerm(castedExpr, timePoint, trace);                
+            }                         
         }
         assert(false);
         //to silence compiler warnings, but we should never reach here

@@ -44,7 +44,7 @@ namespace program {
 
     std::string VarReference::toString() const
     {
-        return "&" + referent->toString();
+        return "&" + referent->name;
     } 
 
     std::ostream& operator<<(std::ostream& ostr, const PointerExpression& e)

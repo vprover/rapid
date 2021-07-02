@@ -53,7 +53,9 @@ namespace program {
         bool operator==(const Variable& rhs) const { assert( !(name == rhs.name) ||
                                                             (isConstant == rhs.isConstant &&
                                                              *vt  == *rhs.vt &&
-                                                             numberOfTraces  == rhs.numberOfTraces)); return (name == rhs.name); }
+                                                             numberOfTraces  == rhs.numberOfTraces)); 
+                                                             return (name == rhs.name); }
+                                                             
         bool operator!=(const Variable& rhs) const { return !operator==(rhs); }
     };
 }
@@ -187,38 +189,15 @@ namespace program {
     class VarReference : public PointerExpression
     {
     public:
-        VarReference(std::shared_ptr<const Expression> expr) 
-        : PointerExpression(std::shared_ptr<const program::ExprType>(new ExprType(expr->exprType()))), 
-          referent(expr)
+        VarReference(std::shared_ptr<const Variable> var) 
+        : PointerExpression(std::shared_ptr<const program::ExprType>(new ExprType(var->vt))), 
+          referent(var)
         {
-     //       assert(this->referent->type() ==  program::Type::PointerVariableAccess);            
+            assert(referent != nullptr);     
         }
 
-        const std::shared_ptr<const Expression> referent;
-
-        unsigned numberOfRefs() const {
-            if(referent->type() == program::Type::VarReference){
-                return std::static_pointer_cast<const VarReference>(referent)->numberOfRefs() + 1;
-            }
-            return 1;
-        }
-
-        std::shared_ptr<const Variable> referencedVar() const  {
-            if(referent->type() == program::Type::PointerVariableAccess){
-                auto castedReferent = std::static_pointer_cast<const PointerVariableAccess>(referent);
-                return castedReferent->var;
-            }
-
-            if(referent->type() == program::Type::IntOrNatVariableAccess){
-                auto castedReferent = std::static_pointer_cast<const PointerVariableAccess>(referent);
-                return castedReferent->var;
-            }
-            assert(referent->type() == program::Type::VarReference);
-
-            auto castedReferent = std::static_pointer_cast<const VarReference>(referent);
-            return castedReferent->referencedVar();
-        }
-
+        const std::shared_ptr<const Variable> referent;
+        
         bool containsReference() const override { return true; }
         
         program::Type type() const override {return program::Type::VarReference;}
