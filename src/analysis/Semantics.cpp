@@ -45,6 +45,84 @@ namespace analysis {
         return v3;
     }
 
+    Semantics::PointsToSet Semantics::merge(PointsToSet& pt1, PointsToSet& pt2, std::shared_ptr<const logic::Formula> c1, std::shared_ptr<const logic::Formula> c2)
+    {
+        PointsToSet mergedSet;
+
+        auto findInSet = [](PointsToSet& set, PointsToTuple t, PointsToTuple& found) {
+            for (auto& pt : set){
+                if(std::get<0>(pt) == std::get<0>(t) && 
+                   std::get<1>(pt) == std::get<1>(t) &&
+                   std::get<2>(pt)->prettyString() == std::get<2>(t)->prettyString()){
+                    found = pt; //conditions are syntactically equal. Should improve here
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        for (auto& pt : pt1){
+            PointsToTuple found;
+            if(findInSet(pt2, pt, found)){
+                mergedSet.insert(pt);
+                pt2.erase(found);
+            } else {
+                auto newCond = logic::Formulas::conjunctionSimp({std::get<2>(pt), c1});
+                mergedSet.insert(std::make_tuple(std::get<0>(pt), std::get<1>(pt), newCond));
+            }
+        }
+
+        for (auto& pt : pt2){
+            auto newCond = logic::Formulas::conjunctionSimp({std::get<2>(pt), c2});
+            mergedSet.insert(std::make_tuple(std::get<0>(pt), std::get<1>(pt), newCond));
+        }
+
+        return mergedSet;
+    }    
+
+    std::shared_ptr<const program::Variable> Semantics::getVarFromVarLikeExpr(std::shared_ptr<const program::Expression> e)
+    {
+        assert(e->type() == program::Type::PointerVariableAccess || 
+               e->type() == program::Type::IntOrNatVariableAccess ||
+               e->type() == program::Type::Pointer2IntDeref ||
+               e->type() == program::Type::Pointer2PointerDeref ||
+               e->type() == program::Type::VarReference);
+
+        switch(e->type()){
+           case program::Type::PointerVariableAccess: {
+               auto castedE = std::static_pointer_cast<const program::PointerVariableAccess>(e);
+               return castedE->var;
+           }
+           case program::Type::IntOrNatVariableAccess: {
+               auto castedE = std::static_pointer_cast<const program::IntOrNatVariableAccess>(e);
+               return castedE->var;
+           }
+           case program::Type::Pointer2IntDeref: {
+               auto cE = std::static_pointer_cast<const program::DerefP2IExpression>(e);
+               auto var = std::static_pointer_cast<const program::PointerVariableAccess>(cE->expr);
+               return var->var;
+           }
+           case program::Type::Pointer2PointerDeref: {
+               auto cE = std::static_pointer_cast<const program::DerefP2PExpression>(e);
+               auto var = std::static_pointer_cast<const program::PointerVariableAccess>(cE->expr);
+               return var->var;
+           }
+           default: {
+               auto castedE = std::static_pointer_cast<const program::VarReference>(e);
+               return castedE->referent;
+           }
+        }
+    }
+
+    void Semantics::printPointsToSet(PointsToSet& pts)
+    {
+        std::cout << "\n{" << std::endl;
+        for (PointsToTuple pt : pts){
+           std::cout << "   (" + std::get<0>(pt)->name + ", " + std::get<1>(pt)->name + ", " + std::get<2>(pt)->toSMTLIB(0, true) + ")" << std::endl;
+        }
+        std::cout << "}" << std::endl;        
+    }
+
     std::vector<std::shared_ptr<const logic::Axiom>> 
     Semantics::generateBounds()
     {
@@ -92,6 +170,8 @@ namespace analysis {
         for(const auto& function : program.functions)
         {
             std::vector<std::shared_ptr<const logic::Formula>> conjunctsFunction;
+            //start with an empty point to set. nothing points to anything
+            PointsToSet ptSet;
 
             for (const auto& trace : traceTerms(numberOfTraces))
             {
@@ -100,7 +180,7 @@ namespace analysis {
                 SemanticsInliner inliner(problemItems, trace);
                 for (const auto& statement : function->statements)
                 {
-                    auto semantics = generateSemantics(statement.get(), inliner, trace);
+                    auto semantics = generateSemantics(statement.get(), inliner, trace, ptSet);
                     conjunctsTrace.push_back(semantics);
                 }
                 if (util::Configuration::instance().inlineSemantics())
@@ -130,22 +210,22 @@ namespace analysis {
         return std::make_pair(axioms, inlinedVariableValues);
     }
 
-    std::shared_ptr<const logic::Formula> Semantics::generateSemantics(const program::Statement* statement, SemanticsInliner& inliner, std::shared_ptr<const logic::Term> trace)
+    std::shared_ptr<const logic::Formula> Semantics::generateSemantics(const program::Statement* statement, SemanticsInliner& inliner, std::shared_ptr<const logic::Term> trace, PointsToSet& pts)
     {
         if (statement->type() == program::Statement::Type::Assignment)
         {
             auto castedStatement = static_cast<const program::Assignment*>(statement);
-            return generateSemantics(castedStatement, inliner, trace);
+            return generateSemantics(castedStatement, inliner, trace, pts);
         }
         else if (statement->type() == program::Statement::Type::IfElse)
         {
             auto castedStatement = static_cast<const program::IfElse*>(statement);
-            return generateSemantics(castedStatement, inliner, trace);
+            return generateSemantics(castedStatement, inliner, trace, pts);
         }
         else if (statement->type() == program::Statement::Type::WhileStatement)
         {
             auto castedStatement = static_cast<const program::WhileStatement*>(statement);
-            return generateSemantics(castedStatement, inliner, trace);
+            return generateSemantics(castedStatement, inliner, trace, pts);
         }
         else
         {
@@ -155,7 +235,7 @@ namespace analysis {
         }
     }
 
-    std::shared_ptr<const logic::Formula> Semantics::generateSemantics(const program::Assignment*  assignment, SemanticsInliner& inliner, std::shared_ptr<const logic::Term> trace)
+    std::shared_ptr<const logic::Formula> Semantics::generateSemantics(const program::Assignment*  assignment, SemanticsInliner& inliner, std::shared_ptr<const logic::Term> trace, PointsToSet& pts)
     {
         std::vector<std::shared_ptr<const logic::Formula>> conjuncts;
 
@@ -165,11 +245,11 @@ namespace analysis {
         auto l2Name = l2->symbol->name;
         auto activeVars = intersection(locationToActiveVars.at(l1Name), locationToActiveVars.at(l2Name));
 
-        std::cout << "active vars at location " + l1Name << std::endl;
+        /*std::cout << "active vars at location " + l1Name << std::endl;
         for (const auto& var : activeVars)
         {
           std::cout << var->name << std::endl;
-        }
+        }*/
 
         // case 1: assignment to int var
         /*if (assignment->lhs->type() == program::Type::IntOrNatVariableAccess ||
@@ -197,34 +277,30 @@ namespace analysis {
                 //case 2: assignment to a pointer variable or the dereferencing of one. For now we ignore the inliner
                 //assignment must be of the form:
                 // x = t
-                // x = #....#y
+                // x = #y
                 // *...*x = t
-                // *...*x = #...#y
+                // *...*x = #y
                 // x[expr] = expr
 
                 auto lhs = assignment->lhs;
                 auto rhs = assignment->rhs;
 
                 auto isVar = [](std::shared_ptr<const program::Expression> e) {
-                    return
-                    (e->type() == program::Type::PointerVariableAccess ||
-                     e->type() == program::Type::IntOrNatVariableAccess);
+                    return (e->type() == program::Type::PointerVariableAccess ||
+                            e->type() == program::Type::IntOrNatVariableAccess);
                 };
 
                 auto isDerefExpr = [](std::shared_ptr<const program::Expression> e) {
-                    return
-                    (e->type() == program::Type::Pointer2IntDeref ||
-                     e->type() == program::Type::Pointer2PointerDeref);
+                    return (e->type() == program::Type::Pointer2IntDeref ||
+                            e->type() == program::Type::Pointer2PointerDeref);
                 };
 
                 auto isRefExpr = [](std::shared_ptr<const program::Expression> e) {
-                    return
-                    (e->type() == program::Type::VarReference);
+                    return (e->type() == program::Type::VarReference);
                 };
 
                 auto isIntArrayApp = [](std::shared_ptr<const program::Expression> e) {
-                    return
-                    (e->type() == program::Type::IntArrayApplication);
+                    return (e->type() == program::Type::IntArrayApplication);
                 };
 
 
@@ -237,43 +313,17 @@ namespace analysis {
                 std::shared_ptr<const logic::Term> lhsTerm; 
                 std::shared_ptr<const logic::Term> rhsTerm;
 
-                //x = y
-                if(isVar(lhs) && (isVar(rhs) || isNonVarIntExpr(rhs))){
-                    lhsTerm = toTerm(lhs, l2, trace);
+                //[*...*]x = term
+                if((isDerefExpr(lhs) || isVar(lhs)) && (isVar(rhs) || isNonVarIntExpr(rhs))){
+                    lhsTerm = toTerm(lhs, l2, trace, true, l1);
                     rhsTerm = toTerm(rhs, l1, trace);
                 } 
 
-                //*...*x = y
-                if(isDerefExpr(lhs) && isVar(rhs)){
-                    lhsTerm = toTerm(lhs, l2, trace);
-                    rhsTerm = logic::Terms::locConstant(rhs->toString());
-                }
-
-                //*...*x = int_expr
-                if(isDerefExpr(lhs) && isNonVarIntExpr(rhs)){
-                    lhsTerm = toTerm(lhs, l2, trace);
-                    lhsTerm = logic::Theory::valueAtInt(l2, lhsTerm);                    
-                    rhsTerm = toTerm(rhs, l1, trace);
-                }
-
-                //x = #...#y
-                if(isVar(lhs) && isRefExpr(rhs)){                    
+                //[*...*]x = #y
+                if(isRefExpr(rhs)){                   
                     auto castedRhs = std::static_pointer_cast<const program::VarReference>(rhs);            
-                    unsigned numberOfRefs = castedRhs->numberOfRefs();
-                    rhsTerm = logic::Terms::locConstant(castedRhs->referencedVar()->name);
-
-                    lhsTerm = logic::Terms::locConstant(lhs->toString());              
-                    lhsTerm = logic::Theory::deref(lhsTerm, l2, numberOfRefs);     
-                }
-
-                //*...*x = #...#y
-                if(isDerefExpr(lhs) && isRefExpr(rhs)){                    
-                    auto castedRhs = std::static_pointer_cast<const program::VarReference>(rhs);            
-                    unsigned numberOfRefs = castedRhs->numberOfRefs();
-                    rhsTerm = logic::Terms::locConstant(castedRhs->referencedVar()->name);
-
-                    lhsTerm = toTerm(lhs, l2, trace, true);                
-                    lhsTerm = logic::Theory::deref(lhsTerm, l2, numberOfRefs);     
+                    rhsTerm = logic::Terms::locConstant(castedRhs->referent->name);
+                    lhsTerm = toTerm(lhs, l2, trace, true, l1);
                 }
 
                 //a[expr1] = expr2
@@ -285,6 +335,260 @@ namespace analysis {
                     rhsTerm = logic::Terms::arrayStore(array, index, toStore);  
                     lhsTerm = toTerm(lhs, l2, trace, true);
                 }
+
+
+                /*if(isVar(lhs) && isRefExpr(rhs)){
+                    //x = #y
+                    auto varLhs = getVarFromVarLikeExpr(lhs);
+                    auto varRhs = getVarFromVarLikeExpr(rhs);
+
+                    //remove all triples of the form (x, z, C)
+                    auto lhsPointTo = [varLhs](auto& tup) { return (*std::get<0>(tup) == *varLhs);};
+                    std::erase_if(pts, lhsPointTo);
+
+                    auto cond = logic::Theory::boolTrue();
+                    pts.insert(std::make_tuple(varLhs, varRhs, cond));
+                }
+
+                if(isVar(lhs) && isVar(rhs) && lhs->isPointerExpr()){
+                    //x = y
+                    auto varLhs = getVarFromVarLikeExpr(lhs);
+                    auto varRhs = getVarFromVarLikeExpr(rhs);
+
+                    //remove all triples of the form (x, z, C)
+                    auto lhsPointTo = [varLhs](auto& tup) { return (*std::get<0>(tup) == *varLhs);};
+                    std::erase_if(pts, lhsPointTo);
+
+                    std::vector<PointsToTuple> gen;
+                    for (auto& pt : pts){
+                        if(*std::get<0>(pt) == *varRhs){
+                            //found triple of form (y, z, D)
+                            gen.push_back(std::make_tuple(varLhs, std::get<1>(pt), std::get<2>(pt)));
+                        }
+                    }
+
+                    for (auto& pt : gen){
+                        pts.insert(pt);
+                    } 
+                }
+
+                if(isVar(lhs) && isDerefExpr(rhs) && lhs->isPointerExpr()){
+                    //x = *y
+                    auto varLhs = getVarFromVarLikeExpr(lhs);
+                    auto varRhs = getVarFromVarLikeExpr(rhs);
+
+                    //remove all triples of the form (x, z, C)
+                    auto lhsPointTo = [varLhs](auto& tup) { return (*std::get<0>(tup) == *varLhs);};
+                    std::erase_if(pts, lhsPointTo);
+
+                    std::vector<PointsToTuple> gen;
+                    bool foundYPointsTo = false;
+
+                    for (auto& pt1 : pts){
+                        if(*std::get<0>(pt1) == *varRhs){
+                            foundYPointsTo = true;
+                            //found triple of form (y, z, D)
+                            auto z = std::get<1>(pt1);
+                            auto D = std::get<2>(pt1);
+                            for (auto& pt2 : pts){
+                                if(*std::get<0>(pt2) == *z){
+                                    //found triple of form (z, q, E)
+                                    auto q = std::get<1>(pt2);
+                                    auto E = std::get<2>(pt2); 
+                                    auto C = logic::Formulas::conjunctionSimp({D, E});
+                                    gen.push_back(std::make_tuple(varLhs, q, C));
+                                }
+                            }
+                        }
+                    }
+
+                    //What do we want the semantics of pointers to be?
+                    //Erroring here would be in line with C and C++ semantics
+                    error(!foundYPointsTo, "Dereferencing an unitiliased pointer is undefined", l1Name);
+
+                    for (auto& pt : gen){
+                        pts.insert(pt);
+                    } 
+                }
+
+                if(isDerefExpr(lhs) && isRefExpr(rhs)){
+                    //*x = #y
+                    auto varLhs = getVarFromVarLikeExpr(lhs);
+                    auto varRhs = getVarFromVarLikeExpr(rhs);
+
+                    std::vector<PointsToTuple> xPointsTo;
+                    std::vector<PointsToTuple> kill;
+                    std::vector<PointsToTuple> add; 
+ 
+                    bool foundXPointsTo = false;
+
+                    for (auto& pt1 : pts){
+                        if(*std::get<0>(pt1) == *varLhs){
+                            foundXPointsTo = true;
+                            //found triple of form (x, z, D)
+                            auto z = std::get<1>(pt1);
+                            auto D = std::get<2>(pt1);
+                            auto notD = logic::Formulas::negationSimp(D);
+                            xPointsTo.push_back(pt1);
+                            for (auto& pt2 : pts){
+                                if(*std::get<0>(pt2) == *z){
+                                    //found triple of form (z, q, E)
+                                    kill.push_back(pt2);
+                                    auto q = std::get<1>(pt2);
+                                    auto E = std::get<2>(pt2);
+                                    auto newCond = logic::Formulas::conjunctionSimp({notD, E});
+                                    add.push_back(std::make_tuple(z, q, newCond));
+                                }
+                            }
+                        }
+                    }
+                  
+                    error(!foundXPointsTo, "Dereferencing an unitiliased pointer is undefined", l1Name);
+
+                    //remove (z, q, E) tuples
+                    for (auto& pt : kill){
+                        pts.erase(pt);
+                    } 
+
+                    //add (z, q, E /\ ~D) tuples
+                    for (auto& pt : add){
+                        pts.insert(pt);
+                    }                    
+
+                    //add (z, y, D) tuples
+                    for (auto& pt : xPointsTo){
+                        pts.insert(std::make_tuple(std::get<1>(pt), varRhs, std::get<2>(pt)));
+                    } 
+                }
+
+
+                if(isDerefExpr(lhs) && isVar(rhs) && lhs->isPointerExpr()){
+                    //*x = y 
+                    auto varLhs = getVarFromVarLikeExpr(lhs);
+                    auto varRhs = getVarFromVarLikeExpr(rhs);
+
+                    std::vector<PointsToTuple> xPointsTo;
+                    std::vector<PointsToTuple> yPointsTo;
+                    std::vector<PointsToTuple> kill;
+                    std::vector<PointsToTuple> add;                    
+                    bool foundXPointsTo = false;
+                     
+                    for (auto& pt1 : pts){
+                        if(*std::get<0>(pt1) == *varLhs){
+                            bool foundXPointsTo = true;                            
+                            //found triple of form (x, z, D)
+                            auto z = std::get<1>(pt1);
+                            auto D = std::get<2>(pt1);
+                            auto notD = logic::Formulas::negationSimp(D);                            
+                            xPointsTo.push_back(pt1);
+                            for (auto& pt2 : pts){
+                                if(*std::get<0>(pt2) == *z){
+                                    //found triple of form (z, q, E)
+                                    kill.push_back(pt2);
+                                    auto q = std::get<1>(pt2);
+                                    auto E = std::get<2>(pt2);
+                                    auto newCond = logic::Formulas::conjunctionSimp({notD, E});
+                                    add.push_back(std::make_tuple(z, q, newCond));
+                                }
+                            }
+                        }
+                        if(*std::get<0>(pt1) == *varRhs){
+                            yPointsTo.push_back(pt1);
+                        }
+                    }
+
+                    error(!foundXPointsTo, "Dereferencing an unitiliased pointer is undefined", l1Name);
+
+                    //remove (z, q, E) tuples
+                    for (auto& pt : kill){
+                        pts.erase(pt);
+                    } 
+
+                    //add (z, q, E /\ ~D) tuples
+                    for (auto& pt : add){
+                        pts.insert(pt);
+                    }                    
+
+
+                    for (auto& pt1 : xPointsTo){
+                        for(auto& pt2 : yPointsTo){
+                            auto c1 = std::get<2>(pt1);
+                            auto c2 = std::get<2>(pt2);
+                            auto newCond = logic::Formulas::conjunctionSimp({c1, c2});
+                            pts.insert(std::make_tuple(std::get<1>(pt1), std::get<1>(pt2), newCond));
+                        }
+                    } 
+                }
+
+
+                if(isDerefExpr(lhs) && isDerefExpr(rhs) && lhs->isPointerExpr()){
+                    //*x = *y    
+                    auto clhs = std::static_pointer_cast<const program::DerefP2PExpression>(lhs);
+                    auto crhs = std::static_pointer_cast<const program::PointerVariableAccess>(rhs);
+
+                    auto varLhs = std::static_pointer_cast<const program::PointerVariableAccess>(clhs->expr)->var;
+                    auto varRhs = crhs->var;
+
+                    std::vector<PointsToTuple> xPointsTo;
+                    std::vector<PointsToTuple> zsPointsTo;
+                    std::vector<PointsToTuple> kill;
+                    std::vector<PointsToTuple> add;                      
+                    bool foundXPointsTo = false;
+                    bool foundYPointsTo = false;
+
+                    for (auto& pt1 : pts){
+                        if(*std::get<0>(pt1) == *varLhs){
+                            foundXPointsTo = true;
+                            //found triple of form (x, z, D)
+                            auto z = std::get<1>(pt1);
+                            auto D = std::get<2>(pt1);
+                            auto notD = logic::Formulas::negationSimp(D);                 
+                            xPointsTo.push_back(pt1);
+                            for (auto& pt2 : pts){
+                                if(*std::get<0>(pt2) == *z){
+                                    //found triple of form (z, q, E)
+                                    kill.push_back(pt2);
+                                    auto q = std::get<1>(pt2);
+                                    auto E = std::get<2>(pt2);
+                                    auto newCond = logic::Formulas::conjunctionSimp({notD, E});
+                                    add.push_back(std::make_tuple(z, q, newCond));
+                                }
+                            }
+                        }
+                        if(*std::get<0>(pt1) == *varRhs){
+                            foundYPointsTo = false;
+                            //found triple of form (y, z, D)
+                            auto z = std::get<1>(pt1);                            
+                            for (auto& pt2 : pts){
+                                if(*std::get<0>(pt2) == *z){
+                                    //found triple of form (z, q, E)
+                                    zsPointsTo.push_back(pt2);
+                                }
+                            }
+                        }
+                    }
+
+                    error(!foundXPointsTo || !foundYPointsTo, "Dereferencing an unitiliased pointer is undefined", l1Name);
+
+                    //remove (z, q, E) tuples
+                    for (auto& pt : kill){
+                        pts.erase(pt);
+                    } 
+
+                    //add (z, q, E /\ ~D) tuples
+                    for (auto& pt : add){
+                        pts.insert(pt);
+                    }  
+
+                    for (auto& pt1 : xPointsTo){
+                        for(auto& pt2 : zsPointsTo){
+                            auto c1 = std::get<2>(pt1);
+                            auto c2 = std::get<2>(pt2);
+                            auto newCond = logic::Formulas::conjunctionSimp({c1, c2});
+                            pts.insert(std::make_tuple(std::get<1>(pt1), std::get<1>(pt2), newCond));
+                        }
+                    } 
+                }*/
 
                 // lhs(l2) = rhs(l1);
                 auto eq = logic::Formulas::equality(lhsTerm, rhsTerm);
@@ -307,7 +611,7 @@ namespace analysis {
                 auto eq2 = logic::Formulas::equality(lhs2, rhs2);
                 auto conjunct = logic::Formulas::universal({locSymbol}, logic::Formulas::implication(premise, eq2));
  
-                conjuncts.push_back(conjunct);
+                //conjuncts.push_back(conjunct);
                
                 /*for (const auto& var : activeVars)
                 {
@@ -435,7 +739,7 @@ namespace analysis {
         }*/
     }
 
-    std::shared_ptr<const logic::Formula> Semantics::generateSemantics(const program::IfElse* ifElse, SemanticsInliner& inliner, std::shared_ptr<const logic::Term> trace)
+    std::shared_ptr<const logic::Formula> Semantics::generateSemantics(const program::IfElse* ifElse, SemanticsInliner& inliner, std::shared_ptr<const logic::Term> trace, PointsToSet& pts)
     {
         std::vector<std::shared_ptr<const logic::Formula>> conjuncts;
 
@@ -443,6 +747,9 @@ namespace analysis {
         auto lEnd = endTimePointMap.at(ifElse);
         auto lLeftStart = startTimepointForStatement(ifElse->ifStatements.front().get());
         auto lRightStart = startTimepointForStatement(ifElse->elseStatements.front().get());
+
+        PointsToSet ptsIf = pts;
+        PointsToSet ptsElse = pts;
 
         if (util::Configuration::instance().inlineSemantics())
         {
@@ -463,12 +770,14 @@ namespace analysis {
 
             for (const auto& statement : ifElse->ifStatements)
             {
-                auto semanticsOfStatement = generateSemantics(statement.get(), inlinerLeft, trace);
+                //TODO fix this
+                auto semanticsOfStatement = generateSemantics(statement.get(), inlinerLeft, trace, pts);
                 conjunctsLeft.push_back(semanticsOfStatement);
             }
             for (const auto& statement : ifElse->elseStatements)
             {
-                auto semanticsOfStatement = generateSemantics(statement.get(), inlinerRight, trace);
+                //TODO fix this                
+                auto semanticsOfStatement = generateSemantics(statement.get(), inlinerRight, trace, pts);
                 conjunctsRight.push_back(semanticsOfStatement);
             }
 
@@ -615,25 +924,29 @@ namespace analysis {
             conjuncts.push_back(implicationIfBranch);
             conjuncts.push_back(implicationElseBranch);
 
+            printPointsToSet(pts);
             // Part 2: collect all formulas describing semantics of branches and assert them conditionally
             for (const auto& statement : ifElse->ifStatements)
             {
-                auto semanticsOfStatement = generateSemantics(statement.get(), inliner, trace);
+                auto semanticsOfStatement = generateSemantics(statement.get(), inliner, trace, ptsIf);
                 auto implication = logic::Formulas::implication(condition, semanticsOfStatement, "Semantics of left branch");
                 conjuncts.push_back(implication);
             }
             for (const auto& statement : ifElse->elseStatements)
             {
-                auto semanticsOfStatement = generateSemantics(statement.get(), inliner, trace);
+                auto semanticsOfStatement = generateSemantics(statement.get(), inliner, trace, ptsElse);
                 auto implication = logic::Formulas::implication(negatedCondition, semanticsOfStatement,  "Semantics of right branch");
                 conjuncts.push_back(implication);
             }
+
+            pts = merge(ptsIf, ptsElse, condition, negatedCondition);
+            printPointsToSet(pts);
 
             return logic::Formulas::conjunction(conjuncts, "Semantics of IfElse at location " + ifElse->location);
         }
     }
 
-    std::shared_ptr<const logic::Formula> Semantics::generateSemantics(const program::WhileStatement* whileStatement, SemanticsInliner& inliner, std::shared_ptr<const logic::Term> trace)
+    std::shared_ptr<const logic::Formula> Semantics::generateSemantics(const program::WhileStatement* whileStatement, SemanticsInliner& inliner, std::shared_ptr<const logic::Term> trace, PointsToSet& pts)
     {
         std::vector<std::shared_ptr<const logic::Formula>> conjuncts;
 
@@ -763,7 +1076,8 @@ namespace analysis {
             std::vector<std::shared_ptr<const logic::Formula>> conjunctsBody;
             for (const auto& statement : whileStatement->bodyStatements)
             {
-                auto semanticsOfStatement = generateSemantics(statement.get(), inliner, trace);
+                //TODO fix this
+                auto semanticsOfStatement = generateSemantics(statement.get(), inliner, trace, pts);
                 conjunctsBody.push_back(semanticsOfStatement);
             }
 
@@ -847,7 +1161,8 @@ namespace analysis {
             std::vector<std::shared_ptr<const logic::Formula>> conjunctsBody;
             for (const auto& statement : whileStatement->bodyStatements)
             {
-                auto conjunct = generateSemantics(statement.get(), inliner, trace);
+                //TODO fix this
+                auto conjunct = generateSemantics(statement.get(), inliner, trace, pts);
                 conjunctsBody.push_back(conjunct);
             }
             auto bodySemantics =
