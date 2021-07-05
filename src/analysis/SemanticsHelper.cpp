@@ -445,26 +445,23 @@ namespace analysis {
 
     std::shared_ptr<const logic::Formula> varEqual(std::shared_ptr<const program::Variable> v, std::shared_ptr<const logic::Term> timePoint1, std::shared_ptr<const logic::Term> timePoint2, std::shared_ptr<const logic::Term> trace)
     {
-        if(!v->isArray())
-        {
-            return
-                logic::Formulas::equality(
-                    toTerm(v,timePoint1,trace),
-                    toTerm(v,timePoint2,trace)
-                );
-        }
-        else
-        {
-        /*    auto posSymbol = posVarSymbol();
+
+        auto lhs = toTerm(v,timePoint1,trace);
+        auto rhs = toTerm(v,timePoint2,trace);
+
+        if(!v->isArray()){
+            return logic::Formulas::equality(lhs, rhs); 
+        } else {
+            auto posSymbol = posVarSymbol();
             auto pos = posVar();
+
+            lhs = logic::Terms::arraySelect(lhs, pos);
+            rhs = logic::Terms::arraySelect(rhs, pos);
             return
                 logic::Formulas::universal({posSymbol},
-                    logic::Formulas::equality(
-                        toTerm(v,timePoint1,pos,trace),
-                        toTerm(v,timePoint2,pos,trace)
-                    )
-                );*/
-        }
+                    logic::Formulas::equality(lhs, rhs)
+                );            
+        } 
     }
 
     std::shared_ptr<const logic::Formula> allVarEqual(const std::vector<std::shared_ptr<const program::Variable>>& activeVars, std::shared_ptr<const logic::Term> timePoint1, std::shared_ptr<const logic::Term> timePoint2, std::shared_ptr<const logic::Term> trace, std::string label)

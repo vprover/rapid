@@ -39,7 +39,7 @@ namespace analysis
         /*
          * collect all variables which are assigned as part of statement 'statement'
          */
-        static std::unordered_set<std::shared_ptr<const program::Variable>> computeAssignedVars(const program::Statement* statement);
+        static std::unordered_set<std::shared_ptr<const program::Variable>> computeAssignedVars(const program::Statement* statement, bool pointerVars = false);
 
         /*
          * collect all variables which are contained in the loop condition 'expr'

@@ -100,7 +100,7 @@ namespace analysis
         addEndTimePointForStatement(lastStatement, nextTimepointForStatement, endTimePointMap);
     }
 
-    std::unordered_set<std::shared_ptr<const program::Variable>> AnalysisPreComputation::computeAssignedVars(const program::Statement* statement)
+    std::unordered_set<std::shared_ptr<const program::Variable>> AnalysisPreComputation::computeAssignedVars(const program::Statement* statement, bool pointerVars)
     {
         std::unordered_set<std::shared_ptr<const program::Variable>> assignedVars;
 
@@ -108,19 +108,25 @@ namespace analysis
         {
             case program::Statement::Type::Assignment:
             {
-                auto castedStatement = static_cast<const program::Assignment*>(statement);
+
+                auto casted = static_cast<const program::Assignment*>(statement);
                 // add variable on lhs to assignedVars, independently from whether those vars are simple ones or arrays.
-                if (castedStatement->lhs->type() == program::Type::IntOrNatVariableAccess)
+                if (casted->lhs->type() == program::Type::IntOrNatVariableAccess)
                 {
-                    auto access = static_cast<const program::IntOrNatVariableAccess*>(castedStatement->lhs.get());
+                    auto access = static_cast<const program::IntOrNatVariableAccess*>(casted->lhs.get());
                     assignedVars.insert(access->var);
-                }
-                else if(castedStatement->lhs->type() == program::Type::IntArrayApplication)
-                {
-                    auto arrayAccess = static_cast<const program::IntArrayApplication*>(castedStatement->lhs.get());
+                } else if(casted->lhs->type() == program::Type::PointerVariableAccess && pointerVars){
+                    auto access = static_cast<const program::PointerVariableAccess*>(casted->lhs.get());
+                    assignedVars.insert(access->var);
+                } else if(casted->lhs->type() == program::Type::IntArrayApplication) {
+                    auto arrayAccess = static_cast<const program::IntArrayApplication*>(casted->lhs.get());
                     assignedVars.insert(arrayAccess->array);
-                }
-                break;
+                } /*else if(casted->lhs->type() == program::Type::Pointer2PointerDeref){
+                    p2pDerefAssigned = true;
+                } else if(casted->lhs->type() == program::Type::Pointer2IntDeref){
+                    p2iDerefAssigned = true;
+                }*/
+                break;    
             }
             case program::Statement::Type::IfElse:
             {
@@ -128,13 +134,13 @@ namespace analysis
                 // collect assignedVars from both branches
                 for (const auto& statement : castedStatement->ifStatements)
                 {
-                    auto res = computeAssignedVars(statement.get());
+                    auto res = computeAssignedVars(statement.get(), pointerVars);
                     assignedVars.insert(res.begin(), res.end());
                 }
                 for (const auto& statement : castedStatement->elseStatements)
                 {
-                    auto res = computeAssignedVars(statement.get());
-                    assignedVars.insert(res.begin(), res.end());
+                    auto res = computeAssignedVars(statement.get(), pointerVars);
+                    assignedVars.insert(res.begin(), res.end());             
                 }
                 break;
             }
@@ -144,8 +150,8 @@ namespace analysis
                 // collect assignedVars from body
                 for (const auto& statement : castedStatement->bodyStatements)
                 {
-                    auto res = computeAssignedVars(statement.get());
-                    assignedVars.insert(res.begin(), res.end());
+                    auto res = computeAssignedVars(statement.get(), pointerVars);
+                    assignedVars.insert(res.begin(), res.end());                  
                 }
                 break;
             }

@@ -18,5 +18,5 @@ func main() {
 }
 
 (conjecture
-    (<= (value_int main_end (deref main_end b)) 0)  
+    (<= (value_int main_end (deref main_end (deref main_end c))) 0)  
 )

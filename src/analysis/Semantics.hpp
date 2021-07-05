@@ -15,6 +15,7 @@
 #include "AnalysisPreComputation.hpp"
 #include "SemanticsInliner.hpp"
 #include "SemanticsHelper.hpp"
+#include "../util/Options.hpp"
 
 namespace analysis {
 
@@ -31,12 +32,29 @@ namespace analysis {
         locationToActiveVars(locationToActiveVars),
         problemItems(problemItems),
         numberOfTraces(numberOfTraces),
-        inlinedVariableValues(traceTerms(numberOfTraces)) {}
+        inlinedVariableValues(traceTerms(numberOfTraces)) {
+            bool containsPointerVariable = false;
+            for(auto vars : locationToActiveVars){
+                for(auto v: vars.second){
+                   if(v->isPointer()){
+                       containsPointerVariable = true;
+                       break;
+                   }
+                }
+            }
+
+            if(util::Configuration::instance().inlineSemantics() && containsPointerVariable){
+                std::cout << "Ignoring request to inline semantics as inlining is currently not sound in the presence of ponter variables" << std::endl;
+            }
+
+            inlineSemantics = util::Configuration::instance().inlineSemantics() && !containsPointerVariable;
+        }
         std::pair<std::vector<std::shared_ptr<const logic::Axiom>>, InlinedVariableValues> generateSemantics();
         std::vector<std::shared_ptr<const logic::Axiom>> generateBounds();
 
     private:
 
+        bool inlineSemantics;
 
         const program::Program& program;
         const EndTimePointMap endTimePointMap;

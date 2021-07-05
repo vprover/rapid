@@ -26,7 +26,7 @@ namespace analysis {
         auto xSymbol = logic::Signature::varSymbol("xInt", logic::Sorts::intSort());
         auto x = logic::Terms::var(xSymbol);
 
-        auto assignedVars = AnalysisPreComputation::computeAssignedVars(statement);
+        auto assignedVars = AnalysisPreComputation::computeAssignedVars(statement, false);
 
         // add lemma for each intVar and each intArrayVar
         for (const auto& v : locationToActiveVars.at(locationSymbolForStatement(statement)->name))
@@ -50,13 +50,14 @@ namespace analysis {
                         // PART 1: Add induction-axiom
                         // IH(it): v(l(it1,...,itk,it)    ) <= x or
                         //         v(l(it1,...,itk,it),pos) <= x
+
                         auto inductionHypothesis = [&](std::shared_ptr<const logic::Term> arg)
                         {
                             auto lStartArg = timepointForLoopStatement(statement, arg);
-                            return logic::Theory::intLessEqual(
-                                /*v->isArray() ? toTerm(v, lStartArg, pos, trace) :*/ toTerm(v, lStartArg, trace),
-                                x
-                            );
+
+                            auto lhs = toTerm(v, lStartArg, trace);
+                            lhs = v->isArray() ? logic::Terms::arraySelect(lhs, pos) : lhs;                            
+                            return logic::Theory::intLessEqual(lhs ,x);
                         };
 
                         auto freeVarSymbols1 = enclosingIteratorsSymbols(statement);
@@ -89,19 +90,25 @@ namespace analysis {
                         auto dense = logic::Formulas::lemmaPredicate("Dense-" + nameSuffix, freeVars1);
                         // Dense_v: forall it. (it<n => ( v(l(s(it))    )=v(l(it)    ) or v(l(s(it))    )=v(l(it)    )+1 ) )         , or
                         //          forall it. (it<n => ( v(l(s(it)),pos)=v(l(it),pos) or v(l(s(it)),pos)=v(l(it),pos)+1 ) )
+
+                        auto lhs = toTerm(v,lStartSuccOfIt,trace);
+                        auto rhs = toTerm(v,lStartIt,trace);
+
+                        if(v->isArray()){
+                            lhs = logic::Terms::arraySelect(lhs, pos);
+                            rhs = logic::Terms::arraySelect(rhs, pos);
+                        }
+
                         auto denseFormula =
                             logic::Formulas::universal({itSymbol},
                                 logic::Formulas::implication(
                                     logic::Theory::natSub(it, n),
                                     logic::Formulas::disjunction({
+                                        logic::Formulas::equality(lhs,rhs),
                                         logic::Formulas::equality(
-                                            /*v->isArray() ? toTerm(v,lStartSuccOfIt,pos,trace) :*/ toTerm(v,lStartSuccOfIt,trace),
-                                            /*v->isArray() ? toTerm(v,lStartIt,pos,trace) :*/ toTerm(v,lStartIt,trace)
-                                        ),
-                                        logic::Formulas::equality(
-                                            /*v->isArray() ? toTerm(v,lStartSuccOfIt,pos,trace) :*/ toTerm(v,lStartSuccOfIt,trace),
+                                            lhs,
                                             logic::Theory::intAddition(
-                                                /*v->isArray() ?  toTerm(v,lStartIt,pos,trace) :*/ toTerm(v,lStartIt,trace),
+                                                rhs,
                                                 logic::Theory::intConstant(1)
                                             )
                                         )
@@ -155,18 +162,27 @@ namespace analysis {
                         // PART 2C: Add lemma
                         // Conclusion: exists it2. (it2<n & v(l(it2)    )=x & v(l(s(it2))    )=v(l(it2)    )+1) or
                         //             exists it2. (it2<n & v(l(it2),pos)=x & v(l(s(it2)),pos)=v(l(it2),pos)+1)
+
+                        auto lhs1 = toTerm(v,lStartIt2,trace);
+                        auto lhs2 = toTerm(v,lStartSuccOfIt2,trace); 
+                        rhs = toTerm(v,lStartIt,trace);
+
+
+                        if(v->isArray()){
+                            lhs1 = logic::Terms::arraySelect(lhs1, pos);
+                            lhs2 = logic::Terms::arraySelect(lhs2, pos);    
+                            rhs = logic::Terms::arraySelect(rhs, pos);
+                        }
+                                               
                         auto conclusion =
                             logic::Formulas::existential({it2Symbol},
                                 logic::Formulas::conjunction({
                                     logic::Theory::natSub(it2,n),
+                                    logic::Formulas::equality(lhs1, x),
                                     logic::Formulas::equality(
-                                        /*v->isArray() ? toTerm(v,lStartIt2,pos,trace) :*/ toTerm(v,lStartIt2,trace),
-                                        x
-                                    ),
-                                    logic::Formulas::equality(
-                                        /*v->isArray() ? toTerm(v,lStartSuccOfIt2,pos,trace) :*/ toTerm(v,lStartSuccOfIt2,trace),
+                                        lhs2,
                                         logic::Theory::intAddition(
-                                            /*v->isArray() ? toTerm(v,lStartIt2,pos,trace) :*/ toTerm(v,lStartIt2,trace),
+                                            rhs,
                                             logic::Theory::intConstant(1)
                                         )
                                     ),

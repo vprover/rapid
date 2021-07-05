@@ -47,6 +47,11 @@ namespace analysis {
                     auto predicateFunctor = predicate.first;
                     auto predicateString = predicate.second;
 
+                    if(v->isPointer() && predicateString != "eq"){
+                        //only equality makes sense for pointer variables
+                        break;
+                    }
+
                     for (unsigned traceNumber = 1; traceNumber < numberOfTraces+1; traceNumber++)
                     {
                         auto trace = traceTerm(traceNumber);
@@ -63,11 +68,14 @@ namespace analysis {
                         auto inductionHypothesis = [&](std::shared_ptr<const logic::Term> arg)
                         {
                             auto lStartArg = timepointForLoopStatement(whileStatement, arg);
-                            return predicateFunctor(
-                                /*v->isArray() ? toTerm(v, lStartBoundL, pos, trace) :*/ toTerm(v,lStartBoundL,trace),
-                                /*v->isArray() ? toTerm(v, lStartArg, pos, trace) :*/ toTerm(v,lStartArg, trace),
-                                ""
-                            );
+                            auto lhs = toTerm(v,lStartBoundL,trace);
+                            auto rhs = toTerm(v,lStartArg, trace);
+                            if(v->isArray()){
+                                lhs = logic::Terms::arraySelect(lhs, pos);
+                                rhs = logic::Terms::arraySelect(rhs, pos);
+                            }
+
+                            return predicateFunctor(lhs, rhs,"");
                         };
 
                         auto freeVars = enclosingIteratorsSymbols(whileStatement);
@@ -96,23 +104,25 @@ namespace analysis {
                         // Part 2A: Add definition for premise:
                         auto premise = logic::Formulas::lemmaPredicate("Prem" + nameShort, args);
                         // forall it. (( boundL<=it<boundR and IH(it) ) => IH(s(it)) ), where C in {=,<=,>=}
+
+                        auto lhs = toTerm(v,lStartBoundL,trace);
+                        auto rhs1 = toTerm(v,lStartIt, trace);
+                        auto rhs2 = toTerm(v,lStartSuccOfIt, trace);                        
+                        if(v->isArray()){
+                            lhs = logic::Terms::arraySelect(lhs, pos);
+                            rhs1 = logic::Terms::arraySelect(rhs1, pos);
+                            rhs2 = logic::Terms::arraySelect(rhs2, pos);
+                        }
+
                         auto premiseFormula =
                             logic::Formulas::universal({it->symbol},
                                 logic::Formulas::implication(
                                     logic::Formulas::conjunction({
                                         logic::Theory::natSubEq(boundL, it),
                                         logic::Theory::natSub(it, boundR),
-                                        predicateFunctor(
-                                            /*v->isArray() ? toTerm(v,lStartBoundL,pos,trace) :*/ toTerm(v,lStartBoundL,trace),
-                                            /*v->isArray() ? toTerm(v,lStartIt,pos,trace) :*/ toTerm(v,lStartIt,trace),
-                                            ""
-                                        )
+                                        predicateFunctor(lhs, rhs1,"")
                                     }),
-                                    predicateFunctor(
-                                        /*v->isArray() ? toTerm(v,lStartBoundL,pos,trace) :*/ toTerm(v,lStartBoundL,trace),
-                                        /*v->isArray() ? toTerm(v,lStartSuccOfIt,pos,trace) :*/ toTerm(v,lStartSuccOfIt,trace),
-                                        ""
-                                    )
+                                    predicateFunctor(lhs, rhs2,"")
                                 )
                             );
                         auto premiseDef =
@@ -161,13 +171,23 @@ namespace analysis {
         auto pos = posVar();
 
         auto activeVars = locationToActiveVars.at(statement->location);
-        auto assignedVars = computeAssignedVars(statement);
+        auto [p2p, p2i] = derefAssignementsInLoop(statement);
+        auto assignedVars = AnalysisPreComputation::computeAssignedVars(statement, true);
+
+        auto notAssignedTo = [assignedVars, p2p, p2i](std::shared_ptr<const program::Variable> v) {
+            //over approximation that should be improved
+            if(!v->isPointer() && p2i){ return false; }
+            if(v->isPointer() && p2p){ return false; }
+            
+            return assignedVars.find(v) == assignedVars.end();
+        };
+
 
         // for each active var, which is not constant but not assigned to in any statement of the loop,
         // add a lemma asserting that var is the same in each iteration as in the first iteration.
         for (const auto& v : activeVars)
         {
-            if (!v->isConstant && assignedVars.find(v) == assignedVars.end())
+            if (!v->isConstant && notAssignedTo(v))
             {
                 for (unsigned traceNumber = 1; traceNumber < numberOfTraces+1; traceNumber++)
                 {
@@ -187,11 +207,17 @@ namespace analysis {
                     auto inductionHypothesis = [&](std::shared_ptr<const logic::Term> arg)
                     {
                         auto lStartArg = timepointForLoopStatement(statement, arg);
-                        return
-                            logic::Formulas::equality(
-                                /*v->isArray() ? toTerm(v,lStartZero,pos,trace) :*/ toTerm(v,lStartZero,trace),
-                                /*v->isArray() ? toTerm(v,lStartArg,pos,trace) :*/ toTerm(v,lStartArg,trace)
-                            );
+                        auto lhs = toTerm(v,lStartZero,trace);
+                        if(v->isArray()){
+                            lhs = logic::Terms::arraySelect(lhs, pos);
+                        }
+
+                        auto rhs = toTerm(v,lStartArg,trace);
+                        if(v->isArray()){
+                            rhs = logic::Terms::arraySelect(rhs, pos);
+                        }
+
+                        return logic::Formulas::equality(lhs, rhs);
                     };
 
                     // PART 1: Add induction-axiom
@@ -232,54 +258,52 @@ namespace analysis {
             }
         }
     }
- 
-    //TODO repeat function of one in AnalysisPreComputation?
-    std::unordered_set<std::shared_ptr<const program::Variable>> StaticAnalysisLemmas::computeAssignedVars(const program::Statement* statement)
+
+    std::pair<bool, bool> 
+    StaticAnalysisLemmas::derefAssignementsInLoop(const program::Statement* statement)
     {
-        std::unordered_set<std::shared_ptr<const program::Variable>> assignedVars;
+
+        bool p2pDerefAssigned = false;
+        bool p2iDerefAssigned = false;
 
         switch (statement->type())
         {
             case program::Statement::Type::Assignment:
             {
-                auto castedStatement = static_cast<const program::Assignment*>(statement);
-                // add variable on lhs to assignedVars, independently from whether those vars are simple ones or arrays.
-                if (castedStatement->lhs->type() == program::Type::IntOrNatVariableAccess)
-                {
-                    auto access = static_cast<const program::IntOrNatVariableAccess*>(castedStatement->lhs.get());
-                    assignedVars.insert(access->var);
+
+                auto casted = static_cast<const program::Assignment*>(statement);
+                if(casted->lhs->type() == program::Type::Pointer2PointerDeref){
+                    p2pDerefAssigned = true;
+                } else if(casted->lhs->type() == program::Type::Pointer2IntDeref){
+                    p2iDerefAssigned = true;
                 }
-                else if(castedStatement->lhs->type() == program::Type::IntArrayApplication)
-                {
-                    auto arrayAccess = static_cast<const program::IntArrayApplication*>(castedStatement->lhs.get());
-                    assignedVars.insert(arrayAccess->array);
-                }
-                break;
+                break;    
             }
             case program::Statement::Type::IfElse:
             {
                 auto castedStatement = static_cast<const program::IfElse*>(statement);
-                // collect assignedVars from both branches
                 for (const auto& statement : castedStatement->ifStatements)
                 {
-                    auto res = computeAssignedVars(statement.get());
-                    assignedVars.insert(res.begin(), res.end());
+                    auto [b1, b2] = derefAssignementsInLoop(statement.get());
+                    if(b1){ p2pDerefAssigned = true; }
+                    if(b2){ p2iDerefAssigned = true; }                   
                 }
                 for (const auto& statement : castedStatement->elseStatements)
                 {
-                    auto res = computeAssignedVars(statement.get());
-                    assignedVars.insert(res.begin(), res.end());
-                }
+                    auto [b1, b2] = derefAssignementsInLoop(statement.get());
+                    if(b1){ p2pDerefAssigned = true; }
+                    if(b2){ p2iDerefAssigned = true; }
+                } 
                 break;
             }
             case program::Statement::Type::WhileStatement:
             {
                 auto castedStatement = static_cast<const program::WhileStatement*>(statement);
-                // collect assignedVars from body
                 for (const auto& statement : castedStatement->bodyStatements)
                 {
-                    auto res = computeAssignedVars(statement.get());
-                    assignedVars.insert(res.begin(), res.end());
+                    auto [b1, b2] = derefAssignementsInLoop(statement.get());
+                    if(b1){ p2pDerefAssigned = true; }
+                    if(b2){ p2iDerefAssigned = true; }              
                 }
                 break;
             }
@@ -288,6 +312,7 @@ namespace analysis {
                 break;
             }
         }
-        return assignedVars;
+        return std::make_pair(p2pDerefAssigned, p2iDerefAssigned);
     }
+
 }

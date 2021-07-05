@@ -189,7 +189,7 @@ namespace analysis
 
     std::shared_ptr<const logic::Term> SemanticsInliner::toCachedTermFull(std::shared_ptr<const program::Variable> arrayVar, std::shared_ptr<const logic::Term> position)
     {
-    /*    assert(arrayVar != nullptr);
+        assert(arrayVar != nullptr);
         assert(position != nullptr);
         assert(arrayVar->isArray());
         assert(currTimepoint != nullptr);
@@ -199,7 +199,7 @@ namespace analysis
             cachedArrayVarTimepoints[arrayVar] = currTimepoint;
         }
         auto cachedTimepoint = cachedArrayVarTimepoints.at(arrayVar);
-        return toTerm(arrayVar, cachedTimepoint, position, trace);*/
+        return logic::Terms::arraySelect(toTerm(arrayVar, cachedTimepoint, trace), position);
     }
 
     std::shared_ptr<const logic::Term> SemanticsInliner::toCachedTerm(std::shared_ptr<const program::IntExpression> expr)
@@ -342,9 +342,12 @@ namespace analysis
                     }
                     else
                     {
-                     /*   if (cachedArrayVarTimepoints.find(var) != cachedArrayVarTimepoints.end())
+                        if (cachedArrayVarTimepoints.find(var) != cachedArrayVarTimepoints.end())
                         {
                             auto cachedTimepoint = cachedArrayVarTimepoints[var];
+
+                            auto arr1 = toTerm(var, currTimepoint, trace);
+                            auto arr2 = toTerm(var, cachedTimepoint, trace);
 
                             // add formula
                             auto posSymbol = posVarSymbol();
@@ -352,8 +355,8 @@ namespace analysis
                             auto f = 
                                 logic::Formulas::universalSimp({posSymbol},
                                     logic::Formulas::equalitySimp(
-                                        toTerm(var, currTimepoint, pos, trace),
-                                        toTerm(var, cachedTimepoint, pos, trace)
+                                        logic::Terms::arraySelect(arr1, pos),
+                                        logic::Terms::arraySelect(arr2, pos)
                                     )
                                 );
                             conjuncts.push_back(f);
@@ -362,7 +365,7 @@ namespace analysis
                         {
                             // note: cf. comment about why we need this case in the corresponding int-var case above
                             cachedArrayVarTimepoints[var] = currTimepoint;
-                        }*/
+                        }
                     }
                 }
             }
@@ -418,7 +421,7 @@ namespace analysis
                 else
                 {
 
-                  /*  if (cachedArrayVarTimepoints.find(var) == cachedArrayVarTimepoints.end())
+                    if (cachedArrayVarTimepoints.find(var) == cachedArrayVarTimepoints.end())
                     {
                         // set x(l(zero)) as cachedValue, so that other references share the same cachedValue
                         // this edge case does matter e.g. in the following edge case:
@@ -431,10 +434,10 @@ namespace analysis
                     auto pos = posVar();
                     auto f =
                         logic::Formulas::equality(
-                            toTerm(var, iterationTimepoint, pos, trace),
-                            toTerm(var, cachedArrayVarTimepoints[var], pos, trace)
+                            logic::Terms::arraySelect(toTerm(var, currTimepoint, trace), pos),
+                            logic::Terms::arraySelect(toTerm(var, cachedTimepoint,trace), pos)
                         );
-                    conjuncts.push_back(f);*/
+                    conjuncts.push_back(f);
                 }
             }
         }
@@ -546,13 +549,13 @@ namespace analysis
 
     std::shared_ptr<const logic::Term> InlinedVariableValues::toInlinedTerm(const program::WhileStatement* whileStatement, std::shared_ptr<const program::Variable> arrayVar, std::shared_ptr<const logic::Term> position, std::shared_ptr<const logic::Term> trace)
     {
-    /*    assert(whileStatement != nullptr);
+        assert(whileStatement != nullptr);
         assert(arrayVar != nullptr);
         assert(position != nullptr);
         assert(arrayVar->isArray());
 
         auto timepoint = arrayValues.at(trace).at(whileStatement).at(arrayVar);
-        return toTerm(arrayVar, timepoint, position, trace);*/
+        return logic::Terms::arraySelect(toTerm(arrayVar, timepoint, trace), position);
     }
 
     std::shared_ptr<const logic::Term> InlinedVariableValues::toInlinedTerm(const program::WhileStatement* whileStatement, std::shared_ptr<const program::IntExpression> expr, std::shared_ptr<const logic::Term> timepoint, std::shared_ptr<const logic::Term> trace)
@@ -603,7 +606,7 @@ namespace analysis
             }
             case program::Type::IntArrayApplication:
             {
-            /*    auto castedExpr = std::static_pointer_cast<const program::IntArrayApplication>(expr);
+                auto castedExpr = std::static_pointer_cast<const program::IntArrayApplication>(expr);
                 auto arrayVar = castedExpr->array;
                 auto arrayIndex = castedExpr->index;
 
@@ -616,8 +619,9 @@ namespace analysis
                 else
                 {
                     // 'arrayVar' was assigned to in 'whileStatement', so use original value
-                    return toTerm(arrayVar, timepoint, position, trace);
-                }*/
+                    auto array = toTerm(arrayVar, timepoint, trace);
+                    return logic::Terms::arraySelect(array, position);
+                }
             }
         }
     }
