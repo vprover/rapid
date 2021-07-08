@@ -34,7 +34,13 @@ namespace logic {
         auto null = nullLoc();
         auto tp = arbitraryTP();
 
+        auto sel = Signature::fetchArraySelect();   
+        auto store = Signature::fetchArrayStore();
+
         valueAtInt(tp, null);
+        valueAtArray(tp, null);
+        valueAtConstInt(null);
+        valueAtConstArray(null);
         deref(tp, null);
     }
 
@@ -149,7 +155,17 @@ namespace logic {
     {
         return Terms::func("value_arr", {timePoint,location}, Sorts::arraySort(), false);
     }
-    
+
+    std::shared_ptr<const FuncTerm> Theory::valueAtConstInt(std::shared_ptr<const Term> location)  
+    {
+        return Terms::func("value_const_int", {location}, Sorts::intSort(), false);
+    }
+
+    std::shared_ptr<const FuncTerm> Theory::valueAtConstArray(std::shared_ptr<const Term> location)    
+    {
+        return Terms::func("value_const_arr", {location}, Sorts::arraySort(), false);
+    }
+
     std::shared_ptr<const FuncTerm> Theory::deref(std::shared_ptr<const Term> timePoint, std::shared_ptr<const Term> location, unsigned level)
     {
         assert(level >= 1);

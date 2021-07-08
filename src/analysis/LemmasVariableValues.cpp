@@ -174,7 +174,7 @@ namespace analysis {
         auto [p2p, p2i] = derefAssignementsInLoop(statement);
         auto assignedVars = AnalysisPreComputation::computeAssignedVars(statement, true);
 
-        auto notAssignedTo = [assignedVars, p2p, p2i](std::shared_ptr<const program::Variable> v) {
+        auto notAssignedTo = [&](std::shared_ptr<const program::Variable> v) {
             //over approximation that should be improved
             if(!v->isPointer() && p2i){ return false; }
             if(v->isPointer() && p2p){ return false; }

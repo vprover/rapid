@@ -165,7 +165,7 @@ namespace analysis {
 
                         auto lhs1 = toTerm(v,lStartIt2,trace);
                         auto lhs2 = toTerm(v,lStartSuccOfIt2,trace); 
-                        rhs = toTerm(v,lStartIt,trace);
+                        rhs = toTerm(v,lStartIt2,trace);
 
 
                         if(v->isArray()){

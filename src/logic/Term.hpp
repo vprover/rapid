@@ -68,6 +68,9 @@ namespace logic {
         
         bool isDerefAt() const { return symbol->name == "deref"; }
         bool isValueAt() const { return symbol->name == "value_int"; }
+        bool isArrayAt() const { return symbol->name == "value_arr"; }
+        bool isConstValueAt() const { return symbol->name == "value_const_int"; }
+        bool isConstArrayAt() const { return symbol->name == "value_const_arr"; }
 
         Type type() const override { return Term::Type::FuncTerm; }
         std::string toSMTLIB() const override;
@@ -125,6 +128,7 @@ namespace logic {
         // construct new terms
         static std::shared_ptr<const LVariable> var(std::shared_ptr<const Symbol> symbol);
         static std::shared_ptr<const FuncTerm> locConstant(std::string name, bool noDeclaration=false);
+        //these next two should probably be in theory
         static std::shared_ptr<const FuncTerm> arrayStore(std::shared_ptr<const Term> array, std::shared_ptr<const Term> index, std::shared_ptr<const Term> toStore); 
         static std::shared_ptr<const FuncTerm> arraySelect(std::shared_ptr<const Term> array, std::shared_ptr<const Term> index);
         static std::shared_ptr<const FuncTerm> func(std::string name, std::vector<std::shared_ptr<const Term>> subterms, const Sort* sort, bool noDeclaration=false);

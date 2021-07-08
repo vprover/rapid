@@ -114,46 +114,26 @@ namespace analysis
             {
                 auto castedTerm = std::static_pointer_cast<const logic::FuncTerm>(t);
 
-                // handle term: search for a term of sort Int, which has a subterm of sort Location
-                // TODO: could make this check more precise, so that it always only detects terms v(l(...)), where v is a variable occuring in the program and l is a location of the program
-                if (castedTerm->symbol->rngSort == logic::Sorts::intSort())
-                {
-                    // check whether castedTerm could denote mutable program variable
-                    if (castedTerm->subterms.size() >= 1 && castedTerm->subterms[0]->symbol->rngSort == logic::Sorts::timeSort())
-                    {
-                        auto programVarName = castedTerm->symbol->name;
-                        auto timepointName = castedTerm->subterms[0]->symbol->name;
+                if(castedTerm->isValueAt() || castedTerm->isArrayAt()){                  
+                    auto timepointName = castedTerm->subterms[0]->symbol->name;
+                    auto programVarName = castedTerm->subterms[1]->symbol->name;
 
-                        if (persistentVarTerms.find(programVarName) == persistentVarTerms.end())
-                        {
-                            persistentVarTerms[programVarName] = {timepointName};
-                        }
-                        else
-                        {
-                            persistentVarTerms[programVarName].push_back(timepointName);
-                        }
-                    } 
-                    else 
+                    if (persistentVarTerms.find(programVarName) == persistentVarTerms.end())
                     {
-                        // check whether castedTerm could denote constant program variable
-                        // TODO: could make this check more precise, currently just ensure that no subterm is of sort time.
-                        bool noTimepointSubterms = true;
-                        for (const auto& subterm : castedTerm->subterms)
-                        {
-                            if (subterm->symbol->rngSort == logic::Sorts::timeSort())
-                            {
-                                noTimepointSubterms = false;
-                                break;
-                            }
-                        }
-                        if (noTimepointSubterms)
-                        {
-                            auto programVarName = castedTerm->symbol->name;
-                            if (programVarName != "0" && programVarName != "1" && programVarName != "-")
-                            {
-                                persistentConstVarTerms.insert(programVarName);
-                            }
-                        }
+                        persistentVarTerms[programVarName] = {timepointName};
+                    }
+                    else
+                    {
+                        persistentVarTerms[programVarName].push_back(timepointName);
+                    }                    
+                }
+
+                if(castedTerm->isConstValueAt() || castedTerm->isConstArrayAt()){
+                    // check whether castedTerm could denote constant program variable
+                    auto programVarName = castedTerm->subterms[0]->symbol->name;
+                    if (programVarName != "0" && programVarName != "1" && programVarName != "-")
+                    {
+                        persistentConstVarTerms.insert(programVarName);
                     }
                 }
 
@@ -175,16 +155,24 @@ namespace analysis
     std::shared_ptr<const logic::Term> SemanticsInliner::toCachedTermFull(std::shared_ptr<const program::Variable> var)
     {
         assert(var != nullptr);
-        assert(!var->isArray());
         assert(currTimepoint != nullptr);
 
-        // if no value is cached yet, initialize cache (note that we use a free variable as trace (which has to be universally quantified later))
-        if(cachedIntVarValues.find(var) == cachedIntVarValues.end())
-        {
-            cachedIntVarValues[var] = toTerm(var, currTimepoint, trace);
+        if(var->isArray()){
+            if(cachedArrayVarTimepoints.find(var) == cachedArrayVarTimepoints.end())
+            {
+                cachedArrayVarTimepoints[var] = currTimepoint;
+            }
+            auto cachedTimepoint = cachedArrayVarTimepoints.at(var);
+            return toTerm(var, cachedTimepoint, trace);
+        } else {
+            // if no value is cached yet, initialize cache (note that we use a free variable as trace (which has to be universally quantified later))
+            if(cachedIntVarValues.find(var) == cachedIntVarValues.end())
+            {
+                cachedIntVarValues[var] = toTerm(var, currTimepoint, trace);
+            }
+            // return cached value
+            return cachedIntVarValues.at(var);
         }
-        // return cached value
-        return cachedIntVarValues.at(var);
     }
 
     std::shared_ptr<const logic::Term> SemanticsInliner::toCachedTermFull(std::shared_ptr<const program::Variable> arrayVar, std::shared_ptr<const logic::Term> position)
@@ -350,15 +338,7 @@ namespace analysis
                             auto arr2 = toTerm(var, cachedTimepoint, trace);
 
                             // add formula
-                            auto posSymbol = posVarSymbol();
-                            auto pos = posVar();
-                            auto f = 
-                                logic::Formulas::universalSimp({posSymbol},
-                                    logic::Formulas::equalitySimp(
-                                        logic::Terms::arraySelect(arr1, pos),
-                                        logic::Terms::arraySelect(arr2, pos)
-                                    )
-                                );
+                            auto f = logic::Formulas::equalitySimp(arr1, arr2);
                             conjuncts.push_back(f);
                         }
                         else
@@ -435,7 +415,7 @@ namespace analysis
                     auto f =
                         logic::Formulas::equality(
                             logic::Terms::arraySelect(toTerm(var, currTimepoint, trace), pos),
-                            logic::Terms::arraySelect(toTerm(var, cachedTimepoint,trace), pos)
+                            logic::Terms::arraySelect(toTerm(var, cachedArrayVarTimepoints[var],trace), pos)
                         );
                     conjuncts.push_back(f);
                 }

@@ -199,13 +199,7 @@ namespace analysis {
         auto l2Name = l2->symbol->name;
         auto activeVars = intersection(locationToActiveVars.at(l1Name), locationToActiveVars.at(l2Name));
 
-        // case 1: assignment to int var
-        /*if (assignment->lhs->type() == program::Type::IntOrNatVariableAccess ||
-            assignment->lhs->type() == program::Type::PointerVariableAccess ||
-            assignment->lhs->type() == program::Type::PointerDeref)
-        {*/
-
-        if (inlineSemantics)
+        if (util::Configuration::instance().inlineSemantics())
         {
             //This is safe as we assume no pointers when using the inliner
             auto castedRhs = std::static_pointer_cast<const program::IntExpression>(assignment->rhs);
@@ -224,31 +218,29 @@ namespace analysis {
                 return logic::Formulas::conjunctionSimp(conjuncts, "Update variable " + castedLhs->var->name + " at location " + assignment->location);
 
             } else {
+                auto application = std::static_pointer_cast<const program::IntArrayApplication>(assignment->lhs);
 
                 inliner.currTimepoint = l1;
                 auto f1 = inliner.handlePersistence(l1, locationToActiveVars.at(l1Name));
                 conjuncts.push_back(f1);
 
-                // a(l2, cached(e)) = cached(rhs)
-                auto index = inliner.toCachedTerm(application->index);
-                auto array = toTerm(application->array,l2,trace);
-                auto eq1Lhs = logic::Terms::arraySelect(array,index);
+                // val_int a l2 = store (var_int a last_set) index cached(rhs)
+                
+                auto var = application->array;
 
-                auto eq1Rhs = inliner.toCachedTerm(castedRhs);
-                auto eq1 = logic::Formulas::equality(eq1Lhs, eq1Rhs);
+                auto array_now = toTerm(var,l2,trace);
+                auto array_before = inliner.toCachedTermFull(var);
+
+                auto index = inliner.toCachedTerm(application->index);
+                auto toStore = inliner.toCachedTerm(castedRhs);
+
+                auto rhs = logic::Terms::arrayStore(array_before,index,toStore);
+
+                auto eq1 = logic::Formulas::equality(array_now, rhs);
                 conjuncts.push_back(eq1);
 
-                // forall positions pos. (pos!=cached(e) => a(l2,pos) = cached(a,pos))
-                auto posSymbol = posVarSymbol();
-                auto pos = posVar();
-
-                auto premise = logic::Formulas::disequality(pos, inliner.toCachedTerm(application->index));
-                auto eq2 = logic::Formulas::equality(toTerm(application->array,l2,pos,trace), inliner.toCachedTermFull(application->array,pos));
-                auto conjunct = logic::Formulas::universal({posSymbol}, logic::Formulas::implication(premise, eq2));
-                conjuncts.push_back(conjunct);
-
                 // set last assignment of a to l2
-                inliner.setArrayVarTimepoint(application->array, l2);
+                inliner.setArrayVarTimepoint(var, l2);
 
                 return logic::Formulas::conjunctionSimp(conjuncts, "Update array variable " + application->array->name + " at location " + assignment->location);                    
             }
@@ -387,7 +379,7 @@ namespace analysis {
         auto lLeftStart = startTimepointForStatement(ifElse->ifStatements.front().get());
         auto lRightStart = startTimepointForStatement(ifElse->elseStatements.front().get());
 
-        if (inlineSemantics)
+        if (util::Configuration::instance().inlineSemantics())
         {
             // Part 1: visit start-location
             inliner.currTimepoint = lStart;
@@ -471,58 +463,28 @@ namespace analysis {
 
             for (const auto& var : mergeVars)
             {
-                if (!var->isArray())
-                {
-                    auto varLEnd = toTerm(var,lEnd,trace);
+                auto varLEnd = toTerm(var,lEnd,trace);
 
-                    // define the value of var at lEnd as the merge of values at the end of the two branches
-                    conjunctsLeft.push_back(
-                        logic::Formulas::equalitySimp(
-                            varLEnd,
-                            inlinerLeft.toCachedTermFull(var)
-                        )
-                    );
-                    conjunctsRight.push_back(
-                        logic::Formulas::equalitySimp(
-                            varLEnd,
-                            inlinerRight.toCachedTermFull(var)
-                        )
-                    );
+                // define the value of var at lEnd as the merge of values at the end of the two branches
+                conjunctsLeft.push_back(
+                    logic::Formulas::equalitySimp(
+                        varLEnd,
+                        inlinerLeft.toCachedTermFull(var)
+                    )
+                );
+                conjunctsRight.push_back(
+                    logic::Formulas::equalitySimp(
+                        varLEnd,
+                        inlinerRight.toCachedTermFull(var)
+                    )
+                );
 
-                    // remember that lEnd is the last timepoint where var was set
-                    assert(!var->isConstant);
+                // remember that lEnd is the last timepoint where var was set
+                assert(!var->isConstant);
+                if(var->isArray()){
+                    inliner.setArrayVarTimepoint(var, lEnd);                    
+                } else {
                     auto result = inliner.setIntVarValue(var, varLEnd);
-                }
-                else
-                {
-                    assert(cachedArrayVarTimepointsLeft.find(var) != cachedArrayVarTimepointsLeft.end());
-                    assert(cachedArrayVarTimepointsRight.find(var) != cachedArrayVarTimepointsRight.end());
-
-                    auto posSymbol = posVarSymbol();
-                    auto pos = posVar();
-                    auto varLEnd = logic::Terms::arraySelect(toTerm(var,lEnd,trace), pos);
-
-                    // define the value of var at lEnd as the merge of values at the end of the two branches
-                    conjunctsLeft.push_back(
-                        logic::Formulas::universalSimp({posSymbol},
-                            logic::Formulas::equalitySimp(
-                                varLEnd,
-                                inlinerLeft.toCachedTermFull(var,pos)
-                            )
-                        )
-                    );
-                    conjunctsRight.push_back(
-                        logic::Formulas::universalSimp({posSymbol},
-                            logic::Formulas::equalitySimp(
-                                varLEnd,
-                                inlinerRight.toCachedTermFull(var,pos)
-                            )
-                        )
-                    );
-
-                    // cache the fact that lEnd is the last timepoint where var was set
-                    assert(!var->isConstant);
-                    inliner.setArrayVarTimepoint(var, lEnd);
                 }
             }
 
@@ -626,26 +588,12 @@ namespace analysis {
             inliner.currTimepoint = lStart0;
             for (const auto& var : assignedVars)
             {
-                if (!var->isArray())
-                {
-                    conjPart1.push_back(
-                        logic::Formulas::equalitySimp(
-                            toTerm(var, lStart0,trace),
-                            inliner.toCachedTermFull(var)
-                        )
-                    );
-                }
-                else
-                {
-                 /*   conjPart1.push_back(
-                        logic::Formulas::universalSimp({posSymbol},
-                            logic::Formulas::equalitySimp(
-                                toTerm(var,lStart0,pos,trace),
-                                inliner.toCachedTermFull(var, pos)
-                            )
-                        )
-                    );*/
-                }
+                conjPart1.push_back(
+                    logic::Formulas::equalitySimp(
+                        toTerm(var, lStart0,trace),
+                        inliner.toCachedTermFull(var)
+                    )
+                );
             }
 
             conjuncts.push_back(
@@ -714,28 +662,13 @@ namespace analysis {
             inliner.currTimepoint = lStartSuccOfIt;
             for (const auto& var : assignedVars)
             {
-                if (!var->isArray())
-                {
-                    conjunctsBody.push_back(
-                        logic::Formulas::equalitySimp(
-                            toTerm(var,lStartSuccOfIt,trace),
-                            inliner.toCachedTermFull(var),
-                            "Define value of variable " + var->name + " at beginning of next iteration"
-                        )
-                    );
-                }
-                else
-                {
-                    /*conjunctsBody.push_back(
-                        logic::Formulas::universalSimp({posSymbol},
-                            logic::Formulas::equalitySimp(
-                                toTerm(var,lStartSuccOfIt,pos,trace),
-                                inliner.toCachedTermFull(var, pos)
-                            ),
-                            "Define value of array variable " + var->name + " at beginning of next iteration"
-                        )
-                    );*/
-                }
+                conjunctsBody.push_back(
+                    logic::Formulas::equalitySimp(
+                        toTerm(var,lStartSuccOfIt,trace),
+                        inliner.toCachedTermFull(var),
+                        "Define value of variable " + var->name + " at beginning of next iteration"
+                    )
+                );
             }
 
             conjuncts.push_back(

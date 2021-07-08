@@ -312,28 +312,27 @@ namespace analysis {
         assert(var != nullptr);
         assert(trace != nullptr);
                 
-    //    std::vector<std::shared_ptr<const logic::Term>> arguments;
-
-    //TODO make a separate function for const variables val_int_const :: loc -> int
     //    if (!var->isConstant)
     //    {
         assert(timePoint != nullptr);
     //    arguments.push_back(timePoint);
 
         auto varAsConst = logic::Terms::func(logic::Signature::fetch(var->name),{});
-    //    arguments.push_back(varAsConst);        
-    //    }
-    //    if (var->numberOfTraces > 1)
-    //    {
-    //        arguments.push_back(trace);
-    //    }
 
         if(var->isPointer()){ 
             return logic::Theory::deref(timePoint, varAsConst);
         } else if(var->isArray()){
-            return logic::Theory::valueAtArray(timePoint, varAsConst);
+            if(var->isConstant){
+                return logic::Theory::valueAtConstArray(varAsConst);
+            } else {    
+                return logic::Theory::valueAtArray(timePoint, varAsConst);
+            }
         }
-        return logic::Theory::valueAtInt(timePoint, varAsConst);
+        if(var->isConstant){
+            return logic::Theory::valueAtConstInt(varAsConst);
+        } else {    
+            return logic::Theory::valueAtInt(timePoint, varAsConst);
+        }        
     }
     
     std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::IntExpression> expr, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> trace, bool lhsOfAssignment)
@@ -449,19 +448,7 @@ namespace analysis {
         auto lhs = toTerm(v,timePoint1,trace);
         auto rhs = toTerm(v,timePoint2,trace);
 
-        if(!v->isArray()){
-            return logic::Formulas::equality(lhs, rhs); 
-        } else {
-            auto posSymbol = posVarSymbol();
-            auto pos = posVar();
-
-            lhs = logic::Terms::arraySelect(lhs, pos);
-            rhs = logic::Terms::arraySelect(rhs, pos);
-            return
-                logic::Formulas::universal({posSymbol},
-                    logic::Formulas::equality(lhs, rhs)
-                );            
-        } 
+        return logic::Formulas::equality(lhs, rhs); 
     }
 
     std::shared_ptr<const logic::Formula> allVarEqual(const std::vector<std::shared_ptr<const program::Variable>>& activeVars, std::shared_ptr<const logic::Term> timePoint1, std::shared_ptr<const logic::Term> timePoint2, std::shared_ptr<const logic::Term> trace, std::string label)

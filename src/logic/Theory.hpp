@@ -45,7 +45,9 @@ namespace logic {
         static std::shared_ptr<const FuncTerm> nullLoc();
         static std::shared_ptr<const FuncTerm> arbitraryTP();        
         static std::shared_ptr<const FuncTerm> valueAtInt(std::shared_ptr<const Term> timePoint, std::shared_ptr<const Term> location);   
-        static std::shared_ptr<const FuncTerm> valueAtArray(std::shared_ptr<const Term> timePoint, std::shared_ptr<const Term> location);            
+        static std::shared_ptr<const FuncTerm> valueAtArray(std::shared_ptr<const Term> timePoint, std::shared_ptr<const Term> location);
+        static std::shared_ptr<const FuncTerm> valueAtConstInt(std::shared_ptr<const Term> location);   
+        static std::shared_ptr<const FuncTerm> valueAtConstArray(std::shared_ptr<const Term> location);                         
         static std::shared_ptr<const FuncTerm> deref(std::shared_ptr<const Term> timePoint, std::shared_ptr<const Term> location, unsigned level = 1);        
     };
     

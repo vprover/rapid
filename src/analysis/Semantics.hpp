@@ -45,16 +45,13 @@ namespace analysis {
 
             if(util::Configuration::instance().inlineSemantics() && containsPointerVariable){
                 std::cout << "Ignoring request to inline semantics as inlining is currently not sound in the presence of ponter variables" << std::endl;
+                util::Configuration::instance().setDontInline();
             }
-
-            inlineSemantics = util::Configuration::instance().inlineSemantics() && !containsPointerVariable;
         }
         std::pair<std::vector<std::shared_ptr<const logic::Axiom>>, InlinedVariableValues> generateSemantics();
         std::vector<std::shared_ptr<const logic::Axiom>> generateBounds();
 
     private:
-
-        bool inlineSemantics;
 
         const program::Program& program;
         const EndTimePointMap endTimePointMap;
