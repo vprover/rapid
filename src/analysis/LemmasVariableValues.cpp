@@ -233,7 +233,7 @@ namespace analysis {
         }
     }
 
-    std::unordered_set<std::shared_ptr<const program::Variable>> StaticAnalysisLemmas::computeAssignedVars(const program::Statement* statement)
+    std::unordered_set<std::shared_ptr<const program::Variable>> AnalysisPreComputation::computeAssignedVars(const program::Statement* statement)
     {
         std::unordered_set<std::shared_ptr<const program::Variable>> assignedVars;
 
