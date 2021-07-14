@@ -47,8 +47,6 @@ int main(int argc, char *argv[])
                 // parse inputFile
                 auto parserResult = parser::parse(inputFile);
                 
-                std::cout << *parserResult.program << std::endl;
-
                 // setup outputDir
                 auto outputDir = util::Configuration::instance().outputDir();
                 if (outputDir == "")

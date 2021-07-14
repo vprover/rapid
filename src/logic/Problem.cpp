@@ -13,7 +13,10 @@ namespace logic {
 
     void ReasoningTask::outputSMTLIBToDir(std::string dirPath, std::string preamble) const
     {
-        auto outfileName = dirPath + conjecture->name + ".smt2";
+        auto outPref = util::Configuration::instance().outputPrefix();
+        outPref = outPref == "" ? "" : outPref + "-";
+
+        auto outfileName = dirPath + outPref + conjecture->name + ".smt2";
         if(std::ifstream(outfileName))
         {
             std::cout << "Error: The output-file " << outfileName << " already exists!" << std::endl;
@@ -117,12 +120,14 @@ namespace logic {
     {
         std::vector<ReasoningTask> tasks;
 
+        bool ouc = util::Configuration::instance().onlyOutputConjectures();
+
         for (int i = 0; i < items.size(); ++i)
         {
             auto item = items[i];
 
             // if the item is a lemma or conjecture, generate a new reasoning task to prove that lemma/conjecture
-            if (item->type == ProblemItem::Type::Lemma || item->type == ProblemItem::Type::Conjecture)
+            if ((item->type == ProblemItem::Type::Lemma  && !ouc) || item->type == ProblemItem::Type::Conjecture)
             {
                 // collect all previous axioms, which are not hidden or occur in fromItems
                 std::vector<std::shared_ptr<const ProblemItem>> currentAxioms;

@@ -4,6 +4,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <iostream>
 
 namespace util {
     
@@ -74,21 +75,26 @@ namespace util {
     public:
         Configuration() :
         _outputDir("-dir", ""),
-        _generateBenchmark("generateBenchmark", false),
+        _outputFilePrefix("-outputFilePrefix", ""),        
+        _generateBenchmark("-generateBenchmark", false),
         _nativeNat("-nat", true),
         _inlineSemantics("-inlineSemantics", true),
         _variableDifferences("-varDiff", true),
         _axiomatiseToInt("-axToInt", false),
         _lemmaPredicates("-lemmaPredicates", true),
+        _onlyOutputConjectures("-onlyConjectures", false),
+
         _allOptions()
         {
             registerOption(&_outputDir);
+            registerOption(&_outputFilePrefix);            
             registerOption(&_generateBenchmark);
             registerOption(&_nativeNat);
             registerOption(&_inlineSemantics);
             registerOption(&_variableDifferences);
             registerOption(&_axiomatiseToInt);            
             registerOption(&_lemmaPredicates);
+            registerOption(&_onlyOutputConjectures);
         }
         
         bool setAllValues(int argc, char *argv[]);
@@ -96,23 +102,28 @@ namespace util {
         Option* getOption(std::string name);
         
         std::string outputDir() { return _outputDir.getValue(); }
+        std::string outputPrefix() { return _outputFilePrefix.getValue(); }        
         bool generateBenchmark() { return _generateBenchmark.getValue(); }
         bool nativeNat() { return _nativeNat.getValue(); }
         bool inlineSemantics() { return _inlineSemantics.getValue(); }
         bool variableDifferences() { return _variableDifferences.getValue();  }
         bool axiomatiseToInt() { return _axiomatiseToInt.getValue(); }
         bool lemmaPredicates() { return _lemmaPredicates.getValue(); }
+        bool onlyOutputConjectures() { return _onlyOutputConjectures.getValue(); }
 
-        static Configuration instance() { return _instance; }
+        void setDontInline() { _inlineSemantics.setValue("off");}
+        static Configuration& instance() { return _instance; }
         
     protected:
         StringOption _outputDir;
+        StringOption _outputFilePrefix;        
         BooleanOption _generateBenchmark;
         BooleanOption _nativeNat;
         BooleanOption _inlineSemantics;
         BooleanOption _variableDifferences;
         BooleanOption _axiomatiseToInt;
         BooleanOption _lemmaPredicates;
+        BooleanOption _onlyOutputConjectures;
 
         std::map<std::string, Option*> _allOptions;
         
