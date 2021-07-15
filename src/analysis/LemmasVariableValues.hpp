@@ -160,7 +160,6 @@ namespace analysis {
 
         virtual void generateOutputFor(const program::WhileStatement* statement, std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
 
-        std::unordered_set<std::shared_ptr<const program::Variable>> computeAssignedVars(const program::Statement* statement);
     };
 }
 
