@@ -526,14 +526,18 @@ namespace analysis {
                         );
 
 
-                    // When a timepoint is used with a quantified variable like Itl9 instead nl9 when dereferencing terms for main_end, 
+
+                    // Special inlining case: derefencering constant program variables when defined as mutable.
+                    // When a timepoint is used with a quantified variable such as Itl9 
+                    // instead of nl9 when dereferencing terms for main_end, 
                     // f needs to universally quantify over Itl9 as well.
-                    // This might occur when variable values are not changed throughout a loop, 
-                    // but are not propagated throughout all timepoints with inline semantics.
+                    // This might occur when non-constant program variables are not changed throughout a loop, 
+                    // hence they are not propagated throughout all timepoints of the loop with inline semantics.
                     // This variable will only have cached timepoints from where its values were used, but not from the end of the loop.
+                    // Essentially these values are equal for all iterations Itl9 of the loop. 
                     auto tps = inliner.getCachedArrayVarTimepoints();
                     auto cachedTimepoint =  tps[var];
-                    if(cachedTimepoint.get()->prettyString().find("nl") == std::string::npos) {
+                    if(cachedTimepoint.get()->prettyString().find("nl") == std::string::npos && cachedTimepoint.get()->prettyString().find("Itl") != std::string::npos) {
                         auto cachedTimepointTerm = std::static_pointer_cast<const logic::FuncTerm>(cachedTimepoint);
                             auto quantifiedSym = cachedTimepointTerm->subterms.back().get()->symbol;
                             f = 
