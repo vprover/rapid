@@ -443,7 +443,7 @@ namespace analysis {
                                         logic::Formulas::equality(
                                             v->isArray ? toTerm(v,lStartIt,pos,trace) : toTerm(v,lStartIt,trace),
                                             logic::Theory::intAddition(
-                                                v->isArray ?  toTerm(v,lStartIt,pos,trace) : toTerm(v,lStartIt,trace),
+                                                v->isArray ?  toTerm(v,lStartZero,pos,trace) : toTerm(v,lStartZero,trace),
                                                 it
                                             )
                                         )
