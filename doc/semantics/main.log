@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019) (preloaded format=pdflatex 2020.3.27)  28 MAY 2021 12:02
+This is pdfTeX, Version 3.14159265-2.6-1.40.20 (TeX Live 2019) (preloaded format=pdflatex 2020.3.27)  10 JUN 2021 16:31
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -895,7 +895,7 @@ LaTeX Warning: There were undefined references.
 Here is how much of TeX's memory you used:
  16546 strings out of 492616
  302472 string characters out of 6129481
- 408994 words of memory out of 5000000
+ 409000 words of memory out of 5000000
  20073 multiletter control sequences out of 15000+600000
  33269 words of font info for 99 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
@@ -944,7 +944,7 @@ ic/cm-super/sftt0900.pfb></usr/local/texlive/2019/texmf-dist/fonts/type1/public
 /cm-super/sftt1000.pfb></usr/local/texlive/2019/texmf-dist/fonts/type1/public/s
 tmaryrd/stmary10.pfb></usr/local/texlive/2019/texmf-dist/fonts/type1/public/stm
 aryrd/stmary9.pfb>
-Output written on main.pdf (16 pages, 571355 bytes).
+Output written on main.pdf (16 pages, 571560 bytes).
 PDF statistics:
  233 PDF objects out of 1000 (max. 8388607)
  170 compressed objects within 2 object streams
