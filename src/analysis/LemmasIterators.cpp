@@ -31,7 +31,7 @@ namespace analysis {
         // add lemma for each intVar and each intArrayVar
         for (const auto& v : locationToActiveVars.at(locationSymbolForStatement(statement)->name))
         {
-            if (!v->isConstant && assignedVars.find(v) != assignedVars.end())
+            if (!v->isConstant && v->type() != program::ValueType::Bool && assignedVars.find(v) != assignedVars.end())
             {
                 if (!v->isArray) // We assume that loop counters are not array elements and therefore only add iterator-lemmas for non-array-vars
                 {
@@ -206,7 +206,7 @@ namespace analysis {
         // add lemma for each intVar
         for (const auto& v : locationToActiveVars.at(locationSymbolForStatement(statement)->name))
         {
-            if (!v->isConstant && assignedVars.find(v) != assignedVars.end())
+            if (!v->isConstant && v->type() != program::ValueType::Bool && assignedVars.find(v) != assignedVars.end())
             {
                 if (!v->isArray) // We assume that loop counters are not array elements and therefore only add iterator-lemmas for non-array-vars
                 {

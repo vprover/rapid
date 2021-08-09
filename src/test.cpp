@@ -1,12 +1,11 @@
-#include <cassert>
 #include <iostream>
 #include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
+#include <filesystem>
 
 #include "logic/Theory.hpp"
-#include "logic/Problem.hpp"
 
 #include "program/Program.hpp"
 
@@ -19,41 +18,54 @@
 #include "analysis/TraceLemmas.hpp"
 #include "analysis/TheoryAxioms.hpp"
 
-void outputUsage() {
-    std::cout
-            << "Usage: rapid "
-            << "-dir <outputDir> "
-            << "[-inlineSemantics on|off] "
-            << "[-lemmaPredicates on|off] "
-            << "[-nat on|off] "
-            << "[-overwriteExisting on|off] "
-            << "<filename>" << std::endl;
-}
-
 int main(int argc, char *argv[]) {
-    if (argc <= 1) {
-        outputUsage();
-    }
-    else {
-        if (util::Configuration::instance().setAllValues(argc, argv)) {
+
+    std::filesystem::path testDir = std::filesystem::current_path();
+    testDir /= "examples";
+
+    int iteration = 0;
+
+    for (const auto &dirEntry : std::filesystem::recursive_directory_iterator(testDir)) {
+        if (!dirEntry.is_regular_file()) {
+            continue;
+        }
+        if (dirEntry.path().extension().string() != ".spec" || dirEntry.path().string().find("experiments") != std::string::npos) {
+            std::cout << "\nSkipping: " << dirEntry.path().string() << "\n" << std::endl;
+            continue;
+        }
+        iteration++;
+
+        std::cout << "\nTranslating (#" << iteration << "): " << dirEntry.path().string() << "\n" << std::endl;
+
+        std::string input = dirEntry.path().string();
+
+        for (int i = 0; i < 2; i++) {
+
+            std::string output = dirEntry.path().stem().string() + "_";
+
+            if ((i % 2) == 0) {
+                std::cout << "\n[Inlining]\n" << std::endl;
+                output += "inline_";
+            }
+            else {
+                std::cout << "\n[Not Inlining]\n" << std::endl;
+                output += "noinline_";
+            }
+
+            char *params[] = {(char *) "", (char *) "-overwriteExisting", (char *) "on", (char *) "-inlineSemantics", (char *) ((i % 2) == 0 ? "on" : "off"), (char *) "-dir", &output[0], &input[0]};
+            util::Configuration::instance().setAllValues(std::extent<decltype(params)>::value, params);
+
+            yylex_destroy(); // reset flex
+            yyset_lineno(1);
+            loc.initialize();
+            logic::Signature::reset(); // reset signatures
+
             if (util::Output::initialize()) {
-                std::string inputFile = argv[argc - 1];
-
-                // check that inputFile ends in ".spec"
-                std::string extension = ".spec";
-                assert(inputFile.size() > extension.size());
-                assert(inputFile.compare(inputFile.size() - extension.size(), extension.size(), extension) == 0);
-                std::string inputFileWithoutExtension = inputFile.substr(0, inputFile.size() - extension.size());
-
                 // parse inputFile
-                parser::WhileParserResult parserResult = parser::parse(inputFile);
+                parser::WhileParserResult parserResult = parser::parse(dirEntry.path().string());
 
                 // setup outputDir
                 std::string outputDir = util::Configuration::instance().outputDir();
-                if (outputDir == "") {
-                    std::cout << "Error: dir parameter required" << std::endl;
-                    exit(1);
-                }
 
                 // generate problem
                 std::vector<std::shared_ptr<const logic::ProblemItem>> problemItems;
@@ -84,6 +96,7 @@ int main(int argc, char *argv[]) {
                 }
             }
         }
-        return 0;
     }
+    // Hope no assertion was violated till here (does not test that the translation is correct but only that there is no problem during translation!)
+    return 0;
 }

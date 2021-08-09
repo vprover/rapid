@@ -34,7 +34,7 @@ namespace program
          */
         std::unique_ptr<std::vector<const WhileStatement*>> enclosingLoops;
         
-        enum class Type{ IntAssignment, IfElse, WhileStatement, SkipStatement };
+        enum class Type { Assignment, IfElse, WhileStatement, SkipStatement };
         virtual Type type() const = 0;
         
         virtual std::string toString(int indentation) const = 0;
@@ -42,7 +42,7 @@ namespace program
     
     struct StatementSharedPtrHash
     {
-        size_t operator()(const std::shared_ptr<const Statement>& ptr) const {return std::hash<std::string>()(ptr->location);}
+        size_t operator()(const std::shared_ptr<const Statement>& ptr) const {return std::hash<std::string>()(ptr->location); }
     };
     
     std::ostream& operator<<(std::ostream& ostr, const Statement& v);
@@ -50,35 +50,40 @@ namespace program
     // hack needed for bison: std::vector has no overload for ostream, but these overloads are needed for bison
     std::ostream& operator<<(std::ostream& ostr, const std::vector< std::shared_ptr<const program::Statement>>& e);
     
-    class IntAssignment : public Statement
+    class Assignment : public Statement
     {
     public:
         
-        IntAssignment(unsigned lineNumber, std::shared_ptr<const IntExpression> lhs, std::shared_ptr<const IntExpression> rhs) : Statement(lineNumber), lhs(std::move(lhs)), rhs(std::move(rhs)){}
+        Assignment(unsigned lineNumber, std::shared_ptr<const Expression> lhs, std::shared_ptr<const Expression> rhs) : Statement(lineNumber), lhs(std::move(lhs)), rhs(std::move(rhs)){}
         
-        const std::shared_ptr<const IntExpression> lhs;
-        const std::shared_ptr<const IntExpression> rhs;
+        const std::shared_ptr<const Expression> lhs;
+        const std::shared_ptr<const Expression> rhs;
         
-        Type type() const override {return Type::IntAssignment;}
+        Type type() const override { return Type::Assignment; }
         std::string toString(int indentation) const override;
     };
-    
+
     class IfElse : public Statement
     {
     public:
         
-        IfElse(unsigned lineNumber, std::shared_ptr<const BoolExpression> condition, std::vector<std::shared_ptr<const Statement>> ifStatements, std::vector<std::shared_ptr<const Statement>> elseStatements) : Statement(lineNumber), condition(std::move(condition)), ifStatements(std::move(ifStatements)), elseStatements(std::move(elseStatements))
+        IfElse(unsigned lineNumber, std::shared_ptr<const Expression> condition, std::vector<std::shared_ptr<const Statement>> ifStatements, std::vector<std::shared_ptr<const Statement>> elseStatements) : Statement(lineNumber), condition(std::move(condition)), ifStatements(std::move(ifStatements)), elseStatements(std::move(elseStatements))
         {
             // TODO: add a skip-statement instead, maybe already during parsing (challenge: unique numbering)
             assert(this->ifStatements.size() > 0);
             assert(this->elseStatements.size() > 0);
+
+            if (this->condition->type() != ValueType::Bool) {
+                std::cout << "if-condition expected a Bool as condition" << std::endl;
+                exit(1);
+            }
         }
         
-        const std::shared_ptr<const BoolExpression> condition;
+        const std::shared_ptr<const Expression> condition;
         const std::vector<std::shared_ptr<const Statement>> ifStatements;
         const std::vector<std::shared_ptr<const Statement>> elseStatements;
         
-        Type type() const override {return Type::IfElse;}
+        Type type() const override { return Type::IfElse; }
         std::string toString(int indentation) const override;
     };
     
@@ -86,16 +91,21 @@ namespace program
     {
     public:
         
-        WhileStatement(unsigned lineNumber, std::shared_ptr<const BoolExpression> condition, std::vector<std::shared_ptr<const Statement>> bodyStatements) : Statement(lineNumber), condition(std::move(condition)), bodyStatements(std::move(bodyStatements))
+        WhileStatement(unsigned lineNumber, std::shared_ptr<const Expression> condition, std::vector<std::shared_ptr<const Statement>> bodyStatements) : Statement(lineNumber), condition(std::move(condition)), bodyStatements(std::move(bodyStatements))
         {
             // TODO: add a skip-statement instead, maybe already during parsing (challenge: unique numbering)
             assert(this->bodyStatements.size() > 0);
+
+            if (this->condition->type() != ValueType::Bool) {
+                std::cout << "while-condition expected a Bool as condition" << std::endl;
+                exit(1);
+            }
         }
 
-        const std::shared_ptr<const BoolExpression> condition;
+        const std::shared_ptr<const Expression> condition;
         const std::vector<std::shared_ptr<const Statement>> bodyStatements;
         
-        Type type() const override {return Type::WhileStatement;}
+        Type type() const override { return Type::WhileStatement; }
         std::string toString(int indentation) const override;
     };
     
@@ -104,7 +114,7 @@ namespace program
     public:
         SkipStatement(unsigned lineNumber) : Statement(lineNumber) {};
         
-        Type type() const override {return Type::SkipStatement;}
+        Type type() const override { return Type::SkipStatement; }
         std::string toString(int indentation) const override;
     };
 }

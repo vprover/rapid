@@ -57,32 +57,32 @@ namespace logic {
         return Terms::func("abs", {t}, Sorts::intSort(), true);
     }
     
-    std::shared_ptr<const Formula> Theory::intLess(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2, std::string label)
+    std::shared_ptr<const Term> Theory::intLess(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2, std::string label)
     {
         return Formulas::predicate("<", {t1,t2}, label, true);
     }
     
-    std::shared_ptr<const Formula> Theory::intLessEqual(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2, std::string label)
+    std::shared_ptr<const Term> Theory::intLessEqual(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2, std::string label)
     {
         return Formulas::predicate("<=", {t1,t2}, label, true);
     }
 
-    std::shared_ptr<const Formula> Theory::intGreater(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2,  std::string label)
+    std::shared_ptr<const Term> Theory::intGreater(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2,  std::string label)
     {
         return Formulas::predicate(">", {t1,t2}, label, true);
     }
     
-    std::shared_ptr<const Formula> Theory::intGreaterEqual(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2, std::string label)
+    std::shared_ptr<const Term> Theory::intGreaterEqual(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2, std::string label)
     {
         return Formulas::predicate(">=", {t1,t2}, label, true);
     }
     
-    std::shared_ptr<const Formula> Theory::boolTrue(std::string label)
+    std::shared_ptr<const Term> Theory::boolTrue(std::string label)
     {
         return Formulas::predicate("true", {}, label, true);
     }
     
-    std::shared_ptr<const Formula> Theory::boolFalse(std::string label)
+    std::shared_ptr<const Term> Theory::boolFalse(std::string label)
     {
         return Formulas::predicate("false", {}, label, true);
     }
@@ -102,13 +102,13 @@ namespace logic {
         return Terms::func("p", {term}, Sorts::natSort(), true);
     }
     
-    std::shared_ptr<const Formula> Theory::natSub(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2, std::string label)
+    std::shared_ptr<const Term> Theory::natSub(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2, std::string label)
     {
         bool alreadyDeclared = util::Configuration::instance().nativeNat();
         return Formulas::predicate("Sub", {t1,t2}, label, alreadyDeclared);
     }
     
-    std::shared_ptr<const Formula> Theory::natSubEq(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2, std::string label)
+    std::shared_ptr<const Term> Theory::natSubEq(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2, std::string label)
     {
         // encode t1<=t2 as t1 < s(t2).
         return Theory::natSub(t1,natSucc(t2), label);
@@ -122,7 +122,7 @@ namespace logic {
     > inductionAxiom1(
         std::string name,
         std::string shortName,
-        std::function<std::shared_ptr<const Formula> (std::shared_ptr<const Term>)> inductionHypothesis,
+        std::function<std::shared_ptr<const Term> (std::shared_ptr<const Term>)> inductionHypothesis,
         std::vector<std::shared_ptr<const Symbol>> freeVarSymbols, 
         ProblemItem::Visibility visibility)
     {
@@ -216,7 +216,7 @@ namespace logic {
     > inductionAxiom2(
         std::string name,
         std::string shortName,
-        std::function<std::shared_ptr<const Formula> (std::shared_ptr<const Term>)> inductionHypothesis,
+        std::function<std::shared_ptr<const Term> (std::shared_ptr<const Term>)> inductionHypothesis,
         std::shared_ptr<const logic::Term> nt1,
         std::shared_ptr<const logic::Term> nt2,
         std::vector<std::shared_ptr<const Symbol>> freeVarSymbols,

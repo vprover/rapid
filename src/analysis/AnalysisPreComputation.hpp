@@ -44,8 +44,7 @@ namespace analysis
         /*
          * collect all variables which are contained in the loop condition 'expr'
          */
-        static void computeVariablesContainedInLoopCondition(std::shared_ptr<const program::BoolExpression> expr, std::unordered_set<std::shared_ptr<const program::Variable>>& variables);
-        static void computeVariablesContainedInLoopCondition(std::shared_ptr<const program::IntExpression> expr, std::unordered_set<std::shared_ptr<const program::Variable>>& variables);
+        static void computeVariablesContainedInLoopCondition(std::shared_ptr<const program::Expression> expr, std::unordered_set<std::shared_ptr<const program::Variable>>& variables);
 
         };
 }

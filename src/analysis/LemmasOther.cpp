@@ -10,15 +10,13 @@
 
 namespace analysis {
 
-    void AtLeastOneIterationLemmas::generateOutputFor(const program::WhileStatement *statement, std::vector<std::shared_ptr<const logic::ProblemItem>>& items)
-    {
+    void AtLeastOneIterationLemmas::generateOutputFor(const program::WhileStatement *statement, std::vector<std::shared_ptr<const logic::ProblemItem>> &items) {
         auto itSymbol = iteratorSymbol(statement);
         auto it = iteratorTermForLoop(statement);
 
         auto lStartZero = timepointForLoopStatement(statement, logic::Theory::natZero());
 
-        for (unsigned traceNumber = 1; traceNumber < numberOfTraces+1; traceNumber++)
-        {
+        for (unsigned traceNumber = 1; traceNumber < numberOfTraces + 1; traceNumber++) {
             auto trace = traceTerm(traceNumber);
             auto n = lastIterationTermForLoop(statement, numberOfTraces, trace);
 
@@ -26,28 +24,26 @@ namespace analysis {
 
             // forall enclosingIterators. (Cond(l(0)) => exists it. s(it)=n)
             auto bareLemma =
-                logic::Formulas::universal(enclosingIteratorsSymbols(statement),
-                    logic::Formulas::implication(
-                        util::Configuration::instance().inlineSemantics() ?
-                            inlinedVarValues.toInlinedFormula(statement, statement->condition, lStartZero, trace) :
-                            toFormula(statement->condition, lStartZero,trace),
-                        logic::Formulas::existential({itSymbol},
-                            logic::Formulas::equality(logic::Theory::natSucc(it),n)
-                        )
-                    )
-                );
+                    logic::Formulas::universal(enclosingIteratorsSymbols(statement),
+                                               logic::Formulas::implication(
+                                                       util::Configuration::instance().inlineSemantics() ?
+                                                       inlinedVarValues.toInlinedTerm(statement, statement->condition, lStartZero, trace) :
+                                                       toTerm(statement->condition, lStartZero, trace),
+                                                       logic::Formulas::existential({itSymbol},
+                                                                                    logic::Formulas::equality(logic::Theory::natSucc(it), n)
+                                                       )
+                                               )
+                    );
 
             std::vector<std::string> fromItems;
-            for (auto& item : programSemantics)
-            {
+            for (auto &item : programSemantics) {
                 fromItems.push_back(item->name);
             }
             items.push_back(std::make_shared<logic::Lemma>(bareLemma, name, logic::ProblemItem::Visibility::Implicit, fromItems));
         }
     }
 
-    void OrderingSynchronizationLemmas::generateOutputFor(const program::WhileStatement *statement, std::vector<std::shared_ptr<const logic::ProblemItem>>& items)
-    {
+    void OrderingSynchronizationLemmas::generateOutputFor(const program::WhileStatement *statement, std::vector<std::shared_ptr<const logic::ProblemItem>> &items) {
         // assert(numberOfTraces > 1);
 
         // auto t1 = traceTerm(1);

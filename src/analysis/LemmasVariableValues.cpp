@@ -40,7 +40,7 @@ namespace analysis {
         // add lemma for each intVar and each intArrayVar, for each variant
         for (const auto& v : locationToActiveVars.at(locationSymbolForStatement(whileStatement)->name))
         {
-            if (!(v->isConstant) && assignedVars.find(v) != assignedVars.end())
+            if (!(v->isConstant) && v->type() != program::ValueType::Bool && assignedVars.find(v) != assignedVars.end())
             {
                 for (const auto predicate : predicates)
                 {

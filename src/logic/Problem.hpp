@@ -22,7 +22,7 @@ namespace logic {
         enum class Type { Program, Axiom, Definition, Lemma, Conjecture};
         enum class Visibility { All, Implicit, None};
         
-        ProblemItem(Type type, std::shared_ptr<const logic::Formula> formula, std::string name, Visibility visibility, std::vector<std::string> fromItems) : type(type), formula(formula), name(name), visibility(visibility), fromItems(fromItems)
+        ProblemItem(Type type, std::shared_ptr<const logic::Term> formula, std::string name, Visibility visibility, std::vector<std::string> fromItems) : type(type), formula(formula), name(name), visibility(visibility), fromItems(fromItems)
         {
             // it doesn't make sense to hide conjectures
             if (type == Type::Conjecture)
@@ -48,7 +48,7 @@ namespace logic {
         virtual ~ProblemItem() = default;
         
         const Type type;
-        std::shared_ptr<const logic::Formula> formula;
+        std::shared_ptr<const logic::Term> formula;
         const std::string name;
         const Visibility visibility;
         const std::vector<std::string> fromItems;
@@ -60,7 +60,7 @@ namespace logic {
     class Axiom : public ProblemItem
     {
     public:
-        Axiom(std::shared_ptr<const logic::Formula> axiom, std::string name = "", ProblemItem::Visibility visibility = ProblemItem::Visibility::All) : 
+        Axiom(std::shared_ptr<const logic::Term> axiom, std::string name = "", ProblemItem::Visibility visibility = ProblemItem::Visibility::All) :
             ProblemItem(ProblemItem::Type::Axiom, axiom, name, visibility, {}) {}
     };
 
@@ -68,21 +68,21 @@ namespace logic {
     class Definition : public ProblemItem
     {
     public:
-        Definition(std::shared_ptr<const logic::Formula> definition, std::string name = "", ProblemItem::Visibility visibility = ProblemItem::Visibility::All) : 
+        Definition(std::shared_ptr<const logic::Term> definition, std::string name = "", ProblemItem::Visibility visibility = ProblemItem::Visibility::All) :
             ProblemItem(ProblemItem::Type::Definition, definition, name, visibility, {}) {}
     };
     
     class Lemma : public ProblemItem
     {
     public:
-        Lemma(std::shared_ptr<const logic::Formula> lemma, std::string name = "", ProblemItem::Visibility visibility = ProblemItem::Visibility::All, std::vector<std::string> fromItems = {}) : 
+        Lemma(std::shared_ptr<const logic::Term> lemma, std::string name = "", ProblemItem::Visibility visibility = ProblemItem::Visibility::All, std::vector<std::string> fromItems = {}) :
             ProblemItem(ProblemItem::Type::Lemma, lemma, name, visibility, fromItems) {}
     };
     
     class Conjecture : public ProblemItem
     {
     public:
-        Conjecture(std::shared_ptr<const logic::Formula> conjecture, std::string name = "", std::vector<std::string> fromItems = {}) : 
+        Conjecture(std::shared_ptr<const logic::Term> conjecture, std::string name = "", std::vector<std::string> fromItems = {}) :
             ProblemItem(ProblemItem::Type::Conjecture, conjecture, name, ProblemItem::Visibility::All, fromItems) {}
     };
     

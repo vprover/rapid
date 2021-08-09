@@ -43,24 +43,18 @@ namespace analysis {
      * convert the expression expr to a logical term refering to the value of the Expression expr at the Timepoint timepoint.
      * calls toTerm(var,...) internally.
      */
-    std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::IntExpression> expr, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> trace);
-    
-    /*
-     * convert the boolean expression expr to a logical predicate refering to the value of the Expression expr at the Timepoint timepoint.
-     * calls toTerm(expr,...) internally.
-     */
-    std::shared_ptr<const logic::Formula> toFormula(std::shared_ptr<const program::BoolExpression> expr, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> trace);
+    std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::Expression> expr, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> trace);
 
 # pragma mark - Methods for generating most used formulas for describing changes of state
     /*
      * generate a formula asserting that the values of variable v at timepoint1 and timepoint2 are the same.
      */
-    std::shared_ptr<const logic::Formula> varEqual(std::shared_ptr<const program::Variable> v, std::shared_ptr<const logic::Term> timePoint1, std::shared_ptr<const logic::Term> timePoint2, std::shared_ptr<const logic::Term> trace);
+    std::shared_ptr<const logic::Term> varEqual(std::shared_ptr<const program::Variable> v, std::shared_ptr<const logic::Term> timePoint1, std::shared_ptr<const logic::Term> timePoint2, std::shared_ptr<const logic::Term> trace);
     /*
      * generate a formula asserting that for each variable v in activeVars, the values of v at timepoint1 and timepoint2 are the same.
      * ignores any v in activeVars which is constant.
      */
-    std::shared_ptr<const logic::Formula> allVarEqual(const std::vector<std::shared_ptr<const program::Variable>>& activeVars, std::shared_ptr<const logic::Term> timePoint1, std::shared_ptr<const logic::Term> timePoint2, std::shared_ptr<const logic::Term> trace, std::string label="");
+    std::shared_ptr<const logic::Term> allVarEqual(const std::vector<std::shared_ptr<const program::Variable>>& activeVars, std::shared_ptr<const logic::Term> timePoint1, std::shared_ptr<const logic::Term> timePoint2, std::shared_ptr<const logic::Term> trace, std::string label="");
 }
 
 

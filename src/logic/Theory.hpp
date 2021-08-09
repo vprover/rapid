@@ -24,19 +24,19 @@ namespace logic {
         static std::shared_ptr<const FuncTerm> intMultiplication(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2);
         static std::shared_ptr<const FuncTerm> intAbsolute(std::shared_ptr<const Term> t);
 
-        static std::shared_ptr<const Formula> intLess(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2, std::string label="");
-        static std::shared_ptr<const Formula> intLessEqual(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2, std::string label="");
-        static std::shared_ptr<const Formula> intGreater(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2, std::string label="");
-        static std::shared_ptr<const Formula> intGreaterEqual(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2, std::string label="");
+        static std::shared_ptr<const Term> intLess(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2, std::string label="");
+        static std::shared_ptr<const Term> intLessEqual(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2, std::string label="");
+        static std::shared_ptr<const Term> intGreater(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2, std::string label="");
+        static std::shared_ptr<const Term> intGreaterEqual(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2, std::string label="");
         
-        static std::shared_ptr<const Formula> boolTrue(std::string label="");
-        static std::shared_ptr<const Formula> boolFalse(std::string label="");
+        static std::shared_ptr<const Term> boolTrue(std::string label="");
+        static std::shared_ptr<const Term> boolFalse(std::string label="");
 
         static std::shared_ptr<const FuncTerm> natZero();
         static std::shared_ptr<const FuncTerm> natSucc(std::shared_ptr<const Term> term);
         static std::shared_ptr<const FuncTerm> natPre(std::shared_ptr<const Term> term);
-        static std::shared_ptr<const Formula> natSub(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2, std::string label="");
-        static std::shared_ptr<const Formula> natSubEq(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2, std::string label="");
+        static std::shared_ptr<const Term> natSub(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2, std::string label="");
+        static std::shared_ptr<const Term> natSubEq(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2, std::string label="");
     };
     
     /*
@@ -72,7 +72,7 @@ namespace logic {
     > inductionAxiom1(
         std::string name,
         std::string shortName,
-        std::function<std::shared_ptr<const Formula> (std::shared_ptr<const Term>)> inductionHypothesis,
+        std::function<std::shared_ptr<const Term> (std::shared_ptr<const Term>)> inductionHypothesis,
         std::vector<std::shared_ptr<const Symbol>> freeVarSymbols,
         ProblemItem::Visibility visibility = ProblemItem::Visibility::None);
 
@@ -148,7 +148,7 @@ namespace logic {
     > inductionAxiom2(
         std::string name,
         std::string shortName,
-        std::function<std::shared_ptr<const Formula> (std::shared_ptr<const Term>)> inductionHypothesis,
+        std::function<std::shared_ptr<const Term> (std::shared_ptr<const Term>)> inductionHypothesis,
         std::shared_ptr<const logic::Term> nt1,
         std::shared_ptr<const logic::Term> nt2,
         std::vector<std::shared_ptr<const Symbol>> freeVarSymbols,
