@@ -14,170 +14,226 @@
 #include <string>
 #include <utility>
 
+#include "ValueType.hpp"
+
 namespace program {
 
-class IntExpression {
- public:
-  virtual ~IntExpression() {}
+    class Expression {
+    public:
+        virtual ~Expression() = default;
 
-  enum class Type {
-    ArithmeticConstant,
-    Addition,
-    Subtraction,
-    Modulo,
-    Multiplication,
-    IntVariableAccess,
-    IntArrayApplication,
-  };
-  virtual Type type() const = 0;
+        virtual ValueType type() const = 0;
 
-  virtual std::string toString() const = 0;
-};
-std::ostream& operator<<(std::ostream& ostr, const IntExpression& e);
+        virtual std::string toString() const = 0;
+    };
 
-class ArithmeticConstant : public IntExpression {
- public:
-  ArithmeticConstant(unsigned value) : value(value) {}
+    std::ostream &operator<<(std::ostream &ostr, const Expression &e);
 
-  const int value;
+    class ArithmeticConstant : public Expression {
+    public:
+        ArithmeticConstant(int value) : value(value) {}
 
-  Type type() const override { return IntExpression::Type::ArithmeticConstant; }
-  std::string toString() const override;
-};
+        const int value;
 
-class Addition : public IntExpression {
- public:
-  Addition(std::shared_ptr<const IntExpression> summand1,
-           std::shared_ptr<const IntExpression> summand2)
-      : summand1(std::move(summand1)), summand2(std::move(summand2)) {}
+        ValueType type() const override { return ValueType::Int; }
 
-  const std::shared_ptr<const IntExpression> summand1;
-  const std::shared_ptr<const IntExpression> summand2;
+        std::string toString() const override;
+    };
 
-  Type type() const override { return IntExpression::Type::Addition; }
-  std::string toString() const override;
-};
+    class UnaryExpression : public Expression  {
+    public:
+        UnaryExpression(std::shared_ptr<const Expression> child) : child(std::move(child)) {}
 
-class Subtraction : public IntExpression {
- public:
-  Subtraction(std::shared_ptr<const IntExpression> child1,
-              std::shared_ptr<const IntExpression> child2)
-      : child1(std::move(child1)), child2(std::move(child2)) {}
+        const std::shared_ptr<const Expression> child;
 
-  const std::shared_ptr<const IntExpression> child1;
-  const std::shared_ptr<const IntExpression> child2;
+    };
 
-  Type type() const override { return IntExpression::Type::Subtraction; }
-  std::string toString() const override;
-};
+    class BinaryExpression : public Expression {
+    public:
+        BinaryExpression(std::shared_ptr<const Expression> child1, std::shared_ptr<const Expression> child2)
+        : child1(std::move(child1)), child2(std::move(child2)) {}
 
-class Modulo : public IntExpression {
- public:
-  Modulo(std::shared_ptr<const IntExpression> child1,
-         std::shared_ptr<const IntExpression> child2)
-      : child1(std::move(child1)), child2(std::move(child2)) {}
+        const std::shared_ptr<const Expression> child1;
+        const std::shared_ptr<const Expression> child2;
 
-  const std::shared_ptr<const IntExpression> child1;
-  const std::shared_ptr<const IntExpression> child2;
+    };
 
-  Type type() const override { return IntExpression::Type::Modulo; }
-  std::string toString() const override;
-};
+    class Addition : public BinaryExpression {
+    public:
+        Addition(std::shared_ptr<const Expression> child1, std::shared_ptr<const Expression> child2)
+                : BinaryExpression(std::move(child1), std::move(child2)) {
 
-class Multiplication : public IntExpression {
- public:
-  Multiplication(std::shared_ptr<const IntExpression> factor1,
-                 std::shared_ptr<const IntExpression> factor2)
-      : factor1(std::move(factor1)), factor2(std::move(factor2)) {}
+            if (this->child1->type() != ValueType::Int) {
+                std::cout << "+ expected an Int on the lhs" << std::endl;
+                exit(1);
+            }
+            if (this->child2->type() != ValueType::Int) {
+                std::cout << "+ expected an Int on the rhs" << std::endl;
+                exit(1);
+            }
+        }
 
-  const std::shared_ptr<const IntExpression> factor1;
-  const std::shared_ptr<const IntExpression> factor2;
+        ValueType type() const override { return ValueType::Int; }
 
-  Type type() const override { return IntExpression::Type::Multiplication; }
-  std::string toString() const override;
-};
+        std::string toString() const override;
+    };
 
-class BoolExpression {
- public:
-  virtual ~BoolExpression() {}
+    class Subtraction : public BinaryExpression {
+    public:
+        Subtraction(std::shared_ptr<const Expression> child1, std::shared_ptr<const Expression> child2)
+                : BinaryExpression(std::move(child1), std::move(child2)) {
 
-  enum class Type {
-    BooleanConstant,
-    BooleanAnd,
-    BooleanOr,
-    BooleanNot,
-    ArithmeticComparison
-  };
-  virtual Type type() const = 0;
+            if (this->child1->type() != ValueType::Int) {
+                std::cout << "- expected an Int on the lhs" << std::endl;
+                exit(1);
+            }
+            if (this->child2->type() != ValueType::Int) {
+                std::cout << "- expected an Int on the rhs" << std::endl;
+                exit(1);
+            }
+        }
 
-  virtual std::string toString() const = 0;
-};
-std::ostream& operator<<(std::ostream& ostr, const BoolExpression& e);
+        ValueType type() const override { return ValueType::Int; }
 
-class BooleanConstant : public BoolExpression {
- public:
-  BooleanConstant(bool value) : value(value) {}
+        std::string toString() const override;
+    };
 
-  const bool value;
+    class Modulo : public BinaryExpression {
+    public:
+        Modulo(std::shared_ptr<const Expression> child1, std::shared_ptr<const Expression> child2)
+                : BinaryExpression(std::move(child1), std::move(child2)) {
 
-  Type type() const override { return BoolExpression::Type::BooleanConstant; }
-  std::string toString() const override;
-};
+            if (this->child1->type() != ValueType::Int) {
+                std::cout << "`mod` expected an Int on the lhs" << std::endl;
+                exit(1);
+            }
+            if (this->child2->type() != ValueType::Int) {
+                std::cout << "`mod` expected an Int on the rhs" << std::endl;
+                exit(1);
+            }
+        }
 
-class BooleanAnd : public BoolExpression {
- public:
-  BooleanAnd(std::shared_ptr<const BoolExpression> child1,
-             std::shared_ptr<const BoolExpression> child2)
-      : child1(std::move(child1)), child2(std::move(child2)) {}
+        ValueType type() const override { return ValueType::Int; }
 
-  const std::shared_ptr<const BoolExpression> child1;
-  const std::shared_ptr<const BoolExpression> child2;
+        std::string toString() const override;
+    };
 
-  Type type() const override { return BoolExpression::Type::BooleanAnd; }
-  std::string toString() const override;
-};
+    class Multiplication : public BinaryExpression {
+    public:
+        Multiplication(std::shared_ptr<const Expression> child1, std::shared_ptr<const Expression> child2)
+                : BinaryExpression(std::move(child1), std::move(child2)) {
 
-class BooleanOr : public BoolExpression {
- public:
-  BooleanOr(std::shared_ptr<const BoolExpression> child1,
-            std::shared_ptr<const BoolExpression> child2)
-      : child1(std::move(child1)), child2(std::move(child2)) {}
+            if (this->child1->type() != ValueType::Int) {
+                std::cout << "* expected an Int on the lhs" << std::endl;
+                exit(1);
+            }
+            if (this->child2->type() != ValueType::Int) {
+                std::cout << "* expected an Int on the rhs" << std::endl;
+                exit(1);
+            }
+        }
 
-  const std::shared_ptr<const BoolExpression> child1;
-  const std::shared_ptr<const BoolExpression> child2;
+        ValueType type() const override { return ValueType::Int; }
 
-  Type type() const override { return BoolExpression::Type::BooleanOr; }
-  std::string toString() const override;
-};
+        std::string toString() const override;
+    };
 
-class BooleanNot : public BoolExpression {
- public:
-  BooleanNot(std::shared_ptr<const BoolExpression> child)
-      : child(std::move(child)) {}
+    class BooleanConstant : public Expression {
+    public:
+        BooleanConstant(bool value) : value(value) {}
 
-  const std::shared_ptr<const BoolExpression> child;
+        const bool value;
 
-  Type type() const override { return BoolExpression::Type::BooleanNot; }
-  std::string toString() const override;
-};
+        ValueType type() const override { return ValueType::Bool; }
 
-class ArithmeticComparison : public BoolExpression {
- public:
-  enum class Kind { GE, GT, LE, LT, EQ };
+        std::string toString() const override;
+    };
 
-  ArithmeticComparison(Kind kind, std::shared_ptr<const IntExpression> child1,
-                       std::shared_ptr<const IntExpression> child2)
-      : kind(kind), child1(std::move(child1)), child2(std::move(child2)) {}
+    class BooleanAnd : public BinaryExpression {
+    public:
+        BooleanAnd(std::shared_ptr<const Expression> child1, std::shared_ptr<const Expression> child2)
+        : BinaryExpression(std::move(child1), std::move(child2)) {
 
-  const Kind kind;
-  const std::shared_ptr<const IntExpression> child1;
-  const std::shared_ptr<const IntExpression> child2;
+            if (this->child1->type() != ValueType::Bool) {
+                std::cout << "&& expected a Bool on the lhs" << std::endl;
+                exit(1);
+            }
+            if (this->child2->type() != ValueType::Bool) {
+                std::cout << "&& expected a Bool on the rhs" << std::endl;
+                exit(1);
+            }
+        }
 
-  Type type() const override {
-    return BoolExpression::Type::ArithmeticComparison;
-  }
-  std::string toString() const override;
-};
+        ValueType type() const override { return ValueType::Bool; }
 
-}  // namespace program
+        std::string toString() const override;
+    };
+
+    class BooleanOr : public BinaryExpression {
+    public:
+        BooleanOr(std::shared_ptr<const Expression> child1, std::shared_ptr<const Expression> child2)
+                : BinaryExpression(std::move(child1), std::move(child2)) {
+
+            if (this->child1->type() != ValueType::Bool) {
+                std::cout << "|| expected a Bool on the lhs" << std::endl;
+                exit(1);
+            }
+            if (this->child2->type() != ValueType::Bool) {
+                std::cout << "|| expected a Bool on the rhs" << std::endl;
+                exit(1);
+            }
+        }
+
+        ValueType type() const override { return ValueType::Bool; }
+
+        std::string toString() const override;
+    };
+
+    class BooleanNot : public UnaryExpression {
+    public:
+        BooleanNot(std::shared_ptr<const Expression> child) : UnaryExpression(std::move(child)) {
+
+            if (this->child->type() != ValueType::Bool) {
+                std::cout << "! expected a Bool" << std::endl;
+                exit(1);
+            }
+        }
+
+        ValueType type() const override { return ValueType::Bool; }
+
+        std::string toString() const override;
+    };
+
+    class ArithmeticComparison : public BinaryExpression {
+    public:
+        enum class Kind {
+            GE,
+            GT,
+            LE,
+            LT,
+            EQ
+        };
+
+        ArithmeticComparison(Kind kind, std::shared_ptr<const Expression> child1, std::shared_ptr<const Expression> child2)
+                : kind(kind), BinaryExpression(std::move(child1), std::move(child2)) {
+
+            if (this->child1->type() != ValueType::Int) {
+                std::cout << "Comparison expected an Int on the lhs" << std::endl;
+                exit(1);
+            }
+            if (this->child2->type() != ValueType::Int) {
+                std::cout << "Comparison expected an Int on the rhs" << std::endl;
+                exit(1);
+            }
+        }
+
+        const Kind kind;
+
+        ValueType type() const override { return ValueType::Bool; }
+
+        std::string toString() const override;
+    };
+
+
+}
 #endif

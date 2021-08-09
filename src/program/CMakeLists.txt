@@ -3,6 +3,7 @@ set(SPECTRE_PROGRAM_SOURCES
     Variable.cpp
     Statements.cpp
     Program.cpp
+    ValueType.cpp
 )
 
 set(SPECTRE_PROGRAM_HEADERS
@@ -10,6 +11,7 @@ set(SPECTRE_PROGRAM_HEADERS
     Variable.hpp
     Statements.hpp
     Program.hpp
+    ValueType.hpp
 )
 
 add_library(program ${SPECTRE_PROGRAM_SOURCES} ${SPECTRE_PROGRAM_HEADERS})

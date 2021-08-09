@@ -18,6 +18,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 add_executable(rapid src/main.cpp)
+add_executable(test src/test.cpp)
 
 
 add_subdirectory(src/analysis)
@@ -28,3 +29,9 @@ add_subdirectory(src/program)
 add_subdirectory(src/util)
 
 target_link_libraries(rapid analysis declarations logic parser program util)
+target_link_libraries(test analysis declarations logic parser program util)
+
+add_custom_command(TARGET test POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/examples/ $<TARGET_FILE_DIR:test>/examples)
+

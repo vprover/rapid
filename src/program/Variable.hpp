@@ -18,88 +18,98 @@
 #include <vector>
 
 #include "Expression.hpp"
+#include "ValueType.hpp"
+
+namespace program {
+    
+    class Variable
+    {
+    public:
+        Variable(std::string name, bool isConstant, bool isArray, unsigned numberOfTraces) : name(name), isConstant(isConstant), isArray(isArray), numberOfTraces(numberOfTraces) {}
+
+        const std::string name;
+        const bool isConstant;
+        const bool isArray;
+        const unsigned numberOfTraces;
+
+        virtual ValueType type() const = 0;
+
+        // sanity-assertion: if two variables have the same name, they agree on all other properties.
+        bool operator==(const Variable& rhs) const { assert( !(name == rhs.name) ||
+                                                            (isConstant == rhs.isConstant &&
+                                                             isArray    == rhs.isArray &&
+                                                             type()     == rhs.type() &&
+                                                             numberOfTraces  == rhs.numberOfTraces)); return (name == rhs.name); }
+        bool operator!=(const Variable& rhs) const { return !operator==(rhs); }
+    };
+
+    class IntVariable : public Variable
+    {
+    public:
+        IntVariable(std::string name, bool isConstant, bool isArray, unsigned numberOfTraces) : Variable(name, isConstant, isArray, numberOfTraces) {}
+
+        ValueType type() const override { return ValueType::Int; }
+    };
+
+    class BoolVariable : public Variable
+    {
+    public:
+        BoolVariable(std::string name, bool isConstant, bool isArray, unsigned numberOfTraces) : Variable(name, isConstant, isArray, numberOfTraces) {}
+
+        ValueType type() const override { return ValueType::Bool; }
+    };
+}
+
+namespace std
+{
+    template<>
+    struct hash<program::Variable>
+    {
+        std::size_t operator()(const program::Variable& v) const noexcept
+        {
+            return std::hash<std::string>{}(v.name);
+        }
+    };
+}
 
 namespace program {
 
-class Variable {
- public:
-  Variable(std::string name, bool isConstant, bool isArray,
-           unsigned numberOfTraces)
-      : name(name),
-        isConstant(isConstant),
-        isArray(isArray),
-        numberOfTraces(numberOfTraces) {}
+    // hack needed for bison: std::vector has no overload for ostream, but these overloads are needed for bison
+    std::ostream& operator<<(std::ostream& ostr, const std::vector< std::shared_ptr<const program::Variable>>& e);
 
-  const std::string name;
-  const bool isConstant;
-  const bool isArray;
-  const unsigned numberOfTraces;
+    class VariableAccess : public Expression {
+    public:
+        VariableAccess(std::shared_ptr<const Variable> var) : Expression(), var(var) {
+            assert(this->var != nullptr);
+            assert(!this->var->isArray);
+        }
 
-  // sanity-assertion: if two variables have the same name, they agree on all
-  // other properties.
-  bool operator==(const Variable& rhs) const {
-    assert(!(name == rhs.name) ||
-           (isConstant == rhs.isConstant && isArray == rhs.isArray &&
-            numberOfTraces == rhs.numberOfTraces));
-    return (name == rhs.name);
-  }
-  bool operator!=(const Variable& rhs) const { return !operator==(rhs); }
-};
-}  // namespace program
+        const std::shared_ptr<const Variable> var;
 
-namespace std {
-template <>
-struct hash<program::Variable> {
-  std::size_t operator()(const program::Variable& v) const noexcept {
-    return std::hash<std::string>{}(v.name);
-  }
-};
-}  // namespace std
+        ValueType type() const override { return var->type(); }
 
-namespace program {
+        std::string toString() const override;
+    };
 
-// hack needed for bison: std::vector has no overload for ostream, but these
-// overloads are needed for bison
-std::ostream& operator<<(
-    std::ostream& ostr,
-    const std::vector<std::shared_ptr<const program::Variable>>& e);
+    class ArrayApplication : public Expression {
+    public:
+        ArrayApplication(std::shared_ptr<const Variable> array, std::shared_ptr<const Expression> index) : array(std::move(array)), index(std::move(index)) {
+            assert(this->array != nullptr);
+            assert(this->index != nullptr);
+            assert(this->array->isArray);
+            if (this->index->type() != ValueType::Int) {
+                std::cout << "[] expected an Int as index" << std::endl;
+                exit(1);
+            }
+        }
 
-class IntVariableAccess : public IntExpression {
- public:
-  IntVariableAccess(std::shared_ptr<const Variable> var)
-      : IntExpression(), var(var) {
-    assert(this->var != nullptr);
-    assert(!this->var->isArray);
-  }
+        const std::shared_ptr<const Variable> array;
+        const std::shared_ptr<const Expression> index;
 
-  const std::shared_ptr<const Variable> var;
+        ValueType type() const override { return array->type(); }
 
-  IntExpression::Type type() const override {
-    return IntExpression::Type::IntVariableAccess;
-  }
+        std::string toString() const override;
+    };
+}
 
-  std::string toString() const override;
-};
-
-class IntArrayApplication : public IntExpression {
- public:
-  IntArrayApplication(std::shared_ptr<const Variable> array,
-                      std::shared_ptr<const IntExpression> index)
-      : array(std::move(array)), index(std::move(index)) {
-    assert(this->array != nullptr);
-    assert(this->index != nullptr);
-    assert(this->array->isArray);
-  }
-
-  const std::shared_ptr<const Variable> array;
-  const std::shared_ptr<const IntExpression> index;
-
-  IntExpression::Type type() const override {
-    return IntExpression::Type::IntArrayApplication;
-  }
-
-  std::string toString() const override;
-};
-}  // namespace program
-
-#endif  // __ProgramVariable__
+#endif // __ProgramVariable__

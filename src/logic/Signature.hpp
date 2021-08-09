@@ -100,6 +100,37 @@ struct hash<const logic::Symbol> {
 #pragma mark - Signature
 
 namespace logic {
+    
+    // We use Signature as a manager-class for Symbol-instances
+    class Signature
+    {
+    public:
+        static bool isDeclared(std::string name);
+
+        // construct new symbols
+        static std::shared_ptr<const Symbol> add(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool noDeclaration=false);
+        static std::shared_ptr<const Symbol> fetch(std::string name);
+        static std::shared_ptr<const Symbol> fetchOrAdd(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool isLemmaPredicate=false, bool noDeclaration=false);
+
+        // check that variable doesn't use name which already occurs in Signature
+        // return Symbol without adding it to Signature
+        static std::shared_ptr<const Symbol> varSymbol(std::string name, const Sort* rngSort);
+
+        static const std::vector<std::shared_ptr<const Symbol>>& signatureOrderedByInsertion(){return _signatureOrderedByInsertion;}
+
+        static void reset() {
+            _signature.clear();
+            _signatureOrderedByInsertion.clear();
+        }
+
+    private:
+        // _signature collects all symbols used so far.
+        static std::unordered_map<std::string, std::shared_ptr<const Symbol>> _signature;
+        // symbols of signature, in the order of insertion.
+        static std::vector<std::shared_ptr<const Symbol>> _signatureOrderedByInsertion;
+    };
+}
+#endif
 
 // We use Signature as a manager-class for Symbol-instances
 class Signature {
