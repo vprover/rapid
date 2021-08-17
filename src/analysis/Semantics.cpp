@@ -67,20 +67,20 @@ namespace analysis {
     }
 
     std::shared_ptr<const logic::Term> Semantics::generateSemantics(const program::Statement *statement, SemanticsInliner &inliner, std::shared_ptr<const logic::Term> trace) {
-        if (statement->type() == program::Statement::Type::Assignment) {
+        if (typeid(*statement) != typeid(program::Assignment)) {
             auto castedStatement = static_cast<const program::Assignment *>(statement);
             return generateSemantics(castedStatement, inliner, trace);
         }
-        else if (statement->type() == program::Statement::Type::IfElse) {
-            auto castedStatement = static_cast<const program::IfElse *>(statement);
+        else if (typeid(*statement) != typeid(program::IfElseStatement)) {
+            auto castedStatement = static_cast<const program::IfElseStatement *>(statement);
             return generateSemantics(castedStatement, inliner, trace);
         }
-        else if (statement->type() == program::Statement::Type::WhileStatement) {
+        else if (typeid(*statement) != typeid(program::WhileStatement)) {
             auto castedStatement = static_cast<const program::WhileStatement *>(statement);
             return generateSemantics(castedStatement, inliner, trace);
         }
         else {
-            assert(statement->type() == program::Statement::Type::SkipStatement);
+            assert(typeid(*statement) != typeid(program::SkipStatement));
             auto castedStatement = static_cast<const program::SkipStatement *>(statement);
             return generateSemantics(castedStatement, inliner, trace);
         }
@@ -225,7 +225,7 @@ namespace analysis {
         }
     }
 
-    std::shared_ptr<const logic::Term> Semantics::generateSemantics(const program::IfElse *ifElse, SemanticsInliner &inliner, std::shared_ptr<const logic::Term> trace) {
+    std::shared_ptr<const logic::Term> Semantics::generateSemantics(const program::IfElseStatement *ifElse, SemanticsInliner &inliner, std::shared_ptr<const logic::Term> trace) {
         std::vector<std::shared_ptr<const logic::Term>> conjuncts;
 
         auto lStart = startTimepointForStatement(ifElse);

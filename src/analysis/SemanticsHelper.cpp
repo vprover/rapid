@@ -55,7 +55,7 @@ namespace analysis {
 
     std::shared_ptr<const logic::Term> timepointForNonLoopStatement(const program::Statement *statement) {
         assert(statement != nullptr);
-        assert(statement->type() != program::Statement::Type::WhileStatement);
+        assert(typeid(*statement) != typeid(program::WhileStatement));
 
         auto enclosingLoops = *statement->enclosingLoops;
         auto enclosingIteratorTerms = std::vector<std::shared_ptr<const logic::Term>>();
@@ -82,7 +82,7 @@ namespace analysis {
     }
 
     std::shared_ptr<const logic::Term> startTimepointForStatement(const program::Statement *statement) {
-        if (statement->type() != program::Statement::Type::WhileStatement) {
+        if (typeid(*statement) != typeid(program::WhileStatement)) {
             return timepointForNonLoopStatement(statement);
         }
         else {

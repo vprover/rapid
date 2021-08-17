@@ -19,7 +19,7 @@ namespace logic {
     {
     public:
         static std::shared_ptr<const Term> predicate(std::string name, std::vector<std::shared_ptr<const Term>> subterms, std::string label = "", bool noDeclaration=false);
-        static std::shared_ptr<const Term> Formulas::predicate(std::shared_ptr<const Symbol> symbol, std::vector<std::shared_ptr<const Term>> subterms);
+        static std::shared_ptr<const Term> predicate(std::shared_ptr<const Symbol> symbol, std::vector<std::shared_ptr<const Term>> subterms);
         static std::shared_ptr<const Term> lemmaPredicate(std::string name, std::vector<std::shared_ptr<const Term>> subterms, std::string label = "");
 
         static std::shared_ptr<const Term> equality(std::shared_ptr<const Term> left, std::shared_ptr<const Term> right, std::string label = "");

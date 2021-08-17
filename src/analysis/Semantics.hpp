@@ -42,7 +42,7 @@ namespace analysis {
 
         std::shared_ptr<const logic::Term> generateSemantics(const program::Statement* statement, SemanticsInliner& inliner, std::shared_ptr<const logic::Term> trace);
         std::shared_ptr<const logic::Term> generateSemantics(const program::Assignment* assignment, SemanticsInliner& inliner, std::shared_ptr<const logic::Term> trace);
-        std::shared_ptr<const logic::Term> generateSemantics(const program::IfElse* ifElse, SemanticsInliner& inliner, std::shared_ptr<const logic::Term> trace);
+        std::shared_ptr<const logic::Term> generateSemantics(const program::IfElseStatement* ifElse, SemanticsInliner& inliner, std::shared_ptr<const logic::Term> trace);
         std::shared_ptr<const logic::Term> generateSemantics(const program::WhileStatement* whileStatement, SemanticsInliner& inliner, std::shared_ptr<const logic::Term> trace);
         std::shared_ptr<const logic::Term> generateSemantics(const program::SkipStatement* skipStatement, SemanticsInliner& inliner, std::shared_ptr<const logic::Term> trace);
     };

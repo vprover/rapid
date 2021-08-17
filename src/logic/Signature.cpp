@@ -100,10 +100,7 @@ namespace logic {
                 std::cout << "User error: symbol " << symbol->name << " requires " << symbol->argSorts.size() << " arguments, but " << argSorts.size() << " arguments where given" << std::endl;
                 assert(false);
             }
-            for (int i=0; i < argSorts.size(); ++i) {
-                if (argSorts[i] != symbol->argSorts[i]) {
-                    _sleep(0);
-                }
+            for (int i = 0; i < argSorts.size(); ++i) {
                 assert(argSorts[i] == symbol->argSorts[i]);
             }
             assert(rngSort == symbol->rngSort);

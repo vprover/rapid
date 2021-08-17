@@ -18,7 +18,10 @@ namespace program
     class Statement
     {
     public:
-        Statement(unsigned lineNumber) : location("l" + std::to_string(lineNumber)), enclosingLoops(std::make_unique<std::vector<const WhileStatement*>>()) {}
+        Statement(unsigned lineNumber) :
+            location("l" + std::to_string(lineNumber != 0 ? lineNumber : -(++Statement::additionalTimepoints))),
+            enclosingLoops(std::make_unique<std::vector<const WhileStatement*>>()) {}
+
         virtual ~Statement() {}
         
         const std::string location;
@@ -33,11 +36,10 @@ namespace program
          * which we can fill up in the parser-post-computation.
          */
         std::unique_ptr<std::vector<const WhileStatement*>> enclosingLoops;
-        
-        enum class Type { Assignment, IfElse, WhileStatement, SkipStatement };
-        virtual Type type() const = 0;
-        
+
         virtual std::string toString(int indentation) const = 0;
+
+        static unsigned additionalTimepoints; // Will be incremented and used negated (counts from down)
     };
     
     struct StatementSharedPtrHash
@@ -59,17 +61,15 @@ namespace program
         const std::shared_ptr<const Expression> lhs;
         const std::shared_ptr<const Expression> rhs;
         
-        Type type() const override { return Type::Assignment; }
         std::string toString(int indentation) const override;
     };
 
-    class IfElse : public Statement
+    class IfElseStatement : public Statement
     {
     public:
         
-        IfElse(unsigned lineNumber, std::shared_ptr<const Expression> condition, std::vector<std::shared_ptr<const Statement>> ifStatements, std::vector<std::shared_ptr<const Statement>> elseStatements) : Statement(lineNumber), condition(std::move(condition)), ifStatements(std::move(ifStatements)), elseStatements(std::move(elseStatements))
+        IfElseStatement(unsigned lineNumber, std::shared_ptr<const Expression> condition, std::vector<std::shared_ptr<const Statement>> ifStatements, std::vector<std::shared_ptr<const Statement>> elseStatements) : Statement(lineNumber), condition(std::move(condition)), ifStatements(std::move(ifStatements)), elseStatements(std::move(elseStatements))
         {
-            // TODO: add a skip-statement instead, maybe already during parsing (challenge: unique numbering)
             assert(this->ifStatements.size() > 0);
             assert(this->elseStatements.size() > 0);
 
@@ -83,7 +83,6 @@ namespace program
         const std::vector<std::shared_ptr<const Statement>> ifStatements;
         const std::vector<std::shared_ptr<const Statement>> elseStatements;
         
-        Type type() const override { return Type::IfElse; }
         std::string toString(int indentation) const override;
     };
     
@@ -105,8 +104,30 @@ namespace program
         const std::shared_ptr<const Expression> condition;
         const std::vector<std::shared_ptr<const Statement>> bodyStatements;
         
-        Type type() const override { return Type::WhileStatement; }
         std::string toString(int indentation) const override;
+    };
+
+    class BreakStatement : public Statement {
+    public:
+        BreakStatement(unsigned lineNumber) : Statement(lineNumber) {};
+
+        std::string toString(int indentation) const override;
+    };
+
+    class ContinueStatement : public Statement {
+    public:
+        ContinueStatement(unsigned lineNumber) : Statement(lineNumber) {};
+
+        std::string toString(int indentation) const override;
+    };
+
+    class ReturnStatement : public Statement {
+    public:
+        ReturnStatement(unsigned lineNumber, std::shared_ptr<const Expression> returnValue) : Statement(lineNumber), returnValue(std::move(returnValue)) {};
+
+        std::string toString(int indentation) const override;
+
+        const std::shared_ptr<const Expression> returnValue;
     };
     
     class SkipStatement : public Statement
@@ -114,7 +135,6 @@ namespace program
     public:
         SkipStatement(unsigned lineNumber) : Statement(lineNumber) {};
         
-        Type type() const override { return Type::SkipStatement; }
         std::string toString(int indentation) const override;
     };
 }

@@ -67,6 +67,9 @@ YY_DECL;
   IF            "if"
   ELSE          "else"
   WHILE         "while"
+  BREAK         "break"
+  CONTINUE      "continue"
+  RETURN        "return"
   SKIP          "skip"
   FUNC          "func"
   LPAR          "("
@@ -127,6 +130,9 @@ YY_DECL;
 %type < std::shared_ptr<const program::Assignment> > assignment_statement
 %type < std::shared_ptr<const program::IfElse> > if_else_statement
 %type < std::shared_ptr<const program::WhileStatement> > while_statement
+%type < std::shared_ptr<const program::BreakStatement> > break_statement
+%type < std::shared_ptr<const program::ContinueStatement> > continue_statement
+%type < std::shared_ptr<const program::ReturnStatement> > return_statement
 %type < std::shared_ptr<const program::SkipStatement> > skip_statement
 
 %type < std::shared_ptr<const program::Expression> > expr
@@ -491,6 +497,9 @@ statement:
   assignment_statement {$$ = std::move($1);}
 | if_else_statement {$$ = std::move($1);}
 | while_statement {$$ = std::move($1);}
+| break_statement {$$ = std::move($1);}
+| continue_statement {$$ = std::move($1);}
+| return_statement {$$ = std::move($1);}
 | skip_statement {$$ = std::move($1);}
 ;
 
@@ -535,22 +544,26 @@ assignment_statement:
 ;
 
 if_else_statement:
-  IF LPAR expr RPAR
+  IF LPAR expr RPAR push_dummy LCUR
+  statement_list active_vars_dummy RCUR
+  pop_dummy
   {
-    context.pushProgramVars();
+    auto leftEndLocationName = "l" + std::to_string(@1.begin.line) + "_lEnd";
+    auto rightEndLocationName = "l" + std::to_string(@1.begin.line) + "_rEnd";
+    context.locationToActiveVars[leftEndLocationName] = $8;
+    context.locationToActiveVars[rightEndLocationName] = context.getActiveProgramVars();
+    std::vector<std::shared_ptr<const program::Statement>> emptyElse;
+    auto skipStatement = std::shared_ptr<const program::SkipStatement>(new program::SkipStatement(0));
+    context.locationToActiveVars[skipStatement->location] = context.getActiveProgramVars();
+    emptyElse.push_back(std::move(skipStatement));
+    $$ = std::shared_ptr<const program::IfElse>(new program::IfElse(@1.begin.line, std::move($3), std::move($7), std::move(emptyElse)));
   }
-  LCUR statement_list active_vars_dummy RCUR
+| IF LPAR expr RPAR push_dummy LCUR
+  statement_list active_vars_dummy RCUR
+  pop_dummy ELSE push_dummy LCUR
+  statement_list active_vars_dummy RCUR
+  pop_dummy
   {
-    context.popProgramVars();
-  }
-  ELSE
-  {
-    context.pushProgramVars();
-  }
-  LCUR statement_list active_vars_dummy RCUR
-  {
-    context.popProgramVars();
-
     auto leftEndLocationName = "l" + std::to_string(@1.begin.line) + "_lEnd";
     auto rightEndLocationName = "l" + std::to_string(@1.begin.line) + "_rEnd";
     context.locationToActiveVars[leftEndLocationName] = $8;
@@ -571,6 +584,25 @@ while_statement:
   }
 ;
 
+break_statement:
+  BREAK SCOL
+  {
+    $$ = std::shared_ptr<const program::BreakStatement>(new program::BreakStatement(@2.begin.line));
+  }
+;
+
+continue_statement:
+  CONTINUE SCOL {
+    $$ = std::shared_ptr<const program::ContinueStatement>(new program::ContinueStatement(@2.begin.line));
+  }
+;
+
+return_statement:
+  RETURN expr SCOL {
+    $$ = std::shared_ptr<const program::ReturnStatement>(new program::ReturnStatement(@2.begin.line, std::move($2)));
+  }
+;
+
 skip_statement:
   SKIP SCOL {$$ = std::shared_ptr<const program::SkipStatement>(new program::SkipStatement(@1.begin.line));}
 ;
@@ -579,6 +611,20 @@ active_vars_dummy:
   %empty
   {
     $$ = context.getActiveProgramVars();
+  }
+;
+
+push_dummy:
+  %empty
+  {
+    context.pushProgramVars();
+  }
+;
+
+pop_dummy:
+  %empty
+  {
+    context.popProgramVars();
   }
 ;
 
