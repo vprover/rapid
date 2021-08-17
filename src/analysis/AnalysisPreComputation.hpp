@@ -27,7 +27,7 @@ namespace analysis
         static void addEndTimePointForStatement(const program::Statement* statement,
                                                 const std::shared_ptr<const logic::Term> nextTimepoint,
                                                 EndTimePointMap& endTimePointMap);
-        static void addEndTimePointForIfElseStatement(const program::IfElse* ifElse,
+        static void addEndTimePointForIfElseStatement(const program::IfElseStatement* ifElse,
                                                       const std::shared_ptr<const logic::Term> nextTimepoint,
                                                       EndTimePointMap& endTimePointMap);
         static void addEndTimePointForWhileStatement(const program::WhileStatement* whileStatement,

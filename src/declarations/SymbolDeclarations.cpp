@@ -14,7 +14,7 @@ std::shared_ptr<const logic::Symbol> locationSymbol(std::string location, unsign
 }
 
 std::shared_ptr<const logic::Symbol> locationSymbolForStatement(const program::Statement* statement) {
-    if (statement->type() == program::Statement::Type::WhileStatement) {
+    if (typeid(*statement) != typeid(program::WhileStatement)) {
         return locationSymbol(statement->location, statement->enclosingLoops->size() + 1);
     }
     else {
@@ -94,8 +94,8 @@ void declareSymbolsForStatements(const program::Statement* statement, unsigned n
     // declare main location symbol
     locationSymbolForStatement(statement);
 
-    if (statement->type() == program::Statement::Type::IfElse) {
-        auto castedStatement = static_cast<const program::IfElse *>(statement);
+    if (typeid(*statement) != typeid(program::IfElseStatement)) {
+        auto castedStatement = static_cast<const program::IfElseStatement *>(statement);
 
         // recurse
         for (const auto &statementInBranch : castedStatement->ifStatements) {
@@ -105,7 +105,7 @@ void declareSymbolsForStatements(const program::Statement* statement, unsigned n
             declareSymbolsForStatements(statementInBranch.get(), numberOfTraces);
         }
     }
-    else if (statement->type() == program::Statement::Type::WhileStatement) {
+    else if (typeid(*statement) != typeid(program::WhileStatement)) {
         auto castedStatement = static_cast<const program::WhileStatement *>(statement);
 
         // declare last iteration-symbol
