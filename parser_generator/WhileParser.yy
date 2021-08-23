@@ -118,25 +118,25 @@ YY_DECL;
 %type < std::shared_ptr<const logic::Term> > smtlib_term
 
 
-%type < std::shared_ptr<const program::Program> > program
-%type < std::vector< std::shared_ptr<const program::Function>> > function_list
-%type < std::shared_ptr<const program::Function> > function
+%type < std::shared_ptr<program::Program> > program
+%type < std::vector< std::shared_ptr<program::Function>> > function_list
+%type < std::shared_ptr<program::Function> > function
 
-%type < std::shared_ptr<const program::Variable> > var_definition_head
+%type < std::shared_ptr<program::Variable> > var_definition_head
 
-%type < std::vector<std::shared_ptr<const program::Statement>> > statement_list
-%type < std::shared_ptr<const program::Statement> > statement
-%type < std::vector<std::shared_ptr<const program::Variable>> > active_vars_dummy
-%type < std::shared_ptr<const program::Assignment> > assignment_statement
-%type < std::shared_ptr<const program::IfElse> > if_else_statement
-%type < std::shared_ptr<const program::WhileStatement> > while_statement
-%type < std::shared_ptr<const program::BreakStatement> > break_statement
-%type < std::shared_ptr<const program::ContinueStatement> > continue_statement
-%type < std::shared_ptr<const program::ReturnStatement> > return_statement
-%type < std::shared_ptr<const program::SkipStatement> > skip_statement
+%type < std::vector<std::shared_ptr<program::Statement>> > statement_list
+%type < std::shared_ptr<program::Statement> > statement
+%type < std::vector<std::shared_ptr<program::Variable>> > active_vars_dummy
+%type < std::shared_ptr<program::Assignment> > assignment_statement
+%type < std::shared_ptr<program::IfElseStatement> > if_else_statement
+%type < std::shared_ptr<program::WhileStatement> > while_statement
+%type < std::shared_ptr<program::BreakStatement> > break_statement
+%type < std::shared_ptr<program::ContinueStatement> > continue_statement
+%type < std::shared_ptr<program::ReturnStatement> > return_statement
+%type < std::shared_ptr<program::SkipStatement> > skip_statement
 
-%type < std::shared_ptr<const program::Expression> > expr
-%type < std::shared_ptr<const program::Expression> > location
+%type < std::shared_ptr<program::Expression> > expr
+%type < std::shared_ptr<program::Expression> > location
 
 %printer { yyoutput << $$; } <*>;
 
@@ -182,7 +182,7 @@ problem:
 program:
   function_list
   {
-    context.program = std::unique_ptr<const program::Program>(new program::Program($1));
+    context.program = std::unique_ptr<program::Program>(new program::Program($1));
   }
 ;
 
@@ -450,7 +450,7 @@ smtlib_quantvar:
 ;
 
 function_list:
-  function             	  {auto v = std::vector< std::shared_ptr<const program::Function>>(); v.push_back(std::move($1)); $$ = std::move(v);}
+  function             	  {auto v = std::vector< std::shared_ptr<program::Function>>(); v.push_back(std::move($1)); $$ = std::move(v);}
 | function_list function  {$1.push_back(std::move($2)); $$ = std::move($1);}
 ;
 
@@ -465,7 +465,7 @@ function:
     context.locationToActiveVars[functionEndLocationName] = context.getActiveProgramVars();
     context.popProgramVars();
 
-  	auto function = std::shared_ptr<const program::Function>(new program::Function($2, std::move($7)));
+  	auto function = std::shared_ptr<program::Function>(new program::Function($2, std::move($7)));
 
     // compute enclosing loops
     context.addEnclosingLoops(*function);
@@ -477,7 +477,7 @@ function:
 ;
 
 statement_list:
-  %empty {$$ = std::vector<std::shared_ptr<const program::Statement>>();}
+  %empty {$$ = std::vector<std::shared_ptr<program::Statement>>();}
 | statement_list active_vars_dummy statement
   {
     auto locationName = $3->location;
@@ -508,7 +508,7 @@ assignment_statement:
   {
     if (typeid(*$1) == typeid(VariableAccess))
     {
-      auto variableAccess = std::static_pointer_cast<const program::VariableAccess>($1);
+      auto variableAccess = std::static_pointer_cast<program::VariableAccess>($1);
       if (variableAccess->var->isConstant)
       {
         error(@1, "Assignment to const var " + variableAccess->var->name);
@@ -517,13 +517,13 @@ assignment_statement:
     else
     {
       assert(typeid(*$1) == typeid(ArrayApplication));
-      auto arrayApplication = std::static_pointer_cast<const program::ArrayApplication>($1);
+      auto arrayApplication = std::static_pointer_cast<program::ArrayApplication>($1);
       if (arrayApplication->array->isConstant)
       {
         error(@1, "Assignment to const var " + arrayApplication->array->name);
       }
     }
-    $$ = std::shared_ptr<const program::Assignment>(new program::Assignment(@2.begin.line, std::move($1), std::move($3)));
+    $$ = std::shared_ptr<program::Assignment>(new program::Assignment(@2.begin.line, std::move($1), std::move($3)));
   }
 | var_definition_head ASSIGN expr SCOL
   {
@@ -536,10 +536,10 @@ assignment_statement:
     {
       error(@1, "Combined declaration and assignment not allowed, since " + $1->name + " is array variable");
     }
-    auto variableAccess = std::shared_ptr<const program::VariableAccess>(new VariableAccess(std::move($1)));
+    auto variableAccess = std::shared_ptr<program::VariableAccess>(new VariableAccess(std::move($1)));
 
     // build assignment
-    $$ = std::shared_ptr<const program::Assignment>(new program::Assignment(@2.begin.line, std::move(variableAccess), std::move($3)));
+    $$ = std::shared_ptr<program::Assignment>(new program::Assignment(@2.begin.line, std::move(variableAccess), std::move($3)));
   }
 ;
 
@@ -552,11 +552,11 @@ if_else_statement:
     auto rightEndLocationName = "l" + std::to_string(@1.begin.line) + "_rEnd";
     context.locationToActiveVars[leftEndLocationName] = $8;
     context.locationToActiveVars[rightEndLocationName] = context.getActiveProgramVars();
-    std::vector<std::shared_ptr<const program::Statement>> emptyElse;
-    auto skipStatement = std::shared_ptr<const program::SkipStatement>(new program::SkipStatement(0));
+    std::vector<std::shared_ptr<program::Statement>> emptyElse;
+    auto skipStatement = std::shared_ptr<program::SkipStatement>(new program::SkipStatement(0));
     context.locationToActiveVars[skipStatement->location] = context.getActiveProgramVars();
     emptyElse.push_back(std::move(skipStatement));
-    $$ = std::shared_ptr<const program::IfElse>(new program::IfElse(@1.begin.line, std::move($3), std::move($7), std::move(emptyElse)));
+    $$ = std::shared_ptr<program::IfElseStatement>(new program::IfElseStatement(@1.begin.line, std::move($3), std::move($7), std::move(emptyElse)));
   }
 | IF LPAR expr RPAR push_dummy LCUR
   statement_list active_vars_dummy RCUR
@@ -568,7 +568,7 @@ if_else_statement:
     auto rightEndLocationName = "l" + std::to_string(@1.begin.line) + "_rEnd";
     context.locationToActiveVars[leftEndLocationName] = $8;
     context.locationToActiveVars[rightEndLocationName] = $15;
-    $$ = std::shared_ptr<const program::IfElse>(new program::IfElse(@1.begin.line, std::move($3), std::move($7), std::move($14)));
+    $$ = std::shared_ptr<program::IfElseStatement>(new program::IfElseStatement(@1.begin.line, std::move($3), std::move($7), std::move($14)));
   }
 ;
 
@@ -580,31 +580,31 @@ while_statement:
   LCUR statement_list RCUR
   {
     context.popProgramVars();
-    $$ = std::shared_ptr<const program::WhileStatement>(new program::WhileStatement(@1.begin.line, std::move($2), std::move($5)));
+    $$ = std::shared_ptr<program::WhileStatement>(new program::WhileStatement(@1.begin.line, std::move($2), std::move($5)));
   }
 ;
 
 break_statement:
   BREAK SCOL
   {
-    $$ = std::shared_ptr<const program::BreakStatement>(new program::BreakStatement(@2.begin.line));
+    $$ = std::shared_ptr<program::BreakStatement>(new program::BreakStatement(@2.begin.line));
   }
 ;
 
 continue_statement:
   CONTINUE SCOL {
-    $$ = std::shared_ptr<const program::ContinueStatement>(new program::ContinueStatement(@2.begin.line));
+    $$ = std::shared_ptr<program::ContinueStatement>(new program::ContinueStatement(@2.begin.line));
   }
 ;
 
 return_statement:
   RETURN expr SCOL {
-    $$ = std::shared_ptr<const program::ReturnStatement>(new program::ReturnStatement(@2.begin.line, std::move($2)));
+    $$ = std::shared_ptr<program::ReturnStatement>(new program::ReturnStatement(@2.begin.line, std::move($2)));
   }
 ;
 
 skip_statement:
-  SKIP SCOL {$$ = std::shared_ptr<const program::SkipStatement>(new program::SkipStatement(@1.begin.line));}
+  SKIP SCOL {$$ = std::shared_ptr<program::SkipStatement>(new program::SkipStatement(@1.begin.line));}
 ;
 
 active_vars_dummy:
@@ -633,60 +633,60 @@ var_definition_head:
   {
     if ($1 == "Bool")
     {
-      $$ = std::shared_ptr<const program::Variable>(new program::BoolVariable($2, false, false, context.numberOfTraces));
+      $$ = std::shared_ptr<program::Variable>(new program::BoolVariable($2, false, false, context.numberOfTraces));
     }
     else if ($1 == "Nat" || $1 == "Time" || $1 == "Trace")
     {
       error(@1, "Program variables can't have type " + $1);
     }
-    else 
+    else
     {
-      $$ = std::shared_ptr<const program::Variable>(new program::IntVariable($2, false, false, context.numberOfTraces));
+      $$ = std::shared_ptr<program::Variable>(new program::IntVariable($2, false, false, context.numberOfTraces));
     }
   }
 | CONST TYPE PROGRAM_ID
   {
     if ($2 == "Bool")
     {
-      $$ = std::shared_ptr<const program::Variable>(new program::BoolVariable($3, true, false, context.numberOfTraces));
+      $$ = std::shared_ptr<program::Variable>(new program::BoolVariable($3, true, false, context.numberOfTraces));
     }
     else if ($2 == "Nat" || $2 == "Time" || $2 == "Trace")
     {
       error(@2, "Program variables can't have type " + $2);
     }
-    else 
+    else
     {
-      $$ = std::shared_ptr<const program::Variable>(new program::IntVariable($3, true, false, context.numberOfTraces));
+      $$ = std::shared_ptr<program::Variable>(new program::IntVariable($3, true, false, context.numberOfTraces));
     }
   }
 | TYPE LBRA RBRA PROGRAM_ID
   {
     if ($1 == "Bool")
     {
-      $$ = std::shared_ptr<const program::Variable>(new program::BoolVariable($4, false, true, context.numberOfTraces));
+      $$ = std::shared_ptr<program::Variable>(new program::BoolVariable($4, false, true, context.numberOfTraces));
     }
     else if ($1 == "Nat" || $1 == "Time" || $1 == "Trace")
     {
       error(@1, "Program variables can't have type " + $1);
     }
-    else 
+    else
     {
-      $$ = std::shared_ptr<const program::Variable>(new program::IntVariable($4, false, true, context.numberOfTraces));
+      $$ = std::shared_ptr<program::Variable>(new program::IntVariable($4, false, true, context.numberOfTraces));
     }
   }
 | CONST TYPE LBRA RBRA PROGRAM_ID
   {
     if ($2 == "Bool")
     {
-      $$ = std::shared_ptr<const program::Variable>(new program::BoolVariable($5, true, true, context.numberOfTraces));
+      $$ = std::shared_ptr<program::Variable>(new program::BoolVariable($5, true, true, context.numberOfTraces));
     }
     else if ($2 == "Nat" || $2 == "Time" || $2 == "Trace")
     {
       error(@2, "Program variables can't have type " + $2);
     }
-    else 
+    else
     {
-      $$ = std::shared_ptr<const program::Variable>(new program::IntVariable($5, true, true, context.numberOfTraces));
+      $$ = std::shared_ptr<program::Variable>(new program::IntVariable($5, true, true, context.numberOfTraces));
     }
   }
 ;
@@ -694,24 +694,24 @@ var_definition_head:
 expr:
   LPAR expr RPAR           { $$ = std::move($2); }
 | location                 { $$ = std::move($1); }
-| TRUE                     { $$ = std::shared_ptr<const program::BooleanConstant>(new program::BooleanConstant(true)); }
-| FALSE                    { $$ = std::shared_ptr<const program::BooleanConstant>(new program::BooleanConstant(false)); }
-| INTEGER                  { $$ = std::shared_ptr<const program::ArithmeticConstant>(new program::ArithmeticConstant(std::move($1)));}
-| expr MUL expr            { $$ = std::shared_ptr<const program::Multiplication>(new program::Multiplication(std::move($1), std::move($3)));}
-| expr PLUS expr           { $$ = std::shared_ptr<const program::Addition>(new program::Addition(std::move($1), std::move($3)));}
-| expr MINUS expr          { $$ = std::shared_ptr<const program::Subtraction>(new program::Subtraction(std::move($1), std::move($3)));}
-| expr MOD expr            { $$ = std::shared_ptr<const program::Modulo>(new program::Modulo(std::move($1), std::move($3)));}
+| TRUE                     { $$ = std::shared_ptr<program::BooleanConstant>(new program::BooleanConstant(true)); }
+| FALSE                    { $$ = std::shared_ptr<program::BooleanConstant>(new program::BooleanConstant(false)); }
+| INTEGER                  { $$ = std::shared_ptr<program::ArithmeticConstant>(new program::ArithmeticConstant(std::move($1)));}
+| expr MUL expr            { $$ = std::shared_ptr<program::Multiplication>(new program::Multiplication(std::move($1), std::move($3)));}
+| expr PLUS expr           { $$ = std::shared_ptr<program::Addition>(new program::Addition(std::move($1), std::move($3)));}
+| expr MINUS expr          { $$ = std::shared_ptr<program::Subtraction>(new program::Subtraction(std::move($1), std::move($3)));}
+| expr MOD expr            { $$ = std::shared_ptr<program::Modulo>(new program::Modulo(std::move($1), std::move($3)));}
 
-| expr GT expr             { $$ = std::shared_ptr<const program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::GT, std::move($1), std::move($3)));}
-| expr GE expr             { $$ = std::shared_ptr<const program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::GE, std::move($1), std::move($3)));}
-| expr LT expr             { $$ = std::shared_ptr<const program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::LT, std::move($1), std::move($3)));}
-| expr LE expr             { $$ = std::shared_ptr<const program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::LE, std::move($1), std::move($3)));}
-| expr EQ expr             { $$ = std::shared_ptr<const program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::EQ, std::move($1), std::move($3)));}
-| expr NEQ expr            { auto formula = std::shared_ptr<const program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::EQ, std::move($1), std::move($3)));
-                             $$ = std::shared_ptr<const program::BooleanNot>(new program::BooleanNot(std::move(formula)));}
-| expr AND expr            { $$ = std::shared_ptr<const program::BooleanAnd>(new program::BooleanAnd(std::move($1), std::move($3)));}
-| expr OR expr             { $$ = std::shared_ptr<const program::BooleanOr>(new program::BooleanOr(std::move($1), std::move($3)));}
-| NOT expr                 { $$ = std::shared_ptr<const program::BooleanNot>(new program::BooleanNot(std::move($2)));}
+| expr GT expr             { $$ = std::shared_ptr<program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::GT, std::move($1), std::move($3)));}
+| expr GE expr             { $$ = std::shared_ptr<program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::GE, std::move($1), std::move($3)));}
+| expr LT expr             { $$ = std::shared_ptr<program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::LT, std::move($1), std::move($3)));}
+| expr LE expr             { $$ = std::shared_ptr<program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::LE, std::move($1), std::move($3)));}
+| expr EQ expr             { $$ = std::shared_ptr<program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::EQ, std::move($1), std::move($3)));}
+| expr NEQ expr            { auto formula = std::shared_ptr<program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::EQ, std::move($1), std::move($3)));
+                             $$ = std::shared_ptr<program::BooleanNot>(new program::BooleanNot(std::move(formula)));}
+| expr AND expr            { $$ = std::shared_ptr<program::BooleanAnd>(new program::BooleanAnd(std::move($1), std::move($3)));}
+| expr OR expr             { $$ = std::shared_ptr<program::BooleanOr>(new program::BooleanOr(std::move($1), std::move($3)));}
+| NOT expr                 { $$ = std::shared_ptr<program::BooleanNot>(new program::BooleanNot(std::move($2)));}
 
 ;
 
@@ -723,7 +723,7 @@ location:
     {
       error(@1, "Array variable " + var->name + " needs index for access");
     }
-    $$ = std::shared_ptr<const program::VariableAccess>(new VariableAccess(std::move(var)));
+    $$ = std::shared_ptr<program::VariableAccess>(new VariableAccess(std::move(var)));
   }
 | PROGRAM_ID LBRA expr RBRA
   {
@@ -732,7 +732,7 @@ location:
     {
       error(@1, "Variable " + var->name + " is not an array");
     }
-    $$ = std::shared_ptr<const program::ArrayApplication>(new ArrayApplication(std::move(var), std::move($3)));
+    $$ = std::shared_ptr<program::ArrayApplication>(new ArrayApplication(std::move(var), std::move($3)));
   }
 ;
 

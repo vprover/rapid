@@ -11,7 +11,7 @@
 
 namespace analysis {
 
-    void ValueEvolutionLemmas::generateOutputFor(const program::WhileStatement* whileStatement,
+    void ValueEvolutionLemmas::generateOutputFor(program::WhileStatement* whileStatement,
                                                                   std::vector<std::shared_ptr<const logic::ProblemItem>>& items)
     {
         auto boundLSymbol = logic::Signature::varSymbol("boundL", logic::Sorts::natSort());
@@ -149,7 +149,7 @@ namespace analysis {
         }
     }
 
-    void StaticAnalysisLemmas::generateOutputFor(const program::WhileStatement *statement, std::vector<std::shared_ptr<const logic::ProblemItem>>& items)
+    void StaticAnalysisLemmas::generateOutputFor(program::WhileStatement *statement, std::vector<std::shared_ptr<const logic::ProblemItem>>& items)
     {
         auto itSymbol = iteratorSymbol(statement);
         auto it = iteratorTermForLoop(statement);

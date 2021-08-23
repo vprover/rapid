@@ -94,7 +94,7 @@ namespace analysis {
     public:
         using ProgramTraverser::ProgramTraverser; // inherit initializer, note: doesn't allow additional members in subclass!
         
-        virtual void generateOutputFor(const program::WhileStatement* statement, std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
+        virtual void generateOutputFor(program::WhileStatement* statement, std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
     };
     
     /* LEMMA 2
@@ -150,7 +150,7 @@ namespace analysis {
     public:
         StaticAnalysisLemmas(
             const program::Program& program,
-            std::unordered_map<std::string, std::vector<std::shared_ptr<const program::Variable>>> locationToActiveVars,
+            std::unordered_map<std::string, std::vector<std::shared_ptr<program::Variable>>> locationToActiveVars,
             unsigned numberOfTraces,
             std::vector<std::shared_ptr<const logic::Axiom>> programSemantics) : 
             ProgramTraverser<std::vector<std::shared_ptr<const logic::ProblemItem>>>(program, locationToActiveVars, numberOfTraces), programSemantics(programSemantics) {}
@@ -158,7 +158,7 @@ namespace analysis {
     private:
         std::vector<std::shared_ptr<const logic::Axiom>> programSemantics;
 
-        virtual void generateOutputFor(const program::WhileStatement* statement, std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
+        virtual void generateOutputFor(program::WhileStatement* statement, std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
 
     };
 }

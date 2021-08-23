@@ -12,18 +12,19 @@
 #include <vector>
 #include <cassert>
 
-namespace program
-{
+namespace program {
     class WhileStatement;
-    class Statement
-    {
+
+    class TransformationInfo;
+
+    class Statement {
     public:
         Statement(unsigned lineNumber) :
-            location("l" + std::to_string(lineNumber != 0 ? lineNumber : -(++Statement::additionalTimepoints))),
-            enclosingLoops(std::make_unique<std::vector<const WhileStatement*>>()) {}
+                location("l" + std::to_string(lineNumber != 0 ? lineNumber : -(++Statement::additionalTimepoints))),
+                enclosingLoops(std::make_unique<std::vector<WhileStatement *>>()) { }
 
         virtual ~Statement() {}
-        
+
         const std::string location;
         /*
          * enclosingLoops can only be computed after all enclosing loops are constructed, and
@@ -35,41 +36,44 @@ namespace program
          * so we get a (constant) pointer to a (not necessarily constant) vector enclosingLoops,
          * which we can fill up in the parser-post-computation.
          */
-        std::unique_ptr<std::vector<const WhileStatement*>> enclosingLoops;
+        std::unique_ptr<std::vector<WhileStatement *>> enclosingLoops;
 
         virtual std::string toString(int indentation) const = 0;
 
         static unsigned additionalTimepoints; // Will be incremented and used negated (counts from down)
+
+        static TransformationInfo transformBlock(std::vector<std::shared_ptr<Statement>> &statements, std::unordered_map<std::string, std::vector<std::shared_ptr<program::Variable>>> &locationToActiveVars, unsigned traces);
+
+        virtual TransformationInfo transform(std::unordered_map<std::string, std::vector<std::shared_ptr<program::Variable>>> &locationToActiveVars, unsigned traces) = 0;
     };
-    
-    struct StatementSharedPtrHash
-    {
-        size_t operator()(const std::shared_ptr<const Statement>& ptr) const {return std::hash<std::string>()(ptr->location); }
+
+    struct StatementSharedPtrHash {
+        size_t operator()(const std::shared_ptr<const Statement> &ptr) const { return std::hash<std::string>()(ptr->location); }
     };
-    
-    std::ostream& operator<<(std::ostream& ostr, const Statement& v);
+
+    std::ostream &operator<<(std::ostream &ostr, Statement &v);
 
     // hack needed for bison: std::vector has no overload for ostream, but these overloads are needed for bison
-    std::ostream& operator<<(std::ostream& ostr, const std::vector< std::shared_ptr<const program::Statement>>& e);
-    
-    class Assignment : public Statement
-    {
+    std::ostream &operator<<(std::ostream &ostr, const std::vector<std::shared_ptr<program::Statement>> &e);
+
+    class Assignment : public Statement {
     public:
-        
-        Assignment(unsigned lineNumber, std::shared_ptr<const Expression> lhs, std::shared_ptr<const Expression> rhs) : Statement(lineNumber), lhs(std::move(lhs)), rhs(std::move(rhs)){}
-        
-        const std::shared_ptr<const Expression> lhs;
-        const std::shared_ptr<const Expression> rhs;
-        
+
+        Assignment(unsigned lineNumber, std::shared_ptr<Expression> lhs, std::shared_ptr<Expression> rhs) : Statement(lineNumber), lhs(std::move(lhs)), rhs(std::move(rhs)) {}
+
+        std::shared_ptr<Expression> lhs;
+        std::shared_ptr<Expression> rhs;
+
         std::string toString(int indentation) const override;
+
+        TransformationInfo transform(std::unordered_map<std::string, std::vector<std::shared_ptr<program::Variable>>> &locationToActiveVars, unsigned traces) override;
     };
 
-    class IfElseStatement : public Statement
-    {
+    class IfElseStatement : public Statement {
     public:
-        
-        IfElseStatement(unsigned lineNumber, std::shared_ptr<const Expression> condition, std::vector<std::shared_ptr<const Statement>> ifStatements, std::vector<std::shared_ptr<const Statement>> elseStatements) : Statement(lineNumber), condition(std::move(condition)), ifStatements(std::move(ifStatements)), elseStatements(std::move(elseStatements))
-        {
+
+        IfElseStatement(unsigned lineNumber, std::shared_ptr<Expression> condition, std::vector<std::shared_ptr<Statement>> ifStatements, std::vector<std::shared_ptr<Statement>> elseStatements) : Statement(lineNumber), condition(std::move(condition)),
+                                                                                                                                                                                                    ifStatements(std::move(ifStatements)), elseStatements(std::move(elseStatements)) {
             assert(this->ifStatements.size() > 0);
             assert(this->elseStatements.size() > 0);
 
@@ -78,20 +82,20 @@ namespace program
                 exit(1);
             }
         }
-        
-        const std::shared_ptr<const Expression> condition;
-        const std::vector<std::shared_ptr<const Statement>> ifStatements;
-        const std::vector<std::shared_ptr<const Statement>> elseStatements;
-        
+
+        std::shared_ptr<Expression> condition;
+        std::vector<std::shared_ptr<Statement>> ifStatements;
+        std::vector<std::shared_ptr<Statement>> elseStatements;
+
         std::string toString(int indentation) const override;
+
+        TransformationInfo transform(std::unordered_map<std::string, std::vector<std::shared_ptr<program::Variable>>> &locationToActiveVars, unsigned traces) override;
     };
-    
-    class WhileStatement : public Statement
-    {
+
+    class WhileStatement : public Statement {
     public:
-        
-        WhileStatement(unsigned lineNumber, std::shared_ptr<const Expression> condition, std::vector<std::shared_ptr<const Statement>> bodyStatements) : Statement(lineNumber), condition(std::move(condition)), bodyStatements(std::move(bodyStatements))
-        {
+
+        WhileStatement(unsigned lineNumber, std::shared_ptr<Expression> condition, std::vector<std::shared_ptr<Statement>> bodyStatements) : Statement(lineNumber), condition(std::move(condition)), bodyStatements(std::move(bodyStatements)) {
             // TODO: add a skip-statement instead, maybe already during parsing (challenge: unique numbering)
             assert(this->bodyStatements.size() > 0);
 
@@ -101,10 +105,12 @@ namespace program
             }
         }
 
-        const std::shared_ptr<const Expression> condition;
-        const std::vector<std::shared_ptr<const Statement>> bodyStatements;
-        
+        std::shared_ptr<Expression> condition;
+        std::vector<std::shared_ptr<Statement>> bodyStatements;
+
         std::string toString(int indentation) const override;
+
+        TransformationInfo transform(std::unordered_map<std::string, std::vector<std::shared_ptr<program::Variable>>> &locationToActiveVars, unsigned traces) override;
     };
 
     class BreakStatement : public Statement {
@@ -112,6 +118,8 @@ namespace program
         BreakStatement(unsigned lineNumber) : Statement(lineNumber) {};
 
         std::string toString(int indentation) const override;
+
+        TransformationInfo transform(std::unordered_map<std::string, std::vector<std::shared_ptr<program::Variable>>> &locationToActiveVars, unsigned traces) override;
     };
 
     class ContinueStatement : public Statement {
@@ -119,26 +127,59 @@ namespace program
         ContinueStatement(unsigned lineNumber) : Statement(lineNumber) {};
 
         std::string toString(int indentation) const override;
+
+        TransformationInfo transform(std::unordered_map<std::string, std::vector<std::shared_ptr<program::Variable>>> &locationToActiveVars, unsigned traces) override;
     };
 
     class ReturnStatement : public Statement {
     public:
-        ReturnStatement(unsigned lineNumber, std::shared_ptr<const Expression> returnValue) : Statement(lineNumber), returnValue(std::move(returnValue)) {};
+        ReturnStatement(unsigned lineNumber, std::shared_ptr<Expression> returnValue) : Statement(lineNumber), returnValue(std::move(returnValue)) {};
 
         std::string toString(int indentation) const override;
 
-        const std::shared_ptr<const Expression> returnValue;
+        const std::shared_ptr<Expression> returnValue;
+
+        TransformationInfo transform(std::unordered_map<std::string, std::vector<std::shared_ptr<program::Variable>>> &locationToActiveVars, unsigned traces) override;
     };
-    
-    class SkipStatement : public Statement
-    {
+
+    class SkipStatement : public Statement {
     public:
         SkipStatement(unsigned lineNumber) : Statement(lineNumber) {};
-        
+
         std::string toString(int indentation) const override;
+
+        TransformationInfo transform(std::unordered_map<std::string, std::vector<std::shared_ptr<program::Variable>>> &locationToActiveVars, unsigned traces) override;
+    };
+
+    class TransformationInfo {
+    public:
+        TransformationInfo() : break_conditions(), continue_conditions(), return_conditions(), introduced_var(nullptr) {}
+
+        std::vector<std::shared_ptr<VariableAccess>> break_conditions;
+        std::vector<std::shared_ptr<VariableAccess>> continue_conditions;
+        std::vector<std::shared_ptr<VariableAccess>> return_conditions;
+
+        void mergeBreak(std::vector<std::shared_ptr<VariableAccess>> &other) {
+            for (const auto &o : other) {
+                break_conditions.push_back(o);
+            }
+        }
+
+        void mergeContinue(std::vector<std::shared_ptr<VariableAccess>> &other) {
+            for (const auto &o : other) {
+                continue_conditions.push_back(o);
+            }
+        }
+
+        void mergeReturn(std::vector<std::shared_ptr<VariableAccess>> &other) {
+            for (const auto &o : other) {
+                return_conditions.push_back(o);
+            }
+        }
+
+        std::shared_ptr<Variable> introduced_var;
     };
 }
-
 
 
 #endif

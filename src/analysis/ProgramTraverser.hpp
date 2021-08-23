@@ -23,7 +23,7 @@ namespace analysis {
     class ProgramTraverser {
     public:
         ProgramTraverser(const program::Program &program,
-                         std::unordered_map<std::string, std::vector<std::shared_ptr<const program::Variable>>> locationToActiveVars,
+                         std::unordered_map<std::string, std::vector<std::shared_ptr<program::Variable>>> locationToActiveVars,
                          unsigned numberOfTraces) :
                 program(program),
                 locationToActiveVars(locationToActiveVars),
@@ -33,19 +33,19 @@ namespace analysis {
 
     protected:
         const program::Program &program;
-        const std::unordered_map<std::string, std::vector<std::shared_ptr<const program::Variable>>> locationToActiveVars;
+        const std::unordered_map<std::string, std::vector<std::shared_ptr<program::Variable>>> locationToActiveVars;
         const unsigned numberOfTraces;
 
     private:
-        void visitStatement(const program::Statement *statement, OutputType &output);
+        void visitStatement(program::Statement *statement, OutputType &output);
 
-        virtual void generateOutputFor(const program::Assignment *statement, OutputType &output);
+        virtual void generateOutputFor(program::Assignment *statement, OutputType &output);
 
-        virtual void generateOutputFor(const program::IfElseStatement *statement, OutputType &output);
+        virtual void generateOutputFor(program::IfElseStatement *statement, OutputType &output);
 
-        virtual void generateOutputFor(const program::WhileStatement *statement, OutputType &output);
+        virtual void generateOutputFor(program::WhileStatement *statement, OutputType &output);
 
-        virtual void generateOutputFor(const program::SkipStatement *statement, OutputType &output);
+        virtual void generateOutputFor(program::SkipStatement *statement, OutputType &output);
     };
 
 
@@ -59,14 +59,14 @@ namespace analysis {
     }
 
     template<class OutputType>
-    void ProgramTraverser<OutputType>::visitStatement(const program::Statement *statement, OutputType &output) {
-        if (typeid(*statement) != typeid(program::Assignment)) {
-            auto castedAssignment = static_cast<const program::Assignment *>(statement);
+    void ProgramTraverser<OutputType>::visitStatement(program::Statement *statement, OutputType &output) {
+        if (typeid(*statement) == typeid(program::Assignment)) {
+            auto castedAssignment = static_cast<program::Assignment *>(statement);
             // generate output
             generateOutputFor(castedAssignment, output);
         }
-        else if (typeid(*statement) != typeid(program::IfElseStatement)) {
-            auto castedIfElse = static_cast<const program::IfElseStatement *>(statement);
+        else if (typeid(*statement) == typeid(program::IfElseStatement)) {
+            auto castedIfElse = static_cast<program::IfElseStatement *>(statement);
 
             // generate output
             generateOutputFor(castedIfElse, output);
@@ -79,8 +79,8 @@ namespace analysis {
                 visitStatement(statement.get(), output);
             }
         }
-        else if (typeid(*statement) != typeid(program::WhileStatement)) {
-            auto castedWhile = static_cast<const program::WhileStatement *>(statement);
+        else if (typeid(*statement) == typeid(program::WhileStatement)) {
+            auto castedWhile = static_cast<program::WhileStatement *>(statement);
 
             // generate output
             generateOutputFor(castedWhile, output);
@@ -90,8 +90,8 @@ namespace analysis {
                 visitStatement(statement.get(), output);
             }
         }
-        else if (typeid(*statement) != typeid(program::SkipStatement)) {
-            auto castedSkip = static_cast<const program::SkipStatement *>(statement);
+        else if (typeid(*statement) == typeid(program::SkipStatement)) {
+            auto castedSkip = static_cast<program::SkipStatement *>(statement);
             // generate output
             generateOutputFor(castedSkip, output);
         }
@@ -99,14 +99,17 @@ namespace analysis {
             assert(false);
         }
     }
-    
-    template <class OutputType>
-    void ProgramTraverser<OutputType>::generateOutputFor(const program::Assignment* statement, OutputType& output){}
-    template <class OutputType>
-    void ProgramTraverser<OutputType>::generateOutputFor(const program::IfElseStatement* statement, OutputType& output){}
-    template <class OutputType>
-    void ProgramTraverser<OutputType>::generateOutputFor(const program::WhileStatement* statement, OutputType& output){}
-    template <class OutputType>
-    void ProgramTraverser<OutputType>::generateOutputFor(const program::SkipStatement* statement, OutputType& output){}
+
+    template<class OutputType>
+    void ProgramTraverser<OutputType>::generateOutputFor(program::Assignment *statement, OutputType &output) {}
+
+    template<class OutputType>
+    void ProgramTraverser<OutputType>::generateOutputFor(program::IfElseStatement *statement, OutputType &output) {}
+
+    template<class OutputType>
+    void ProgramTraverser<OutputType>::generateOutputFor(program::WhileStatement *statement, OutputType &output) {}
+
+    template<class OutputType>
+    void ProgramTraverser<OutputType>::generateOutputFor(program::SkipStatement *statement, OutputType &output) {}
 }
 #endif

@@ -10,7 +10,7 @@
 
 namespace analysis {
 
-    void AtLeastOneIterationLemmas::generateOutputFor(const program::WhileStatement *statement, std::vector<std::shared_ptr<const logic::ProblemItem>> &items) {
+    void AtLeastOneIterationLemmas::generateOutputFor(program::WhileStatement *statement, std::vector<std::shared_ptr<const logic::ProblemItem>> &items) {
         auto itSymbol = iteratorSymbol(statement);
         auto it = iteratorTermForLoop(statement);
 
@@ -43,7 +43,7 @@ namespace analysis {
         }
     }
 
-    void OrderingSynchronizationLemmas::generateOutputFor(const program::WhileStatement *statement, std::vector<std::shared_ptr<const logic::ProblemItem>> &items) {
+    void OrderingSynchronizationLemmas::generateOutputFor(program::WhileStatement *statement, std::vector<std::shared_ptr<const logic::ProblemItem>> &items) {
         // assert(numberOfTraces > 1);
 
         // auto t1 = traceTerm(1);

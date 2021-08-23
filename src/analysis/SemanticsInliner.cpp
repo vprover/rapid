@@ -124,7 +124,7 @@ namespace analysis {
             }
         }
     }
-    std::shared_ptr<const logic::Term> SemanticsInliner::toCachedTermFull(std::shared_ptr<const program::Variable> var) {
+    std::shared_ptr<const logic::Term> SemanticsInliner::toCachedTermFull(std::shared_ptr<program::Variable> var) {
         assert(var != nullptr);
         assert(!var->isArray);
         assert(currTimepoint != nullptr);
@@ -137,7 +137,7 @@ namespace analysis {
         return cachedVarValues.at(var);
     }
 
-    std::shared_ptr<const logic::Term> SemanticsInliner::toCachedTermFull(std::shared_ptr<const program::Variable> arrayVar, std::shared_ptr<const logic::Term> position) {
+    std::shared_ptr<const logic::Term> SemanticsInliner::toCachedTermFull(std::shared_ptr<program::Variable> arrayVar, std::shared_ptr<const logic::Term> position) {
         assert(arrayVar != nullptr);
         assert(position != nullptr);
         assert(arrayVar->isArray);
@@ -150,7 +150,7 @@ namespace analysis {
         return toTerm(arrayVar, cachedTimepoint, position, trace);
     }
 
-    std::shared_ptr<const logic::Term> SemanticsInliner::toCachedTerm(std::shared_ptr<const program::Expression> expr) {
+    std::shared_ptr<const logic::Term> SemanticsInliner::toCachedTerm(std::shared_ptr<program::Expression> expr) {
         assert(expr != nullptr);
 
         if (typeid(*expr) == typeid(program::ArithmeticConstant)) {
@@ -158,27 +158,27 @@ namespace analysis {
             return logic::Theory::intConstant(castedExpr->value);
         }
         else if (typeid(*expr) == typeid(program::Addition)) {
-            auto castedExpr = std::static_pointer_cast<const program::Addition>(expr);
+            auto castedExpr = std::static_pointer_cast<program::Addition>(expr);
             return logic::Theory::intAddition(toCachedTerm(castedExpr->child1), toCachedTerm(castedExpr->child2));
         }
         else if (typeid(*expr) == typeid(program::Subtraction)) {
-            auto castedExpr = std::static_pointer_cast<const program::Subtraction>(expr);
+            auto castedExpr = std::static_pointer_cast<program::Subtraction>(expr);
             return logic::Theory::intSubtraction(toCachedTerm(castedExpr->child1), toCachedTerm(castedExpr->child2));
         }
         else if (typeid(*expr) == typeid(program::Modulo)) {
-            auto castedExpr = std::static_pointer_cast<const program::Modulo>(expr);
+            auto castedExpr = std::static_pointer_cast<program::Modulo>(expr);
             return logic::Theory::intModulo(toCachedTerm(castedExpr->child1), toCachedTerm(castedExpr->child2));
         }
         else if (typeid(*expr) == typeid(program::Multiplication)) {
-            auto castedExpr = std::static_pointer_cast<const program::Multiplication>(expr);
+            auto castedExpr = std::static_pointer_cast<program::Multiplication>(expr);
             return logic::Theory::intMultiplication(toCachedTerm(castedExpr->child1), toCachedTerm(castedExpr->child2));
         }
         else if (typeid(*expr) == typeid(program::VariableAccess)) {
-            auto castedExpr = std::static_pointer_cast<const program::VariableAccess>(expr);
+            auto castedExpr = std::static_pointer_cast<program::VariableAccess>(expr);
             return toCachedTermFull(castedExpr->var);
         }
         else if (typeid(*expr) == typeid(program::ArrayApplication)) {
-            auto castedExpr = std::static_pointer_cast<const program::ArrayApplication>(expr);
+            auto castedExpr = std::static_pointer_cast<program::ArrayApplication>(expr);
             return toCachedTermFull(castedExpr->array, toCachedTerm(castedExpr->index));
         }
         else if (typeid(*expr) == typeid(program::BooleanConstant)) {
@@ -186,7 +186,7 @@ namespace analysis {
             return castedExpr->value ? logic::Theory::boolTrue() : logic::Theory::boolFalse();
         }
         else if (typeid(*expr) == typeid(program::BooleanAnd)) {
-            auto castedExpr = std::static_pointer_cast<const program::BooleanAnd>(expr);
+            auto castedExpr = std::static_pointer_cast<program::BooleanAnd>(expr);
             return logic::Formulas::conjunction({toCachedTerm(castedExpr->child1), toCachedTerm(castedExpr->child2)});
         }
         else if (typeid(*expr) == typeid(program::BooleanOr)) {
@@ -214,8 +214,8 @@ namespace analysis {
         }
     }
 
-    std::shared_ptr<const logic::Term> SemanticsInliner::handlePersistence(std::shared_ptr<const logic::Term> timepoint, const std::vector<std::shared_ptr<const program::Variable>> &activeVars, std::string label) {
-        // define persistent terms for non-const variables
+    std::shared_ptr<const logic::Term> SemanticsInliner::handlePersistence(std::shared_ptr<const logic::Term> timepoint, const std::vector<std::shared_ptr<program::Variable>> &activeVars, std::string label) {
+        // define persistent terms for non-Variables
         std::vector<std::shared_ptr<const logic::Term>> conjuncts;
         for (const auto &var : activeVars) {
             if (!var->isConstant) {
@@ -299,7 +299,7 @@ namespace analysis {
     }
 
     // note: this method is independent from currTimepoint.
-    std::shared_ptr<const logic::Term> SemanticsInliner::handlePersistenceOfLoop(std::shared_ptr<const logic::Term> startTimepoint, std::shared_ptr<const logic::Term> iterationTimepoint, const std::vector<std::shared_ptr<const program::Variable>> &vars) {
+    std::shared_ptr<const logic::Term> SemanticsInliner::handlePersistenceOfLoop(std::shared_ptr<const logic::Term> startTimepoint, std::shared_ptr<const logic::Term> iterationTimepoint, const std::vector<std::shared_ptr<program::Variable>> &vars) {
         std::vector<std::shared_ptr<const logic::Term>> conjuncts;
         for (const auto &var : vars) {
             assert(!var->isConstant);
@@ -360,7 +360,7 @@ namespace analysis {
     }
 
 
-    std::shared_ptr<const logic::Term> SemanticsInliner::setVarValue(std::shared_ptr<const program::Variable> var, std::shared_ptr<const logic::Term> value) {
+    std::shared_ptr<const logic::Term> SemanticsInliner::setVarValue(std::shared_ptr<program::Variable> var, std::shared_ptr<const logic::Term> value) {
         assert(var != nullptr);
         assert(value != nullptr);
         assert(!var->isArray);
@@ -383,7 +383,7 @@ namespace analysis {
         return logic::Formulas::trueFormula();
     }
 
-    void SemanticsInliner::setArrayVarTimepoint(std::shared_ptr<const program::Variable> arrayVar, std::shared_ptr<const logic::Term> timepoint) {
+    void SemanticsInliner::setArrayVarTimepoint(std::shared_ptr<program::Variable> arrayVar, std::shared_ptr<const logic::Term> timepoint) {
         assert(arrayVar != nullptr);
         assert(timepoint != nullptr);
         assert(arrayVar->isArray);
@@ -401,7 +401,7 @@ namespace analysis {
         }
     }
 
-    void InlinedVariableValues::initializeWhileStatement(const program::WhileStatement *whileStatement) {
+    void InlinedVariableValues::initializeWhileStatement(program::WhileStatement *whileStatement) {
         for (auto &m : values) {
             if (m.second.find(whileStatement) == m.second.end()) {
                 m.second[whileStatement] = {};
@@ -414,7 +414,7 @@ namespace analysis {
         }
     }
 
-    void InlinedVariableValues::setValue(const program::WhileStatement *whileStatement, std::shared_ptr<const program::Variable> var, std::shared_ptr<const logic::Term> trace, std::shared_ptr<const logic::Term> value) {
+    void InlinedVariableValues::setValue(program::WhileStatement *whileStatement, std::shared_ptr<program::Variable> var, std::shared_ptr<const logic::Term> trace, std::shared_ptr<const logic::Term> value) {
         assert(whileStatement != nullptr);
         assert(var != nullptr);
         assert(value != nullptr);
@@ -427,7 +427,7 @@ namespace analysis {
         values.at(trace).at(whileStatement)[var] = value;
     }
 
-    void InlinedVariableValues::setArrayTimepoint(const program::WhileStatement *whileStatement, std::shared_ptr<const program::Variable> arrayVar, std::shared_ptr<const logic::Term> trace, std::shared_ptr<const logic::Term> timepoint) {
+    void InlinedVariableValues::setArrayTimepoint(program::WhileStatement *whileStatement, std::shared_ptr<program::Variable> arrayVar, std::shared_ptr<const logic::Term> trace, std::shared_ptr<const logic::Term> timepoint) {
         assert(whileStatement != nullptr);
         assert(arrayVar != nullptr);
         assert(trace != nullptr);
@@ -438,7 +438,7 @@ namespace analysis {
         arrayValues.at(trace).at(whileStatement)[arrayVar] = timepoint;
     }
 
-    std::shared_ptr<const logic::Term> InlinedVariableValues::toInlinedTerm(const program::WhileStatement *whileStatement, std::shared_ptr<const program::Variable> var, std::shared_ptr<const logic::Term> trace) {
+    std::shared_ptr<const logic::Term> InlinedVariableValues::toInlinedTerm(program::WhileStatement *whileStatement, std::shared_ptr<program::Variable> var, std::shared_ptr<const logic::Term> trace) {
         assert(whileStatement != nullptr);
         assert(var != nullptr);
         assert(trace != nullptr);
@@ -447,7 +447,7 @@ namespace analysis {
         return values.at(trace).at(whileStatement).at(var);
     }
 
-    std::shared_ptr<const logic::Term> InlinedVariableValues::toInlinedTerm(const program::WhileStatement *whileStatement, std::shared_ptr<const program::Variable> arrayVar, std::shared_ptr<const logic::Term> position, std::shared_ptr<const logic::Term> trace) {
+    std::shared_ptr<const logic::Term> InlinedVariableValues::toInlinedTerm(program::WhileStatement *whileStatement, std::shared_ptr<program::Variable> arrayVar, std::shared_ptr<const logic::Term> position, std::shared_ptr<const logic::Term> trace) {
         assert(whileStatement != nullptr);
         assert(arrayVar != nullptr);
         assert(position != nullptr);
@@ -457,7 +457,7 @@ namespace analysis {
         return toTerm(arrayVar, timepoint, position, trace);
     }
 
-    std::shared_ptr<const logic::Term> InlinedVariableValues::toInlinedTerm(const program::WhileStatement *whileStatement, std::shared_ptr<const program::Expression> expr, std::shared_ptr<const logic::Term> timepoint, std::shared_ptr<const logic::Term> trace) {
+    std::shared_ptr<const logic::Term> InlinedVariableValues::toInlinedTerm(program::WhileStatement *whileStatement, std::shared_ptr<program::Expression> expr, std::shared_ptr<const logic::Term> timepoint, std::shared_ptr<const logic::Term> trace) {
         assert(expr != nullptr);
         assert(whileStatement != nullptr);
 
@@ -466,23 +466,23 @@ namespace analysis {
             return logic::Theory::intConstant(castedExpr->value);
         }
         else if (typeid(*expr) == typeid(program::Addition)) {
-            auto castedExpr = std::static_pointer_cast<const program::Addition>(expr);
+            auto castedExpr = std::static_pointer_cast<program::Addition>(expr);
             return logic::Theory::intAddition(toInlinedTerm(whileStatement, castedExpr->child1, timepoint, trace), toInlinedTerm(whileStatement, castedExpr->child2, timepoint, trace));
         }
         else if (typeid(*expr) == typeid(program::Subtraction)) {
-            auto castedExpr = std::static_pointer_cast<const program::Subtraction>(expr);
+            auto castedExpr = std::static_pointer_cast<program::Subtraction>(expr);
             return logic::Theory::intSubtraction(toInlinedTerm(whileStatement, castedExpr->child1, timepoint, trace), toInlinedTerm(whileStatement, castedExpr->child2, timepoint, trace));
         }
         else if (typeid(*expr) == typeid(program::Modulo)) {
-            auto castedExpr = std::static_pointer_cast<const program::Modulo>(expr);
+            auto castedExpr = std::static_pointer_cast<program::Modulo>(expr);
             return logic::Theory::intModulo(toInlinedTerm(whileStatement, castedExpr->child1, timepoint, trace), toInlinedTerm(whileStatement, castedExpr->child2, timepoint, trace));
         }
         else if (typeid(*expr) == typeid(program::Multiplication)) {
-            auto castedExpr = std::static_pointer_cast<const program::Multiplication>(expr);
+            auto castedExpr = std::static_pointer_cast<program::Multiplication>(expr);
             return logic::Theory::intMultiplication(toInlinedTerm(whileStatement, castedExpr->child1, timepoint, trace), toInlinedTerm(whileStatement, castedExpr->child2, timepoint, trace));
         }
         else if (typeid(*expr) == typeid(program::VariableAccess)) {
-            auto var = std::static_pointer_cast<const program::VariableAccess>(expr)->var;
+            auto var = std::static_pointer_cast<program::VariableAccess>(expr)->var;
             if (AnalysisPreComputation::computeAssignedVars(whileStatement).count(var) == 0) {
                 // 'var' was not assigned to in 'whileStatement', so use inlined value (which must exist)
                 return toInlinedTerm(whileStatement, var, trace);
@@ -493,7 +493,7 @@ namespace analysis {
             }
         }
         else if (typeid(*expr) == typeid(program::ArrayApplication)) {
-            auto castedExpr = std::static_pointer_cast<const program::ArrayApplication>(expr);
+            auto castedExpr = std::static_pointer_cast<program::ArrayApplication>(expr);
             auto arrayVar = castedExpr->array;
             auto arrayIndex = castedExpr->index;
 
@@ -512,7 +512,7 @@ namespace analysis {
             return castedExpr->value ? logic::Theory::boolTrue() : logic::Theory::boolFalse();
         }
         else if (typeid(*expr) == typeid(program::BooleanAnd)) {
-            auto castedExpr = std::static_pointer_cast<const program::BooleanAnd>(expr);
+            auto castedExpr = std::static_pointer_cast<program::BooleanAnd>(expr);
             return logic::Formulas::conjunction({toInlinedTerm(whileStatement, castedExpr->child1, timepoint, trace), toInlinedTerm(whileStatement, castedExpr->child2, timepoint, trace)});
         }
         else if (typeid(*expr) == typeid(program::BooleanOr)) {

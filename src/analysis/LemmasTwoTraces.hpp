@@ -51,7 +51,7 @@ namespace analysis {
         using ProgramTraverser::ProgramTraverser; // inherit initializer, note: doesn't allow additional members in subclass!
 
     private:
-        virtual void generateOutputFor(const program::WhileStatement* statement,  std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
+        virtual void generateOutputFor(program::WhileStatement* statement,  std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
     };
 
     /*
@@ -67,10 +67,10 @@ namespace analysis {
      *    n(t1)=n(t2)
      * where:
      * - EqVC :=
-     *   "forall" const variables v
+     *   "forall" Variables v
      *      v(t1) = v(t2)
      * - IH(it) :=
-     *   "forall" non-const variables v
+     *   "forall" non-Variables v
      *      v(l(it),t1) = v(l(it),t2)
      * - IC :=
      *   forall it.
@@ -98,7 +98,7 @@ namespace analysis {
     public:
         NEqualLemmas(
             const program::Program& program,
-            std::unordered_map<std::string, std::vector<std::shared_ptr<const program::Variable>>> locationToActiveVars,
+            std::unordered_map<std::string, std::vector<std::shared_ptr<program::Variable>>> locationToActiveVars,
             unsigned numberOfTraces,
             std::vector<std::shared_ptr<const logic::Axiom>> programSemantics,
             InlinedVariableValues& inlinedVarValues) :
@@ -108,7 +108,7 @@ namespace analysis {
         std::vector<std::shared_ptr<const logic::Axiom>> programSemantics;
         InlinedVariableValues& inlinedVarValues;
 
-        virtual void generateOutputFor(const program::WhileStatement* statement,  std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
+        virtual void generateOutputFor(program::WhileStatement* statement,  std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
     };
 }
 

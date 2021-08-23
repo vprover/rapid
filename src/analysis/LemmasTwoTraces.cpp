@@ -11,7 +11,7 @@
 
 namespace analysis {
 
-    void EqualityPreservationTracesLemmas::generateOutputFor(const program::WhileStatement *statement, std::vector<std::shared_ptr<const logic::ProblemItem>>& items)
+    void EqualityPreservationTracesLemmas::generateOutputFor(program::WhileStatement *statement, std::vector<std::shared_ptr<const logic::ProblemItem>>& items)
     {
         auto posSymbol = posVarSymbol();
         auto pos = posVar();
@@ -64,7 +64,7 @@ namespace analysis {
         }
     }
 
-    void NEqualLemmas::generateOutputFor(const program::WhileStatement *statement, std::vector<std::shared_ptr<const logic::ProblemItem>>& items)
+    void NEqualLemmas::generateOutputFor(program::WhileStatement *statement, std::vector<std::shared_ptr<const logic::ProblemItem>>& items)
     {
         assert(numberOfTraces > 1);
 
@@ -73,7 +73,7 @@ namespace analysis {
         auto lStartIt = timepointForLoopStatement(statement, it);
 
         auto assignedVars = AnalysisPreComputation::computeAssignedVars(statement);
-        std::unordered_set<std::shared_ptr<const program::Variable>> loopConditionVars;
+        std::unordered_set<std::shared_ptr<program::Variable>> loopConditionVars;
         AnalysisPreComputation::computeVariablesContainedInLoopCondition(statement->condition, loopConditionVars);
 
         bool inlineSemantics = util::Configuration::instance().inlineSemantics();
@@ -98,7 +98,7 @@ namespace analysis {
 
                 // PART 1: Add induction-axiom
                 // IH(it) :=
-                // "forall" non-const variables v
+                // "forall" non-Variables v
                 //    v(l(it),t1) = v(l(it),t2)
                 auto inductionHypothesis = [&](std::shared_ptr<const logic::Term> arg)
                 {
