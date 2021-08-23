@@ -27,7 +27,7 @@ namespace program {
         virtual std::string toString() const = 0;
     };
 
-    std::ostream &operator<<(std::ostream &ostr, const Expression &e);
+    std::ostream &operator<<(std::ostream &ostr, Expression &e);
 
     class ArithmeticConstant : public Expression {
     public:
@@ -42,25 +42,25 @@ namespace program {
 
     class UnaryExpression : public Expression  {
     public:
-        UnaryExpression(std::shared_ptr<const Expression> child) : child(std::move(child)) {}
+        UnaryExpression(std::shared_ptr<Expression> child) : child(std::move(child)) {}
 
-        const std::shared_ptr<const Expression> child;
+        const std::shared_ptr<Expression> child;
 
     };
 
     class BinaryExpression : public Expression {
     public:
-        BinaryExpression(std::shared_ptr<const Expression> child1, std::shared_ptr<const Expression> child2)
+        BinaryExpression(std::shared_ptr<Expression> child1, std::shared_ptr<Expression> child2)
         : child1(std::move(child1)), child2(std::move(child2)) {}
 
-        const std::shared_ptr<const Expression> child1;
-        const std::shared_ptr<const Expression> child2;
+        const std::shared_ptr<Expression> child1;
+        const std::shared_ptr<Expression> child2;
 
     };
 
     class Addition : public BinaryExpression {
     public:
-        Addition(std::shared_ptr<const Expression> child1, std::shared_ptr<const Expression> child2)
+        Addition(std::shared_ptr<Expression> child1, std::shared_ptr<Expression> child2)
                 : BinaryExpression(std::move(child1), std::move(child2)) {
 
             if (this->child1->type() != ValueType::Int) {
@@ -80,7 +80,7 @@ namespace program {
 
     class Subtraction : public BinaryExpression {
     public:
-        Subtraction(std::shared_ptr<const Expression> child1, std::shared_ptr<const Expression> child2)
+        Subtraction(std::shared_ptr<Expression> child1, std::shared_ptr<Expression> child2)
                 : BinaryExpression(std::move(child1), std::move(child2)) {
 
             if (this->child1->type() != ValueType::Int) {
@@ -100,7 +100,7 @@ namespace program {
 
     class Modulo : public BinaryExpression {
     public:
-        Modulo(std::shared_ptr<const Expression> child1, std::shared_ptr<const Expression> child2)
+        Modulo(std::shared_ptr<Expression> child1, std::shared_ptr<Expression> child2)
                 : BinaryExpression(std::move(child1), std::move(child2)) {
 
             if (this->child1->type() != ValueType::Int) {
@@ -120,7 +120,7 @@ namespace program {
 
     class Multiplication : public BinaryExpression {
     public:
-        Multiplication(std::shared_ptr<const Expression> child1, std::shared_ptr<const Expression> child2)
+        Multiplication(std::shared_ptr<Expression> child1, std::shared_ptr<Expression> child2)
                 : BinaryExpression(std::move(child1), std::move(child2)) {
 
             if (this->child1->type() != ValueType::Int) {
@@ -151,7 +151,7 @@ namespace program {
 
     class BooleanAnd : public BinaryExpression {
     public:
-        BooleanAnd(std::shared_ptr<const Expression> child1, std::shared_ptr<const Expression> child2)
+        BooleanAnd(std::shared_ptr<Expression> child1, std::shared_ptr<Expression> child2)
         : BinaryExpression(std::move(child1), std::move(child2)) {
 
             if (this->child1->type() != ValueType::Bool) {
@@ -171,7 +171,7 @@ namespace program {
 
     class BooleanOr : public BinaryExpression {
     public:
-        BooleanOr(std::shared_ptr<const Expression> child1, std::shared_ptr<const Expression> child2)
+        BooleanOr(std::shared_ptr<Expression> child1, std::shared_ptr<Expression> child2)
                 : BinaryExpression(std::move(child1), std::move(child2)) {
 
             if (this->child1->type() != ValueType::Bool) {
@@ -191,7 +191,7 @@ namespace program {
 
     class BooleanNot : public UnaryExpression {
     public:
-        BooleanNot(std::shared_ptr<const Expression> child) : UnaryExpression(std::move(child)) {
+        BooleanNot(std::shared_ptr<Expression> child) : UnaryExpression(std::move(child)) {
 
             if (this->child->type() != ValueType::Bool) {
                 std::cout << "! expected a Bool" << std::endl;
@@ -214,7 +214,7 @@ namespace program {
             EQ
         };
 
-        ArithmeticComparison(Kind kind, std::shared_ptr<const Expression> child1, std::shared_ptr<const Expression> child2)
+        ArithmeticComparison(Kind kind, std::shared_ptr<Expression> child1, std::shared_ptr<Expression> child2)
                 : kind(kind), BinaryExpression(std::move(child1), std::move(child2)) {
 
             if (this->child1->type() != ValueType::Int) {

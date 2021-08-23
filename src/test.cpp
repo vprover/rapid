@@ -59,6 +59,7 @@ int main(int argc, char *argv[]) {
             yyset_lineno(1);
             loc.initialize();
             logic::Signature::reset(); // reset signatures
+            program::Statement::additionalTimepoints = 0;
 
             if (util::Output::initialize()) {
                 // parse inputFile
@@ -75,6 +76,8 @@ int main(int argc, char *argv[]) {
                 for (const auto &axiom : theoryAxioms) {
                     problemItems.push_back(axiom);
                 }
+
+                analysis::Semantics::applyTransformations(parserResult.program->functions, parserResult.locationToActiveVars, parserResult.numberOfTraces);
 
                 analysis::Semantics s(*parserResult.program, parserResult.locationToActiveVars, parserResult.problemItems, parserResult.numberOfTraces);
                 auto[semantics, inlinedVarValues] = s.generateSemantics();

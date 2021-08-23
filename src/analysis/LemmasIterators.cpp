@@ -8,7 +8,7 @@
 
 namespace analysis {
 
-    void IntermediateValueLemmas::generateOutputFor(const program::WhileStatement *statement, std::vector<std::shared_ptr<const logic::ProblemItem>>& items)
+    void IntermediateValueLemmas::generateOutputFor(program::WhileStatement *statement, std::vector<std::shared_ptr<const logic::ProblemItem>>& items)
     {
         auto itSymbol = iteratorSymbol(statement);
         auto it = iteratorTermForLoop(statement);
@@ -189,7 +189,7 @@ namespace analysis {
   }
 }
 
-    void IterationInjectivityLemmas::generateOutputFor(const program::WhileStatement *statement, std::vector<std::shared_ptr<const logic::ProblemItem>> &items)
+    void IterationInjectivityLemmas::generateOutputFor(program::WhileStatement *statement, std::vector<std::shared_ptr<const logic::ProblemItem>> &items)
     {
         auto itSymbol = iteratorSymbol(statement);
         auto it = iteratorTermForLoop(statement);

@@ -28,9 +28,9 @@ namespace parser {
         bool errorFlag;
 
         // output
-        std::unique_ptr<const program::Program> program;
+        std::unique_ptr<program::Program> program;
         std::vector<std::shared_ptr<const logic::ProblemItem>> problemItems;
-        std::unordered_map<std::string, std::vector<std::shared_ptr<const program::Variable>>> locationToActiveVars;
+        std::unordered_map<std::string, std::vector<std::shared_ptr<program::Variable>>> locationToActiveVars;
         unsigned numberOfTraces;
         int numberOfAxioms;
         int numberOfLemmas;
@@ -41,7 +41,7 @@ namespace parser {
         std::unordered_map<std::string, std::shared_ptr<const logic::Symbol>> quantifiedVarsDeclarations;
         std::vector<std::vector<std::string>> quantifiedVarsStack;
 
-        std::unordered_map<std::string, std::shared_ptr<const program::Variable>> programVarsDeclarations;
+        std::unordered_map<std::string, std::shared_ptr<program::Variable>> programVarsDeclarations;
         std::vector<std::vector<std::string>> programVarsStack;
 
     public:
@@ -58,11 +58,11 @@ namespace parser {
 
         void popProgramVars();
 
-        bool addProgramVar(std::shared_ptr<const program::Variable> programVar);
+        bool addProgramVar(std::shared_ptr<program::Variable> programVar);
 
-        std::shared_ptr<const program::Variable> getProgramVar(std::string name);
+        std::shared_ptr<program::Variable> getProgramVar(std::string name);
 
-        std::vector<std::shared_ptr<const program::Variable>> getActiveProgramVars();
+        std::vector<std::shared_ptr<program::Variable>> getActiveProgramVars();
 
         /*
          * we need to know for each statement in which loops it is nested in.
@@ -75,8 +75,8 @@ namespace parser {
         void addEnclosingLoops(const program::Function &function);
 
     private:
-        static void addEnclosingLoopsForStatement(const program::Statement *statement,
-                                                  std::vector<const program::WhileStatement *> enclosingLoops);
+        static void addEnclosingLoopsForStatement(program::Statement *statement,
+                                                  std::vector<program::WhileStatement *> enclosingLoops);
     };
 }
 

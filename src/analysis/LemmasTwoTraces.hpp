@@ -58,79 +58,66 @@ class EqualityPreservationTracesLemmas
                                              // doesn't allow additional members
                                              // in subclass!
 
- private:
-  virtual void generateOutputFor(
-      const program::WhileStatement* statement,
-      std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
-};
+    private:
+        virtual void generateOutputFor(program::WhileStatement* statement,  std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
+    };
 
-/*
- * LEMMA 2
- * if all variables used in the loop iteration have the same value in both
- * traces in each iteration, then the loops terminate after the same number of
- * steps
- *
- * =>
- *    and
- *       EqVC
- *       IH(0)
- *       IC
- *    n(t1)=n(t2)
- * where:
- * - EqVC :=
- *   "forall" const variables v
- *      v(t1) = v(t2)
- * - IH(it) :=
- *   "forall" non-const variables v
- *      v(l(it),t1) = v(l(it),t2)
- * - IC :=
- *   forall it.
- *      =>
- *         and
- *            it<n(t1)
- *            it<n(t2)
- *            IH(it)
- *         IH(s(it))
- *
- * Soundness:
- * This lemma follows from
- * - the semantics
- * - inductionAxiom2 instantiated with the IH EqV(it)
- * - the theory axioms
- *   1) forall it. it<s(it)
- *   2) weakening for Nat
- *   3) totality for Nat
- *
- * Why is this lemma useful?
- * Most relational properties only hold, if the number of iterations of the
- * involved loops is the same in both traces.
- */
-class NEqualLemmas
-    : public ProgramTraverser<
-          std::vector<std::shared_ptr<const logic::ProblemItem>>> {
- public:
-  NEqualLemmas(
-      const program::Program& program,
-      std::unordered_map<std::string,
-                         std::vector<std::shared_ptr<const program::Variable>>>
-          locationToActiveVars,
-      unsigned numberOfTraces,
-      std::vector<std::shared_ptr<const logic::Axiom>> programSemantics,
-      InlinedVariableValues& inlinedVarValues)
-      : ProgramTraverser<
-            std::vector<std::shared_ptr<const logic::ProblemItem>>>(
-            program, locationToActiveVars, numberOfTraces),
-        programSemantics(programSemantics),
-        inlinedVarValues(inlinedVarValues) {}
+    /*
+     * LEMMA 2
+     * if all variables used in the loop iteration have the same value in both traces in each iteration,
+     * then the loops terminate after the same number of steps
+     *
+     * =>
+     *    and
+     *       EqVC
+     *       IH(0)
+     *       IC
+     *    n(t1)=n(t2)
+     * where:
+     * - EqVC :=
+     *   "forall" Variables v
+     *      v(t1) = v(t2)
+     * - IH(it) :=
+     *   "forall" non-Variables v
+     *      v(l(it),t1) = v(l(it),t2)
+     * - IC :=
+     *   forall it.
+     *      =>
+     *         and
+     *            it<n(t1)
+     *            it<n(t2)
+     *            IH(it)
+     *         IH(s(it))
+     *
+     * Soundness:
+     * This lemma follows from
+     * - the semantics
+     * - inductionAxiom2 instantiated with the IH EqV(it)
+     * - the theory axioms
+     *   1) forall it. it<s(it)
+     *   2) weakening for Nat
+     *   3) totality for Nat
+     *
+     * Why is this lemma useful?
+     * Most relational properties only hold, if the number of iterations of the involved loops is the same in both traces.
+     */
+    class NEqualLemmas : public ProgramTraverser<std::vector<std::shared_ptr<const logic::ProblemItem>>>
+    {
+    public:
+        NEqualLemmas(
+            const program::Program& program,
+            std::unordered_map<std::string, std::vector<std::shared_ptr<program::Variable>>> locationToActiveVars,
+            unsigned numberOfTraces,
+            std::vector<std::shared_ptr<const logic::Axiom>> programSemantics,
+            InlinedVariableValues& inlinedVarValues) :
+            ProgramTraverser<std::vector<std::shared_ptr<const logic::ProblemItem>>>(program, locationToActiveVars, numberOfTraces), programSemantics(programSemantics), inlinedVarValues(inlinedVarValues) {}
 
  private:
   std::vector<std::shared_ptr<const logic::Axiom>> programSemantics;
   InlinedVariableValues& inlinedVarValues;
 
-  virtual void generateOutputFor(
-      const program::WhileStatement* statement,
-      std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
-};
-}  // namespace analysis
+        virtual void generateOutputFor(program::WhileStatement* statement,  std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
+    };
+}
 
 #endif

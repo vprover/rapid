@@ -25,20 +25,20 @@ namespace analysis {
         return endTimePointMap;
     }
 
-    void AnalysisPreComputation::addEndTimePointForStatement(const program::Statement *statement,
+    void AnalysisPreComputation::addEndTimePointForStatement(program::Statement *statement,
                                                              const std::shared_ptr<const logic::Term> nextTimepoint,
                                                              EndTimePointMap &endTimePointMap) {
         // for an ifElse statement, set endTimepoint and recurse
         if (typeid(*statement) == typeid(program::IfElseStatement)) {
             endTimePointMap[statement] = nextTimepoint;
-            auto castedStatement = static_cast<const program::IfElseStatement *>(statement);
+            auto castedStatement = static_cast<program::IfElseStatement *>(statement);
             addEndTimePointForIfElseStatement(castedStatement, nextTimepoint, endTimePointMap);
         }
         // for a while statement, set endTimepoint and recurse
         else if (typeid(*statement) == typeid(program::WhileStatement)) {
             endTimePointMap[statement] = nextTimepoint;
 
-            auto castedStatement = static_cast<const program::WhileStatement *>(statement);
+            auto castedStatement = static_cast<program::WhileStatement *>(statement);
             addEndTimePointForWhileStatement(castedStatement, nextTimepoint, endTimePointMap);
         }
         // set endTimepoint for atomic statement
@@ -49,7 +49,7 @@ namespace analysis {
         }
     }
 
-    void AnalysisPreComputation::addEndTimePointForIfElseStatement(const program::IfElseStatement *ifElse,
+    void AnalysisPreComputation::addEndTimePointForIfElseStatement(program::IfElseStatement *ifElse,
                                                                    const std::shared_ptr<const logic::Term> nextTimepoint,
                                                                    EndTimePointMap &endTimePointMap) {
         // for each statement in the left branch except the first, set the end-location of the previous statement to the begin-location of this statement
@@ -71,7 +71,7 @@ namespace analysis {
         addEndTimePointForStatement(lastStatementRight, nextTimepoint, endTimePointMap);
     }
 
-    void AnalysisPreComputation::addEndTimePointForWhileStatement(const program::WhileStatement *whileStatement,
+    void AnalysisPreComputation::addEndTimePointForWhileStatement(program::WhileStatement *whileStatement,
                                                                   const std::shared_ptr<const logic::Term> nextTimepoint,
                                                                   EndTimePointMap &endTimePointMap) {
         // for each statement in the body except the first, set the end-location of the previous statement to the begin-location of this statement
@@ -128,24 +128,24 @@ void AnalysisPreComputation::addEndTimePointForIfElseStatement(
                               endTimePointMap);
 }
 
-    std::unordered_set<std::shared_ptr<const program::Variable>> AnalysisPreComputation::computeAssignedVars(const program::Statement *statement) {
-        std::unordered_set<std::shared_ptr<const program::Variable>> assignedVars;
+    std::unordered_set<std::shared_ptr<program::Variable>> AnalysisPreComputation::computeAssignedVars(program::Statement *statement) {
+        std::unordered_set<std::shared_ptr<program::Variable>> assignedVars;
 
         if (typeid(*statement) == typeid(program::Assignment)) {
-            auto castedStatement = static_cast<const program::Assignment *>(statement);
+            auto castedStatement = static_cast<program::Assignment *>(statement);
             // add variable on lhs to assignedVars, independently from whether those vars are simple ones or arrays.
             if (typeid(*castedStatement->lhs) == typeid(program::VariableAccess)) {
-                auto access = static_cast<const program::VariableAccess *>(castedStatement->lhs.get());
+                auto access = static_cast<program::VariableAccess *>(castedStatement->lhs.get());
                 assignedVars.insert(access->var);
             }
             else {
                 assert(typeid(*castedStatement->lhs) == typeid(program::ArrayApplication));
-                auto arrayAccess = static_cast<const program::ArrayApplication *>(castedStatement->lhs.get());
+                auto arrayAccess = static_cast<program::ArrayApplication *>(castedStatement->lhs.get());
                 assignedVars.insert(arrayAccess->array);
             }
         }
         else if (typeid(*statement) == typeid(program::IfElseStatement)) {
-            auto castedStatement = static_cast<const program::IfElseStatement *>(statement);
+            auto castedStatement = static_cast<program::IfElseStatement *>(statement);
             // collect assignedVars from both branches
             for (const auto &statement : castedStatement->ifStatements) {
                 auto res = computeAssignedVars(statement.get());
@@ -157,7 +157,7 @@ void AnalysisPreComputation::addEndTimePointForIfElseStatement(
             }
         }
         else if (typeid(*statement) == typeid(program::WhileStatement)) {
-            auto castedStatement = static_cast<const program::WhileStatement *>(statement);
+            auto castedStatement = static_cast<program::WhileStatement *>(statement);
             // collect assignedVars from body
             for (const auto &statement : castedStatement->bodyStatements) {
                 auto res = computeAssignedVars(statement.get());
@@ -186,45 +186,45 @@ void AnalysisPreComputation::addEndTimePointForIfElseStatement(
   return assignedVars;
 }
 
-    void AnalysisPreComputation::computeVariablesContainedInLoopCondition(std::shared_ptr<const program::Expression> expr, std::unordered_set<std::shared_ptr<const program::Variable>> &variables) {
+    void AnalysisPreComputation::computeVariablesContainedInLoopCondition(std::shared_ptr<program::Expression> expr, std::unordered_set<std::shared_ptr<program::Variable>> &variables) {
         assert(expr != nullptr);
         if (typeid(*expr) == typeid(program::Addition)) {
-            auto castedExpr = std::static_pointer_cast<const program::Addition>(expr);
+            auto castedExpr = std::static_pointer_cast<program::Addition>(expr);
             computeVariablesContainedInLoopCondition(castedExpr->child1, variables);
             computeVariablesContainedInLoopCondition(castedExpr->child2, variables);
             return;
         }
         else if (typeid(*expr) == typeid(program::Subtraction)) {
-            auto castedExpr = std::static_pointer_cast<const program::Subtraction>(expr);
+            auto castedExpr = std::static_pointer_cast<program::Subtraction>(expr);
             computeVariablesContainedInLoopCondition(castedExpr->child1, variables);
             computeVariablesContainedInLoopCondition(castedExpr->child2, variables);
             return;
         }
         else if (typeid(*expr) == typeid(program::Multiplication)) {
-            auto castedExpr = std::static_pointer_cast<const program::Multiplication>(expr);
+            auto castedExpr = std::static_pointer_cast<program::Multiplication>(expr);
             computeVariablesContainedInLoopCondition(castedExpr->child1, variables);
             computeVariablesContainedInLoopCondition(castedExpr->child2, variables);
             return;
         }
         else if (typeid(*expr) == typeid(program::Modulo)) {
-            auto castedExpr = std::static_pointer_cast<const program::Modulo>(expr);
+            auto castedExpr = std::static_pointer_cast<program::Modulo>(expr);
             computeVariablesContainedInLoopCondition(castedExpr->child1, variables);
             computeVariablesContainedInLoopCondition(castedExpr->child2, variables);
             return;
         }
         else if (typeid(*expr) == typeid(program::VariableAccess)) {
-            auto castedExpr = std::static_pointer_cast<const program::VariableAccess>(expr);
+            auto castedExpr = std::static_pointer_cast<program::VariableAccess>(expr);
             variables.insert(castedExpr->var);
             return;
         }
         else if (typeid(*expr) == typeid(program::ArrayApplication)) {
-            auto castedExpr = std::static_pointer_cast<const program::ArrayApplication>(expr);
+            auto castedExpr = std::static_pointer_cast<program::ArrayApplication>(expr);
             variables.insert(castedExpr->array);
             computeVariablesContainedInLoopCondition(castedExpr->index, variables);
             return;
         }
         else if (typeid(*expr) == typeid(program::BooleanAnd)) {
-            auto castedExpr = std::static_pointer_cast<const program::BooleanAnd>(expr);
+            auto castedExpr = std::static_pointer_cast<program::BooleanAnd>(expr);
             computeVariablesContainedInLoopCondition(castedExpr->child1, variables);
             computeVariablesContainedInLoopCondition(castedExpr->child2, variables);
             return;

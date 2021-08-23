@@ -24,13 +24,13 @@ namespace parser {
      */
     class WhileParserResult {
     public:
-        WhileParserResult(std::unique_ptr<const program::Program> program,
-                          std::unordered_map<std::string, std::vector<std::shared_ptr<const program::Variable>>> locationToActiveVars,
+        WhileParserResult(std::unique_ptr<program::Program> program,
+                          std::unordered_map<std::string, std::vector<std::shared_ptr<program::Variable>>> locationToActiveVars,
                           std::vector<std::shared_ptr<const logic::ProblemItem>> problemItems,
                           unsigned numberOfTraces) : program(std::move(program)), locationToActiveVars(locationToActiveVars), problemItems(std::move(problemItems)), numberOfTraces(numberOfTraces) {}
 
-        std::unique_ptr<const program::Program> program;
-        std::unordered_map<std::string, std::vector<std::shared_ptr<const program::Variable>>> locationToActiveVars;
+        std::unique_ptr<program::Program> program;
+        std::unordered_map<std::string, std::vector<std::shared_ptr<program::Variable>>> locationToActiveVars;
         std::vector<std::shared_ptr<const logic::ProblemItem>> problemItems;
         unsigned numberOfTraces;;
     };

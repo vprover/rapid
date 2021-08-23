@@ -72,6 +72,8 @@ int main(int argc, char *argv[]) {
                     problemItems.push_back(axiom);
                 }
 
+                analysis::Semantics::applyTransformations(parserResult.program->functions, parserResult.locationToActiveVars, parserResult.numberOfTraces);
+
                 analysis::Semantics s(*parserResult.program, parserResult.locationToActiveVars, parserResult.problemItems, parserResult.numberOfTraces);
                 auto[semantics, inlinedVarValues] = s.generateSemantics();
                 problemItems.insert(problemItems.end(), semantics.begin(), semantics.end());

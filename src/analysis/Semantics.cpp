@@ -16,9 +16,9 @@
 
 namespace analysis {
 
-    std::vector<std::shared_ptr<const program::Variable>> intersection(std::vector<std::shared_ptr<const program::Variable>> v1,
-                                                                       std::vector<std::shared_ptr<const program::Variable>> v2) {
-        std::vector<std::shared_ptr<const program::Variable>> v3;
+    std::vector<std::shared_ptr<program::Variable>> intersection(std::vector<std::shared_ptr<program::Variable>> v1,
+                                                                       std::vector<std::shared_ptr<program::Variable>> v2) {
+        std::vector<std::shared_ptr<program::Variable>> v3;
 
         std::sort(v1.begin(), v1.end());
         std::sort(v2.begin(), v2.end());
@@ -27,6 +27,12 @@ namespace analysis {
                               v2.begin(), v2.end(),
                               back_inserter(v3));
         return v3;
+    }
+
+    void Semantics::applyTransformations(std::vector<std::shared_ptr<program::Function>> &functions, std::unordered_map<std::string, std::vector<std::shared_ptr<program::Variable>>> &locationToActiveVars, unsigned traces) {
+        for (auto &function : functions) {
+            program::Statement::transformBlock(function->statements, locationToActiveVars, traces);
+        }
     }
 
     std::pair<std::vector<std::shared_ptr<const logic::Axiom>>, InlinedVariableValues> Semantics::generateSemantics() {
@@ -78,22 +84,22 @@ namespace analysis {
                          " at location " + intAssignment->location);
     }
 
-    std::shared_ptr<const logic::Term> Semantics::generateSemantics(const program::Statement *statement, SemanticsInliner &inliner, std::shared_ptr<const logic::Term> trace) {
-        if (typeid(*statement) != typeid(program::Assignment)) {
-            auto castedStatement = static_cast<const program::Assignment *>(statement);
+    std::shared_ptr<const logic::Term> Semantics::generateSemantics(program::Statement *statement, SemanticsInliner &inliner, std::shared_ptr<const logic::Term> trace) {
+        if (typeid(*statement) == typeid(program::Assignment)) {
+            auto castedStatement = static_cast<program::Assignment *>(statement);
             return generateSemantics(castedStatement, inliner, trace);
         }
-        else if (typeid(*statement) != typeid(program::IfElseStatement)) {
-            auto castedStatement = static_cast<const program::IfElseStatement *>(statement);
+        else if (typeid(*statement) == typeid(program::IfElseStatement)) {
+            auto castedStatement = static_cast<program::IfElseStatement *>(statement);
             return generateSemantics(castedStatement, inliner, trace);
         }
-        else if (typeid(*statement) != typeid(program::WhileStatement)) {
-            auto castedStatement = static_cast<const program::WhileStatement *>(statement);
+        else if (typeid(*statement) == typeid(program::WhileStatement)) {
+            auto castedStatement = static_cast<program::WhileStatement *>(statement);
             return generateSemantics(castedStatement, inliner, trace);
         }
         else {
-            assert(typeid(*statement) != typeid(program::SkipStatement));
-            auto castedStatement = static_cast<const program::SkipStatement *>(statement);
+            assert(typeid(*statement) == typeid(program::SkipStatement));
+            auto castedStatement = static_cast<program::SkipStatement *>(statement);
             return generateSemantics(castedStatement, inliner, trace);
         }
       }
@@ -148,7 +154,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
       conjunctsRight.push_back(semanticsOfStatement);
     }
 
-    std::shared_ptr<const logic::Term> Semantics::generateSemantics(const program::Assignment *assignment, SemanticsInliner &inliner, std::shared_ptr<const logic::Term> trace) {
+    std::shared_ptr<const logic::Term> Semantics::generateSemantics(program::Assignment *assignment, SemanticsInliner &inliner, std::shared_ptr<const logic::Term> trace) {
         std::vector<std::shared_ptr<const logic::Term>> conjuncts;
 
         auto l1 = startTimepointForStatement(assignment);
@@ -159,7 +165,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
 
         // case 1: assignment to int var
         if (typeid(*assignment->lhs) == typeid(program::VariableAccess)) {
-            auto castedLhs = std::static_pointer_cast<const program::VariableAccess>(assignment->lhs);
+            auto castedLhs = std::static_pointer_cast<program::VariableAccess>(assignment->lhs);
 
             if (util::Configuration::instance().inlineSemantics()) {
                 inliner.currTimepoint = l1;
@@ -211,7 +217,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
             // case 2: assignment to int-array var
         else {
             assert(typeid(*assignment->lhs) == typeid(program::ArrayApplication));
-            auto application = std::static_pointer_cast<const program::ArrayApplication>(assignment->lhs);
+            auto application = std::static_pointer_cast<program::ArrayApplication>(assignment->lhs);
 
             if (util::Configuration::instance().inlineSemantics()) {
                 inliner.currTimepoint = l1;
@@ -288,7 +294,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
       }
     }
 
-    std::shared_ptr<const logic::Term> Semantics::generateSemantics(const program::IfElseStatement *ifElse, SemanticsInliner &inliner, std::shared_ptr<const logic::Term> trace) {
+    std::shared_ptr<const logic::Term> Semantics::generateSemantics(program::IfElseStatement *ifElse, SemanticsInliner &inliner, std::shared_ptr<const logic::Term> trace) {
         std::vector<std::shared_ptr<const logic::Term>> conjuncts;
 
         auto lStart = startTimepointForStatement(ifElse);
@@ -329,7 +335,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
             auto cachedIntVarValuesRight = inlinerRight.getCachedVarValues();
             auto cachedArrayVarTimepointsRight = inlinerRight.getCachedArrayVarTimepoints();
 
-            std::unordered_set<std::shared_ptr<const program::Variable>> mergeVars;
+            std::unordered_set<std::shared_ptr<program::Variable>> mergeVars;
             for (const auto &pair : cachedIntVarValuesLeft) {
                 auto var = pair.first;
                 if (cachedIntVarValues.find(var) == cachedIntVarValues.end() || *cachedIntVarValues[var] != *pair.second) {
@@ -465,7 +471,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
       }
     }
 
-    std::shared_ptr<const logic::Term> Semantics::generateSemantics(const program::WhileStatement *whileStatement, SemanticsInliner &inliner, std::shared_ptr<const logic::Term> trace) {
+    std::shared_ptr<const logic::Term> Semantics::generateSemantics(program::WhileStatement *whileStatement, SemanticsInliner &inliner, std::shared_ptr<const logic::Term> trace) {
         std::vector<std::shared_ptr<const logic::Term>> conjuncts;
 
         auto itSymbol = iteratorSymbol(whileStatement);
@@ -505,7 +511,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
             auto assignedVars = AnalysisPreComputation::computeAssignedVars(whileStatement);
             // Part 0: custom persistence handling: handle all vars which 1) are active, 2) keep the same value throughout the loop, 3) are non-const, and 4) are persistent at the loop condition check
             // note: condition 3) is a requirement since otherwise the defining formulas could be unsound. Condition 4) does not lead to incompleteness of the formalization, since the value of variables, which change their value in the loop, will be defined afterwards anyway.
-            std::vector<std::shared_ptr<const program::Variable>> vars;
+            std::vector<std::shared_ptr<program::Variable>> vars;
             for (const auto &var : activeVars) {
                 if (assignedVars.find(var) == assignedVars.end() && !var->isConstant) {
                     vars.push_back(var);
@@ -554,7 +560,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
                     // This variable will only have cached timepoints from where its values were used, but not from the end of the loop.
                     auto tps = inliner.getCachedArrayVarTimepoints();
                     auto cachedTimepoint = tps[var];
-                    if (cachedTimepoint->prettyString().find("nl") == std::string::npos) {
+                    if (cachedTimepoint.get()->prettyString().find("nl") == std::string::npos && cachedTimepoint.get()->prettyString().find("Itl") != std::string::npos) {
                         auto cachedTimepointTerm = std::static_pointer_cast<const logic::FuncTerm>(cachedTimepoint);
                         auto quantifiedSym = cachedTimepointTerm->subterms.back().get()->symbol;
                         f =
@@ -601,7 +607,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
 
             // Extra part: collect in inlinedVarValues the values of all variables, which occur in the loop condition but are not assigned to.
             inlinedVariableValues.initializeWhileStatement(whileStatement);
-            std::unordered_set<std::shared_ptr<const program::Variable>> loopConditionVars;
+            std::unordered_set<std::shared_ptr<program::Variable>> loopConditionVars;
             AnalysisPreComputation::computeVariablesContainedInLoopCondition(whileStatement->condition, loopConditionVars);
 
             for (const auto &var : loopConditionVars) {
@@ -824,7 +830,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
         }
     }
 
-    std::shared_ptr<const logic::Term> Semantics::generateSemantics(const program::SkipStatement *skipStatement, SemanticsInliner &inliner, std::shared_ptr<const logic::Term> trace) {
+    std::shared_ptr<const logic::Term> Semantics::generateSemantics(program::SkipStatement *skipStatement, SemanticsInliner &inliner, std::shared_ptr<const logic::Term> trace) {
         auto l1 = startTimepointForStatement(skipStatement);
 
         if (util::Configuration::instance().inlineSemantics()) {

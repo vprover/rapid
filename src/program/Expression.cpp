@@ -69,7 +69,7 @@ namespace program {
         }
     }
     
-    std::ostream& operator<<(std::ostream& ostr, const Expression& e)
+    std::ostream& operator<<(std::ostream& ostr, Expression& e)
     {
         ostr << e.toString();
         return ostr;

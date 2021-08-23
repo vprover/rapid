@@ -31,28 +31,28 @@ namespace analysis
 
         // note:
         // - we handle persistent terms referencing a timepoint as soon as we visit the location of the timepoint.
-        // - since a const variable is formalized as term without a timepoint/location, we would miss to handle persistance for such terms.
-        // - we solve this by handling persistance for terms which formalize const variables immediately when they are declared in setIntVarValue/setArrayVarTimepoint.
+        // - since a Variable is formalized as term without a timepoint/location, we would miss to handle persistance for such terms.
+        // - we solve this by handling persistance for terms which formalize Variables immediately when they are declared in setIntVarValue/setArrayVarTimepoint.
 
         // returns formula which defines persistent terms (if necessary) for variables in 'activeVars'.
         // note: at the timepoint of calling this method we assume that the variable-values (which can be changed using setCurrentVariableValue()) are already set to the values for timepoint 'timepoint'. 
-        std::shared_ptr<const logic::Term> handlePersistence(std::shared_ptr<const logic::Term> timepoint, const std::vector<std::shared_ptr<const program::Variable>>& activeVars, std::string label = "");
-        std::shared_ptr<const logic::Term> handlePersistenceOfLoop(std::shared_ptr<const logic::Term> startTimepoint, std::shared_ptr<const logic::Term> iterationTimepoint, const std::vector<std::shared_ptr<const program::Variable>>& vars);
+        std::shared_ptr<const logic::Term> handlePersistence(std::shared_ptr<const logic::Term> timepoint, const std::vector<std::shared_ptr<program::Variable>>& activeVars, std::string label = "");
+        std::shared_ptr<const logic::Term> handlePersistenceOfLoop(std::shared_ptr<const logic::Term> startTimepoint, std::shared_ptr<const logic::Term> iterationTimepoint, const std::vector<std::shared_ptr<program::Variable>>& vars);
 
         // update the currently cached value for the given variable
         // note that for integers we cache the actual variable value, while for arrays we cache the last relevant timepoint
         // the intVar-version handles persistance of const vars.
-        std::shared_ptr<const logic::Term> setVarValue(std::shared_ptr<const program::Variable> var, std::shared_ptr<const logic::Term> value);
-        void setArrayVarTimepoint(std::shared_ptr<const program::Variable> arrayVar, std::shared_ptr<const logic::Term> timepoint);
+        std::shared_ptr<const logic::Term> setVarValue(std::shared_ptr<program::Variable> var, std::shared_ptr<const logic::Term> value);
+        void setArrayVarTimepoint(std::shared_ptr<program::Variable> arrayVar, std::shared_ptr<const logic::Term> timepoint);
 
         // methods to convert variables and more general expressions to terms, while using the cached variable values.
         // note: 'timePoint' is only used in the case where no value for 'var' is currently cached (in which case the cache gets initialized with 'timepoint'). 
-        std::shared_ptr<const logic::Term> toCachedTermFull(std::shared_ptr<const program::Variable> var);
-        std::shared_ptr<const logic::Term> toCachedTermFull(std::shared_ptr<const program::Variable> arrayVar, std::shared_ptr<const logic::Term> position);
-        std::shared_ptr<const logic::Term> toCachedTerm(std::shared_ptr<const program::Expression> expr);
+        std::shared_ptr<const logic::Term> toCachedTermFull(std::shared_ptr<program::Variable> var);
+        std::shared_ptr<const logic::Term> toCachedTermFull(std::shared_ptr<program::Variable> arrayVar, std::shared_ptr<const logic::Term> position);
+        std::shared_ptr<const logic::Term> toCachedTerm(std::shared_ptr<program::Expression> expr);
 
-        const std::unordered_map<std::shared_ptr<const program::Variable>, std::shared_ptr<const logic::Term>>& getCachedVarValues() { return cachedVarValues; }
-        const std::unordered_map<std::shared_ptr<const program::Variable>, std::shared_ptr<const logic::Term>>& getCachedArrayVarTimepoints() { return cachedArrayVarTimepoints; }
+        const std::unordered_map<std::shared_ptr<program::Variable>, std::shared_ptr<const logic::Term>>& getCachedVarValues() { return cachedVarValues; }
+        const std::unordered_map<std::shared_ptr<program::Variable>, std::shared_ptr<const logic::Term>>& getCachedArrayVarTimepoints() { return cachedArrayVarTimepoints; }
 
     private:
         std::shared_ptr<const logic::Term> trace;
@@ -75,8 +75,8 @@ namespace analysis
         void computePersistentTerms(std::vector<std::shared_ptr<const logic::ProblemItem>>& problemItems);
         void computePersistentTermsRec(std::shared_ptr<const logic::Term> t);
 
-        typedef std::unordered_map<std::shared_ptr<const program::Variable>, std::shared_ptr<const logic::Term>> IntVarValues;
-        typedef std::unordered_map<std::shared_ptr<const program::Variable>, std::shared_ptr<const logic::Term>> ArrayVarValues;
+        typedef std::unordered_map<std::shared_ptr<program::Variable>, std::shared_ptr<const logic::Term>> IntVarValues;
+        typedef std::unordered_map<std::shared_ptr<program::Variable>, std::shared_ptr<const logic::Term>> ArrayVarValues;
         /*
          * dictionaries to keep track of the current variable values.
          * for array-variables we keep track of the last timepoint the array was assigned
@@ -99,17 +99,17 @@ namespace analysis
     public:
         InlinedVariableValues(std::vector<std::shared_ptr<const logic::Term>> traces);
 
-        void initializeWhileStatement(const program::WhileStatement* whileStatement);
-        void setValue(const program::WhileStatement* whileStatement, std::shared_ptr<const program::Variable> var, std::shared_ptr<const logic::Term> trace, std::shared_ptr<const logic::Term> value);
-        void setArrayTimepoint(const program::WhileStatement* whileStatement, std::shared_ptr<const program::Variable> arrayVar, std::shared_ptr<const logic::Term> trace, std::shared_ptr<const logic::Term> timepoint);
+        void initializeWhileStatement(program::WhileStatement* whileStatement);
+        void setValue(program::WhileStatement* whileStatement, std::shared_ptr<program::Variable> var, std::shared_ptr<const logic::Term> trace, std::shared_ptr<const logic::Term> value);
+        void setArrayTimepoint(program::WhileStatement* whileStatement, std::shared_ptr<program::Variable> arrayVar, std::shared_ptr<const logic::Term> trace, std::shared_ptr<const logic::Term> timepoint);
 
         // the following four methods provide access to the value of the given expression at the after inlining has been performed
         // for each of the following two methods getValue(...) we require that a corresponding value has been set earlier using setValue(...).
-        std::shared_ptr<const logic::Term> toInlinedTerm(const program::WhileStatement* whileStatement, std::shared_ptr<const program::Variable> var, std::shared_ptr<const logic::Term> trace);
-        std::shared_ptr<const logic::Term> toInlinedTerm(const program::WhileStatement* whileStatement, std::shared_ptr<const program::Variable> arrayVar, std::shared_ptr<const logic::Term> position, std::shared_ptr<const logic::Term> trace);
+        std::shared_ptr<const logic::Term> toInlinedTerm(program::WhileStatement* whileStatement, std::shared_ptr<program::Variable> var, std::shared_ptr<const logic::Term> trace);
+        std::shared_ptr<const logic::Term> toInlinedTerm(program::WhileStatement* whileStatement, std::shared_ptr<program::Variable> arrayVar, std::shared_ptr<const logic::Term> position, std::shared_ptr<const logic::Term> trace);
 
         // evaluate the given expr at the given timepoint, while using inlined values for whileStatement for all variables, which are not assigned in that WhileStatement.
-        std::shared_ptr<const logic::Term> toInlinedTerm(const program::WhileStatement* whileStatement, std::shared_ptr<const program::Expression> expr, std::shared_ptr<const logic::Term> timepoint, std::shared_ptr<const logic::Term> trace);
+        std::shared_ptr<const logic::Term> toInlinedTerm(program::WhileStatement* whileStatement, std::shared_ptr<program::Expression> expr, std::shared_ptr<const logic::Term> timepoint, std::shared_ptr<const logic::Term> trace);
 
     private:
         class TermPointerHash {
@@ -127,12 +127,12 @@ namespace analysis
             }
         };
 
-        typedef std::unordered_map<std::shared_ptr<const program::Variable>, std::shared_ptr<const logic::Term>> VarToValueMap;
-        typedef std::unordered_map<const program::WhileStatement*, VarToValueMap> LoopToVarToValueMap;
+        typedef std::unordered_map<std::shared_ptr<program::Variable>, std::shared_ptr<const logic::Term>> VarToValueMap;
+        typedef std::unordered_map<program::WhileStatement*, VarToValueMap> LoopToVarToValueMap;
         typedef std::unordered_map<std::shared_ptr<const logic::Term>, LoopToVarToValueMap, TermPointerHash, TermPointerEqual> TraceToLoopToVarToValueMap;
 
-        typedef std::unordered_map<std::shared_ptr<const program::Variable>, std::shared_ptr<const logic::Term>> ArrayVarToTimepointMap;
-        typedef std::unordered_map<const program::WhileStatement*, ArrayVarToTimepointMap> LoopToArrayVarToTimepointMap;
+        typedef std::unordered_map<std::shared_ptr<program::Variable>, std::shared_ptr<const logic::Term>> ArrayVarToTimepointMap;
+        typedef std::unordered_map<program::WhileStatement*, ArrayVarToTimepointMap> LoopToArrayVarToTimepointMap;
         typedef std::unordered_map<std::shared_ptr<const logic::Term>, LoopToArrayVarToTimepointMap, TermPointerHash, TermPointerEqual> TraceToLoopToArrayVarToTimepointMap;
 
         TraceToLoopToVarToValueMap values;
