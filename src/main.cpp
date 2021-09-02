@@ -69,19 +69,30 @@ int main(int argc, char *argv[])
                 auto [semantics, inlinedVarValues] = s.generateSemantics();
                 problemItems.insert(problemItems.end(), semantics.begin(), semantics.end());
 
-                auto traceLemmas = analysis::generateTraceLemmas(*parserResult.program, parserResult.locationToActiveVars, parserResult.numberOfTraces, semantics, inlinedVarValues);
-                problemItems.insert(problemItems.end(), traceLemmas.begin(), traceLemmas.end());
+            
+                if(util::Configuration::instance().outputTraceLemmas()){
+                    auto traceLemmas = analysis::generateTraceLemmas(*parserResult.program, parserResult.locationToActiveVars, parserResult.numberOfTraces, semantics, inlinedVarValues);
+                    problemItems.insert(problemItems.end(), traceLemmas.begin(), traceLemmas.end());
+                } else {
+                     //perhaps we want to add in conjunction with trace lemmas?
+                     auto lemmas = analysis::generateNonTraceLemmas(*parserResult.program, parserResult.locationToActiveVars, parserResult.numberOfTraces, semantics, inlinedVarValues);
+                    problemItems.insert(problemItems.end(), lemmas.begin(), lemmas.end());
+                }
                 
                 problemItems.insert(problemItems.end(), parserResult.problemItems.begin(), parserResult.problemItems.end());
                 logic::Problem problem(problemItems);
                 
-                // generate reasoning tasks, convert each reasoning task to smtlib, and output it to output-file
+                // generate reasoning tasks, convert each reasoning task to smtlib or tptp, and output it to output-file
                 auto tasks = problem.generateReasoningTasks();
                 for (const auto& task : tasks)
                 {
                     std::stringstream preamble;
                     preamble << util::Output::comment << *parserResult.program << util::Output::nocomment;
-                    task.outputSMTLIBToDir(outputDir, preamble.str());
+                    if(util::Configuration::instance().tptp()){
+                      task.outputTPTPToDir(outputDir, preamble.str());
+                    } else {
+                      task.outputSMTLIBToDir(outputDir, preamble.str());
+                    }
                 }
 
                 if (util::Configuration::instance().postcondition()){

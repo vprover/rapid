@@ -40,7 +40,9 @@ namespace logic {
         }
         else
         {
-            return name;
+            std::string nameTPTP = name;
+            nameTPTP[0] = std::tolower( nameTPTP[0] );        
+            return nameTPTP;
         }
     }
     
@@ -70,20 +72,26 @@ namespace logic {
     }
 
     std::string declareSortTPTP(const Sort& s) 
-    {        
-        if (s.toTPTP() == "int" || s.toTPTP() == "bool")
+    {  
+
+        std::string logic = "tff";
+        if(util::Configuration::instance().hol()){
+            logic = "thf";
+        }
+
+        if (s.toTPTP() == "$int" || s.toTPTP() == "$o")
         {
             // TPTP already knows bool and int.
             return "";
         }
         else if (s.toTPTP() == "Nat")
         {
-            assert(false); // TPTP doesn't support term algebras
+            //assert(false); // TPTP doesn't support term algebras
             return "";
         }
         else
         {
-            return "tff(sort_" + s.toTPTP() + ", type, " + s.toTPTP() + " : $tType).\n";
+            return logic + "(sort_" + s.toTPTP() + ", type, (" + s.toTPTP() + " : $tType)).\n";
         }
     }
     

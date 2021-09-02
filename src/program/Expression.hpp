@@ -179,6 +179,21 @@ namespace program {
             EQ
         };
         
+        static Kind getOpposite(Kind k){
+            switch(k){
+                case Kind::GE:
+                    return Kind::LT;
+                case Kind::GT:
+                    return Kind::LE;
+                case Kind::LE:
+                    return Kind::GT;
+                case Kind::LT:
+                    return Kind::GE;
+                default:
+                    return Kind::EQ; 
+            }
+        }
+
         ArithmeticComparison(Kind kind, std::shared_ptr<const IntExpression> child1, std::shared_ptr<const IntExpression> child2)
         : kind(kind), child1(std::move(child1)), child2(std::move(child2)){}
         

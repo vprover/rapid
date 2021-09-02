@@ -54,7 +54,7 @@ namespace logic {
 
      std::string LVariable::toTPTP() const
     {
-        return symbol->name;
+        return symbol->toTPTP();
     }
     
     std::string LVariable::prettyString() const
@@ -82,17 +82,29 @@ namespace logic {
 
     std::string FuncTerm::toTPTP() const
     {
+
         if (subterms.size() == 0) {
             return symbol->toTPTP();
         } else {
-            std::string str = symbol->toTPTP() + "(";
-            for (unsigned i = 0; i < subterms.size(); i++) {
-                str += subterms[i]->toTPTP();
-                str += (i == subterms.size() - 1) ? ")" : ",";
+
+            std::string str;
+            
+            if(util::Configuration::instance().hol()){
+                str = "(" + symbol->toTPTP() + " @ ";
+                for (unsigned i = 0; i < subterms.size(); i++) {
+                    str += subterms[i]->toTPTP();
+                    str += (i == subterms.size() - 1) ? ")" : " @ ";
+                }
+            } else {
+                str = symbol->toTPTP() + "(";
+                for (unsigned i = 0; i < subterms.size(); i++) {
+                    str += subterms[i]->toTPTP();
+                    str += (i == subterms.size() - 1) ? ")" : ",";
+                }
             }
 
             // replace trace logic function terms with target symbols for postcondition
-            if (str.find("main_end") != std::string::npos)
+            /*if (str.find("main_end") != std::string::npos)
             {
                 std::string toReplace("(main_end");
                 std::string replacement("_final(");
@@ -112,7 +124,7 @@ namespace logic {
                 size_t pos3 = str.find(toReplace3);
                 if (pos3 != std::string::npos)
                     str = str.replace(pos3, toReplace3.length(), replacement3);
-            }
+            }*/
             return str;
         }
     }

@@ -233,22 +233,37 @@ namespace logic {
             sym = "~";
         }
 
-        std::string str = stringForLabelTPTP(indentation);
+        std::string str;
         if (subterms.size() == 0)
         {
             str += symbol->toTPTP();
         }
         else
         {
-            if(!sym.empty()) {
-                str += " " + sym + "(";
+            std::string separator;
+            if(util::Configuration::instance().hol()){
+                separator = " @ ";
             } else {
-                str += " " + symbol->toTPTP() + " ";
+                separator = ", ";
+            }
+
+            if(!sym.empty()) {
+                if(util::Configuration::instance().hol()){
+                    str = "(" + sym + " @ ";                                    
+                } else {
+                    str = sym + "(";                    
+                }
+            } else {
+                if(util::Configuration::instance().hol()){
+                    str = "(" + symbol->toTPTP()  + " @ ";                                    
+                } else {
+                    str = symbol->toTPTP() + "(";
+                }
             }
             for (unsigned i = 0; i < subterms.size(); i++)
             {
                 str += subterms[i]->toTPTP();
-                str += (i == subterms.size() - 1) ? ") " : ", ";
+                str += (i == subterms.size() - 1) ? ") " : separator;
             }
         }
 
@@ -257,43 +272,44 @@ namespace logic {
 
     std::string EqualityFormula::toTPTP(unsigned indentation) const
     {
-        std::string str = stringForLabelTPTP(indentation);
-        str += std::string(indentation, ' ');
+        std::string str = "";//stringForLabelTPTP(indentation);
+        //str += std::string(indentation, ' ');
         if (polarity)
         {
-            str += " " + left->toTPTP() + "=" + right->toTPTP() + " ";
+            str += " (" + left->toTPTP() + " = " + right->toTPTP() + ") ";
         }
         else
         {
-            str += " " + left->toTPTP() + "!=" + right->toTPTP() + " ";
+            str += " (" + left->toTPTP() + " != " + right->toTPTP() + ") ";
         }
         return str;
     }
 
     std::string ConjunctionFormula::toTPTP(unsigned indentation) const
     {
-        std::string str = stringForLabelTPTP(indentation);
+        std::string str = "";//stringForLabelTPTP(indentation);
+        std::string indent = std::string(indentation, ' '); 
         if (conj.size() == 0)
             return "$true";
         if (conj.size() == 1)
             return conj[0]->toTPTP();
         
         for (unsigned i = 0; i < conj.size(); i++) {
-            str += "" + conj[i]->toTPTP() + "";
-            str += (i == conj.size() - 1) ? "" : "&";
+            str += "" + conj[i]->toTPTP(indentation) + "";
+            str += (i == conj.size() - 1) ? "" : " & \n" + indent;
         }
         return str;
     }
     
     std::string DisjunctionFormula::toTPTP(unsigned indentation) const
     {
-        std::string str = stringForLabelTPTP(indentation);
+        std::string str = "";//stringForLabelTPTP(indentation);
         if (disj.size() == 0)
             return "$false";
         if (disj.size() == 1)
             return disj[0]->toTPTP();
         for (unsigned i = 0; i < disj.size(); i++) {
-            str += "(" + disj[i]->toTPTP() + ")";
+            str += "(" + disj[i]->toTPTP(indentation) + ")";
             
             str += (i == disj.size() - 1) ? "" : " | ";
         }
@@ -307,35 +323,38 @@ namespace logic {
     
     std::string ExistentialFormula::toTPTP(unsigned indentation) const
     {
+        std::string indent = std::string(indentation, ' ');               
         std::string str = "? [";
         for (unsigned i = 0; i < vars.size(); i++) {
             str += vars[i]->toTPTP() + " : " + vars[i]->rngSort->toTPTP();
             if (i != vars.size() - 1) { str += ", "; }
         }
-        str += "] : (" + f->toTPTP() + ")";
+        str += "] : (" + indent + f->toTPTP(indentation + 3) + ")";
         return str;
     }
 
     std::string UniversalFormula::toTPTP(unsigned indentation) const
     {
+        std::string indent = std::string(indentation, ' ');        
         std::string str = "! [";
         for (unsigned i = 0; i < vars.size(); i++) {
             str += vars[i]->toTPTP() + " : " + vars[i]->rngSort->toTPTP();
             if (i != vars.size() - 1) { str += ", "; }
         }
-        str += "] : (" + f->toTPTP() + ")";
+        str += "] : \n" + indent + "(" + f->toTPTP(indentation + 3) + ")";
         return str;
     }
     
     std::string ImplicationFormula::toTPTP(unsigned indentation) const
     {
-        return "(" + f1->toTPTP() + ")" + " => (" + f2->toTPTP() + ")";
+        std::string str = std::string(indentation, ' ');
+        return "(" + f1->toTPTP(indentation) + ")\n" + str + "=> (" + f2->toTPTP(indentation + 3) + ")";
     }
 
     std::string EquivalenceFormula::toTPTP(unsigned indentation) const
     {
-        std::string str = stringForLabelTPTP(indentation);
-        str += f1->toTPTP() + " = " + f2->toTPTP() + "\n";
+        std::string str = "";//stringForLabelTPTP(indentation);
+        str += "(" + f1->toTPTP(indentation) + ") = (" + f2->toTPTP(indentation) + ")";
         return  str;
     }
 

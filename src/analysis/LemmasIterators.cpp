@@ -79,48 +79,22 @@ namespace analysis {
                             items.push_back(inductionAxiom);
 
                             // PART 2: Add trace lemma
-                            std::vector<std::shared_ptr<const logic::Term>> freeVars1 = {};
                             std::vector<std::shared_ptr<const logic::Term>> freeVars2 = {};
-                            for (const auto& symbol : freeVarSymbols1)
-                            {
-                                freeVars1.push_back(logic::Terms::var(symbol));
-                            }
+            
                             for (const auto& symbol : freeVarSymbols2)
                             {
                                 freeVars2.push_back(logic::Terms::var(symbol));
                             }
 
                             // PART 2A: Add definition for dense
-                            auto dense = logic::Formulas::lemmaPredicate("Dense-" + nameSuffix, freeVars1);
+                            auto dense = getDensityFormula(freeVarSymbols1, nameSuffix, true);
                             // Dense_v: forall it. (it<n => ( v(l(s(it))    )=v(l(it)    ) or v(l(s(it))    )=v(l(it)    )+1 ) )         , or
                             //          forall it. (it<n => ( v(l(s(it)),pos)=v(l(it),pos) or v(l(s(it)),pos)=v(l(it),pos)+1 ) )
-                            auto denseFormula =
-                                logic::Formulas::universal({itSymbol},
-                                    logic::Formulas::implication(
-                                        logic::Theory::natSub(it, n),
-                                        logic::Formulas::disjunction({
-                                            logic::Formulas::equality(
-                                                v->isArray ? toTerm(v,lStartSuccOfIt,pos,trace) : toTerm(v,lStartSuccOfIt,trace),
-                                                v->isArray ? toTerm(v,lStartIt,pos,trace) : toTerm(v,lStartIt,trace)
-                                            ),
-                                            logic::Formulas::equality(
-                                                v->isArray ? toTerm(v,lStartSuccOfIt,pos,trace) : toTerm(v,lStartSuccOfIt,trace),
-                                                logic::Theory::intAddition(
-                                                    v->isArray ?  toTerm(v,lStartIt,pos,trace) : toTerm(v,lStartIt,trace),
-                                                    logic::Theory::intConstant(1)
-                                                )
-                                            )
-                                        })
-                                    )
-                                );
+                            auto denseDefinition = getDensityDefinition(freeVarSymbols1, v, nameSuffix, itSymbol, it, lStartIt, lStartSuccOfIt, n, trace, true);
+
                             auto denseDef =
                                 std::make_shared<logic::Definition>(
-                                    logic::Formulas::universal(freeVarSymbols1,
-                                        logic::Formulas::equivalence(
-                                            dense,
-                                            denseFormula
-                                        )
-                                    ),
+                                    denseDefinition,
                                     "Dense for " + nameSuffix,
                                     logic::ProblemItem::Visibility::Implicit
                                 );
@@ -271,51 +245,22 @@ namespace analysis {
                         items.push_back(inductionAxiom);
 
                         // PART 2: Add trace lemma
-                        std::vector<std::shared_ptr<const logic::Term>> freeVars1 = {};
                         std::vector<std::shared_ptr<const logic::Term>> freeVars2 = {};
-                        for (const auto& symbol : freeVarSymbols1)
-                        {
-                            freeVars1.push_back(logic::Terms::var(symbol));
-                        }
+
                         for (const auto& symbol : freeVarSymbols2)
                         {
                             freeVars2.push_back(logic::Terms::var(symbol));
                         }
 
                         // PART 2A: Add definition for dense
-                        auto dense = logic::Formulas::lemmaPredicate("Dense-" + nameSuffix, freeVars1);
-                        // Dense_v: forall it. (0≤it<n => ( v(l(s(it))    )=v(l(it)    ) or v(l(s(it))    )=v(l(it)    )+1 ) )         , or
-                        //          forall it. (0≤itit<n => ( v(l(s(it)),pos)=v(l(it),pos) or v(l(s(it)),pos)=v(l(it),pos)+1 ) )
-                        auto denseFormula =
-                            logic::Formulas::universal({itSymbol},
-                                logic::Formulas::implication(
-                                    logic::Formulas::conjunction({
-                                        logic::Theory::intLessEqual(logic::Theory::intZero(),it),
-                                        logic::Theory::intLess(it, n),
-                                    }),
-                                    logic::Formulas::disjunction({
-                                        logic::Formulas::equality(
-                                            v->isArray ? toTerm(v,lStartSuccOfIt,pos,trace) : toTerm(v,lStartSuccOfIt,trace),
-                                            v->isArray ? toTerm(v,lStartIt,pos,trace) : toTerm(v,lStartIt,trace)
-                                        ),
-                                        logic::Formulas::equality(
-                                            v->isArray ? toTerm(v,lStartSuccOfIt,pos,trace) : toTerm(v,lStartSuccOfIt,trace),
-                                            logic::Theory::intAddition(
-                                                v->isArray ?  toTerm(v,lStartIt,pos,trace) : toTerm(v,lStartIt,trace),
-                                                logic::Theory::intConstant(1)
-                                            )
-                                        )
-                                    })
-                                )
-                            );
+                        auto dense = getDensityFormula(freeVarSymbols1, nameSuffix, true);
+                        // Dense_v: forall it. (it<n => ( v(l(s(it))    )=v(l(it)    ) or v(l(s(it))    )=v(l(it)    )+1 ) )         , or
+                        //          forall it. (it<n => ( v(l(s(it)),pos)=v(l(it),pos) or v(l(s(it)),pos)=v(l(it),pos)+1 ) )
+                        auto denseDefinition = getDensityDefinition(freeVarSymbols1, v, nameSuffix, itSymbol, it, lStartIt, lStartSuccOfIt, n, trace, true);
+
                         auto denseDef =
                             std::make_shared<logic::Definition>(
-                                logic::Formulas::universal(freeVarSymbols1,
-                                    logic::Formulas::equivalence(
-                                        dense,
-                                        denseFormula
-                                    )
-                                ),
+                                denseDefinition,
                                 "Dense for " + nameSuffix,
                                 logic::ProblemItem::Visibility::Implicit
                             );
@@ -396,7 +341,8 @@ namespace analysis {
 
                         // Note for integer encoding it makes sense to add a second notion of strict density to derive i(l(0)) + it = i(l(it))
                         // PART 2A: Add definition for strict dense
-                        auto denseStrict = logic::Formulas::lemmaPredicate("Dense-strict-" + nameSuffix, freeVars1);
+                        auto denseStrict = getDensityFormula(freeVarSymbols1, "strict-" +nameSuffix, true);
+
                         // Dense_v: forall it. (0≤it<n => ( v(l(s(it))    )=v(l(it)    )+1 ) )         , or
                         //          forall it. (0≤it<n => ( v(l(s(it)),pos)=v(l(it),pos)+1 ) )
                         auto denseStrictFormula =
@@ -521,12 +467,8 @@ namespace analysis {
                             // PART 2: Add trace lemma
 
                             // PART 2A: Add definition for stronglyDense
-                            std::vector<std::shared_ptr<const logic::Term>> freeVars = {};
-                            for (const auto& symbol : freeVarSymbols)
-                            {
-                                freeVars.push_back(logic::Terms::var(symbol));
-                            }
-                            auto dense = logic::Formulas::lemmaPredicate("Dense-" + nameSuffix, freeVars);
+                            auto dense = getDensityFormula(freeVarSymbols, nameSuffix, true);
+
                             // TODO: refactor, currently depends on the following facts
                             // - the dense-definition is generated as part of the intermediate-value lemma
                             // - the intermediate-value-lemma is generated before the corresponding injectivity-lemma is generated

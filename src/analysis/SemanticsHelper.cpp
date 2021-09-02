@@ -278,7 +278,75 @@ namespace analysis {
         return enclosingIteratorsSymbols;
     }
 
+# pragma mark - Methods for generating most used formulas
 
+    std::shared_ptr<const logic::Formula> getDensityFormula(
+        std::vector<std::shared_ptr<const logic::Symbol>> freeVarSymbols,
+        std::string nameSuffix,
+        bool increasing    
+    ){
+
+        std::vector<std::shared_ptr<const logic::Term>> freeVars = {};
+        for (const auto& symbol : freeVarSymbols)
+        {                            
+          freeVars.push_back(logic::Terms::var(symbol));
+        }
+
+        std::string direction = increasing ? "increasing" : "decreasing";
+
+        return logic::Formulas::lemmaPredicate("Dense-" + direction + "-" + nameSuffix, freeVars);
+    }
+
+    std::shared_ptr<const logic::Formula> getDensityDefinition(
+        std::vector<std::shared_ptr<const logic::Symbol>> freeVarSymbols,
+        const std::shared_ptr<const program::Variable> var, 
+        std::string nameSuffix,
+        std::shared_ptr<const logic::Symbol> itSymbol,
+        std::shared_ptr<const logic::LVariable> it,
+        std::shared_ptr<const logic::Term> lStartIt,
+        std::shared_ptr<const logic::Term> lStartSuccOfIt,
+        std::shared_ptr<const logic::Term> n,
+        std::shared_ptr<const logic::Term> trace,
+        bool increasing
+    ){
+        // add density definition
+        auto dense = getDensityFormula(freeVarSymbols, nameSuffix, increasing);
+
+
+        auto denseFormula =
+            logic::Formulas::universal({itSymbol},
+                logic::Formulas::implication(
+                    logic::Theory::natSub(it, n),
+                    logic::Formulas::disjunction({
+                        logic::Formulas::equality(
+                            toTerm(var,lStartSuccOfIt,trace),
+                            toTerm(var,lStartIt,trace)
+                        ),
+                        logic::Formulas::equality(
+                            toTerm(var,lStartSuccOfIt,trace),
+                            (increasing ?
+                                logic::Theory::intAddition(
+                                    toTerm(var,lStartIt,trace),
+                                    logic::Theory::intConstant(1)
+                                ) : 
+                                logic::Theory::intSubtraction(
+                                    toTerm(var,lStartIt,trace),
+                                    logic::Theory::intConstant(1)
+                                )
+                            )
+                        )
+                    })
+                )
+            );
+
+
+        return logic::Formulas::universal(freeVarSymbols,
+            logic::Formulas::equivalence(
+                dense,
+                denseFormula
+            )
+        );
+    }
 
 # pragma mark - Methods for generating most used terms/predicates denoting program-expressions
     std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::Variable> var, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> trace)

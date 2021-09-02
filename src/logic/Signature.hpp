@@ -24,25 +24,27 @@ namespace logic {
         friend class Signature;
         
     private:
-        Symbol(std::string name, const Sort* rngSort, bool isLemmaPredicate, bool noDeclaration) :
+        Symbol(std::string name, const Sort* rngSort, bool isLemmaPredicate, bool noDeclaration, bool variable) :
         name(name),
         argSorts(),
         rngSort(rngSort),
         isLemmaPredicate(isLemmaPredicate),
         noDeclaration(noDeclaration),
-        isColorSymbol(false)
+        isColorSymbol(false),
+        variable(variable)        
         {
             assert(!name.empty());
             assert(!isLemmaPredicate || isPredicateSymbol());
         }
 
-        Symbol(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool isLemmaPredicate, bool noDeclaration) :
+        Symbol(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool isLemmaPredicate, bool noDeclaration, bool variable) :
         name(name),
         argSorts(std::move(argSorts)),
         rngSort(rngSort),
         isLemmaPredicate(isLemmaPredicate),
         isColorSymbol(false),
-        noDeclaration(noDeclaration)
+        noDeclaration(noDeclaration),
+        variable(variable)
         {
             assert(!name.empty());
             assert(!isLemmaPredicate || isPredicateSymbol());
@@ -54,6 +56,7 @@ namespace logic {
         rngSort(),
         isLemmaPredicate(false),
         noDeclaration(false),
+        variable(false),
         orientation(orientation),
         isColorSymbol(isColorSymbol)
         {
@@ -61,6 +64,8 @@ namespace logic {
             assert(!orientation.empty());
             assert(orientation == "left" || orientation == "right");
         }
+
+        std::string replaceString(std::string, std::string, std::string) const;
      
     public:
         const std::string name;
@@ -68,6 +73,7 @@ namespace logic {
         const Sort* rngSort;
         const bool isLemmaPredicate; // lemma predicates will be annotated in the smtlib-output, so that Vampire can treat them differently
         const bool noDeclaration; // true iff the symbol needs no declaration in smtlib (i.e. true only for interpreted symbols and variables)
+        const bool variable; //true if represents variable
 
         // used for symbol elimination, values are either "left" or "right", can be empty for non-color symbols     
         const std::string orientation; 

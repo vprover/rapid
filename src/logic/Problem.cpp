@@ -114,7 +114,7 @@ namespace logic {
 
     void ReasoningTask::outputTPTPToDir(std::string dirPath, std::string preamble) const
     {
-        auto outfileName = dirPath + conjecture->name + "_postcondition.p";
+        auto outfileName = dirPath + conjecture->name + ".p";
         if(std::ifstream(outfileName))
         {
             std::cout << "Error: The output-file " << outfileName << " already exists!" << std::endl;
@@ -136,23 +136,37 @@ namespace logic {
 
     void ReasoningTask::outputTPTP(std::ostream& ostr) const
     {
-        // TODO: output negated loop conditions
-        // for (const auto& axiom : axioms)
-        // {
-        //     assert(axiom->type == ProblemItem::Type::Axiom || axiom->type == ProblemItem::Type::Definition);
-        //     if (axiom->name != "")
-        //     {
-        //         ostr << "\n; " << (axiom->type == ProblemItem::Type::Axiom ? "Axiom: " : "Definition: ") << axiom->name;
-        //     }
-        //     ostr << "\n(assert\n" << axiom->formula->toSMTLIB(3) + "\n)\n";
-        // }
-        
+        std::string logic = "tff";
+        if(util::Configuration::instance().hol()){
+            logic = "thf";
+        }
+
+        for(const auto& pair : Sorts::nameToSort())
+        {
+            ostr << declareSortTPTP(*pair.second);
+        }
+
+        // output symbol definitions
+        for (const auto& symbol : Signature::signatureOrderedByInsertion())
+        {
+            ostr << symbol->declareSymbolTPTP();
+        }
+
+        for (const auto& axiom : axioms)
+        {
+            assert(axiom->type == ProblemItem::Type::Axiom || axiom->type == ProblemItem::Type::Definition);
+            if (axiom->name != "")
+            {
+                ostr << "\n% " << (axiom->type == ProblemItem::Type::Axiom ? "Axiom: " : "Definition: ") << axiom->name;
+            }
+            ostr << "\n" + logic + "(unnamed, axiom,\n" << axiom->formula->toTPTP(3) + "\n).\n";
+        }
         // output conjecture
         assert(conjecture != nullptr);
         
         ostr
             << "\n\% negated conjecture\n"
-            << "tff(postcondition, conjecture, "
+            << logic + "(postcondition, conjecture, \n"
             <<         conjecture->formula->toTPTP()
             << ").\n";
 

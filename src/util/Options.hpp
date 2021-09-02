@@ -81,6 +81,9 @@ namespace util {
         _integerIterations("-integerIterations", false),
         _inlineLemmas("-inlineLemmas", false),
         _postcondition("-postcondition", false),
+        _outputTraceLemmas("-outputTraceLemmas", false),
+        _tptp("-tptp", false),
+        _hol("-hol", false),        
         _allOptions()
         {
             registerOption(&_outputDir);
@@ -106,6 +109,15 @@ namespace util {
             // postcondition mode prints color and target symbols
             registerOption(&_postcondition);
 
+            // outputs trace lemmas. With Vampire's new support for induction
+            // these are not required
+            registerOption(&_outputTraceLemmas);
+
+            // tptp outputs formula in TPTP syntax
+            registerOption(&_tptp);
+
+            // hol outputs formula in TPTP HOL syntax
+            registerOption(&_hol);
         }
 
         bool setAllValues(int argc, char *argv[]);
@@ -120,6 +132,9 @@ namespace util {
         bool integerIterations() { return _integerIterations.getValue(); }
         bool inlineLemmas() { return _inlineLemmas.getValue(); }
         bool postcondition() { return _postcondition.getValue(); }
+        bool outputTraceLemmas() { return _outputTraceLemmas.getValue(); }
+        bool tptp() { return _tptp.getValue(); }
+        bool hol() { return _hol.getValue(); }
 
         static Configuration instance() { return _instance; }
 
@@ -132,6 +147,9 @@ namespace util {
         BooleanOption _integerIterations;
         BooleanOption _inlineLemmas;
         BooleanOption _postcondition;
+        BooleanOption _outputTraceLemmas;        
+        BooleanOption _tptp;
+        BooleanOption _hol;
 
         std::map<std::string, Option*> _allOptions;
 

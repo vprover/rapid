@@ -23,14 +23,14 @@ func main()
 }
 
 (axiom
-  (<= 0 alength)
+  (<= 1 alength)
 )
 
 (conjecture
 	(forall ((k Int))
 		(=>
 			(and
-				(<= 0 alength)
+				(<= 1 alength)
 				(<= 0 k)
 				(< k alength)
 			)
@@ -41,7 +41,7 @@ func main()
 
 (conjecture
 	(=>
-		(<= 0 alength)
+		(<= 1 alength)
 		(exists ((k Int))
 			(and
 				(<= 0 k)

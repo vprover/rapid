@@ -33,11 +33,24 @@ namespace logic {
 
             if (argSorts.size() == 0 && !(isLemmaPredicate && util::Configuration::instance().lemmaPredicates()))
             {
+                if (name.rfind("nl", 0) == 0){
+                    //TODO shouldn't output this based on string analysis. Will do for now
+                    return "(declare-final-loop-count " + toSMTLIB() + " " + rngSort->toSMTLIB() + ")\n";
+                }
+
+                if(name == "main_end"){
+                    return "(declare-main-end " + toSMTLIB() + " " + rngSort->toSMTLIB() + ")\n";                    
+                }
+
                 return "(declare-const " + toSMTLIB() + " " + rngSort->toSMTLIB() + ")\n";
             }
             else
             {
                 std::string res = (isLemmaPredicate && util::Configuration::instance().lemmaPredicates()) ? "(declare-lemma-predicate " : "(declare-fun ";
+                if (name.rfind("l", 0) == 0){
+                    //TODO shouldn't output this based on string analysis. Will do for now
+                    res = "(declare-time-point ";
+                }                
                 res += toSMTLIB() + " (";
                 for (int i=0; i < argSorts.size(); ++i)
                 {
@@ -55,13 +68,18 @@ namespace logic {
 
     std::string Symbol::declareSymbolTPTP() const
     {
-        if (noDeclaration || isLemmaPredicate)
+
+        if (noDeclaration)
         {
             return ""; // don't need to declare symbols, which are already known to TPTP-solvers.
                 // TODO: vampire doesn't parse tptp for lemma-predicates, so neglected for now
         }
-        
-        std::string s = "tff(symb_" + name + ", type, " + name + " : ";
+
+        static bool hol = util::Configuration::instance().hol();
+        std::string logic = hol ? "thf" : "tff";
+
+        std::string outputName = toTPTP();
+        std::string s = logic + "(symb_" + outputName + ", type, " + outputName + " : ";
         if (argSorts.size() == 0)
         {
             s += rngSort->toTPTP() + ").\n";
@@ -72,17 +90,17 @@ namespace logic {
         }
         else 
         {
-            s += "(";
+            s += hol ? "" : "(";
             for (unsigned i = 0; i < argSorts.size() - 1; i++)
             {
-                s += argSorts[i]->toTPTP() + " * ";
+                s += argSorts[i]->toTPTP() + (hol ? " > " : " * ");
             }
-            s += argSorts[argSorts.size() - 1]->toTPTP() + ") > " + rngSort->toTPTP() + ").\n";
+            s += argSorts[argSorts.size() - 1]->toTPTP() + (hol ? "" : ")") + " > " + rngSort->toTPTP() + ").\n";
         }
         return s;
     }
 
-      std::string Symbol::toSMTLIB() const
+    std::string Symbol::toSMTLIB() const
     {
         // if non-negative integer constant
         if (std::all_of(name.begin(), name.end(), ::isdigit))
@@ -101,11 +119,26 @@ namespace logic {
         }
     }
 
+    std::string Symbol::replaceString(std::string subject, std::string search,
+                               std::string replace) const {
+        size_t pos = 0;
+        while ((pos = subject.find(search, pos)) != std::string::npos) {
+             subject.replace(pos, search.length(), replace);
+             pos += replace.length();
+        }
+        return subject;
+    }
+
     std::string Symbol::toTPTP() const
     {
         const std::string toFind = "main_end";
         // if non-negative integer constant
-        if (std::all_of(name.begin(), name.end(), ::isdigit))
+        if(variable){
+            std::string nameTPTP = name;
+            nameTPTP[0] = std::toupper(name[0]);
+            return nameTPTP;
+        } 
+        else if (std::all_of(name.begin(), name.end(), ::isdigit))
         {
             return name;
         }
@@ -114,6 +147,21 @@ namespace logic {
         {
             // need to encode negative integer as unary minus of positive integer
             return  "($uminus " + name.substr(1,name.size()-1) + ")";
+        }
+        else if (name == "+")
+        {
+            return "$sum";
+        }
+        else if (name == "-") 
+        {
+            return "$difference";
+        } 
+        else if(name.find("-") != std::string::npos)
+        {
+            std::string nameTPTP = name;
+            nameTPTP = replaceString(nameTPTP, "-", "");
+            nameTPTP[0] = std::tolower(name[0]);
+            return nameTPTP;
         }
         else
         {
@@ -137,7 +185,7 @@ namespace logic {
         // there must be no symbol with name name already added
         assert(_signature.count(name) == 0);
         
-        auto pair = _signature.insert(std::make_pair(name,std::unique_ptr<Symbol>(new Symbol(name, argSorts, rngSort, false, noDeclaration))));
+        auto pair = _signature.insert(std::make_pair(name,std::unique_ptr<Symbol>(new Symbol(name, argSorts, rngSort, false, noDeclaration, false))));
         assert(pair.second); // must succeed since we checked that no such symbols existed before the insertion
 
         auto symbol = pair.first->second;
@@ -155,7 +203,7 @@ namespace logic {
     
     std::shared_ptr<const Symbol> Signature::fetchOrAdd(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool isLemmaPredicate, bool noDeclaration)
     {
-        auto pair = _signature.insert(std::make_pair(name, std::shared_ptr<Symbol>(new Symbol(name, argSorts, rngSort, isLemmaPredicate, noDeclaration))));
+        auto pair = _signature.insert(std::make_pair(name, std::shared_ptr<Symbol>(new Symbol(name, argSorts, rngSort, isLemmaPredicate, noDeclaration, false))));
         auto symbol = pair.first->second;
 
         if (pair.second)
@@ -186,7 +234,7 @@ namespace logic {
         // there must be no symbol with name name already added
         assert(_signature.count(name) == 0);
         
-        return std::shared_ptr<Symbol>(new Symbol(name, rngSort, false, true));
+        return std::shared_ptr<Symbol>(new Symbol(name, rngSort, false, true, true));
     }
 
     void Signature::addColorSymbol(std::string name, std::string orientation)
