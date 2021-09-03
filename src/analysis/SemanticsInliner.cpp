@@ -355,6 +355,8 @@ std::shared_ptr<const logic::Formula> SemanticsInliner::handlePersistence(
             // variable will only have cached timepoints from where its values
             // were used, but not from the end of the loop.
             if (cachedTimepoint.get()->prettyString().find("nl") ==
+                std::string::npos  &&
+            cachedTimepoint.get()->prettyString().find("Itl") !=
                 std::string::npos) {
               auto cachedTimepointTerm =
                   std::static_pointer_cast<const logic::FuncTerm>(
