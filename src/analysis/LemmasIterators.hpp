@@ -113,9 +113,11 @@ class IntermediateValueLemmas
                                              // doesn't allow additional members
                                              // in subclass!
 
-    private:
-        virtual void generateOutputFor(program::WhileStatement* statement,  std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
-    };
+ private:
+  virtual void generateOutputFor(
+      program::WhileStatement* statement,
+      std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
+};
 
 /*
  * LEMMA 2:
@@ -169,9 +171,11 @@ class IterationInjectivityLemmas
                                              // doesn't allow additional members
                                              // in subclass!
 
-    private:
-        virtual void generateOutputFor(program::WhileStatement* statement,  std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
-    };
-}
+ private:
+  virtual void generateOutputFor(
+      program::WhileStatement* statement,
+      std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
+};
+}  // namespace analysis
 
 #endif

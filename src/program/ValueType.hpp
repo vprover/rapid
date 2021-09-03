@@ -10,11 +10,11 @@
 
 namespace program {
 
-    enum class ValueType {
-        Bool,
-        Int,
-    };
+enum class ValueType {
+  Bool,
+  Int,
+};
 
 }
 
-#endif //__ProgramType__
+#endif  //__ProgramType__

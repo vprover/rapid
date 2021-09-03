@@ -1,15 +1,19 @@
 #ifndef __SymbolDeclarations__
 #define __SymbolDeclarations__
 
-#include "Statements.hpp"
-#include "Signature.hpp"
 #include "Program.hpp"
+#include "Signature.hpp"
+#include "Statements.hpp"
 
-std::shared_ptr<const logic::Symbol> locationSymbolForStatement(program::Statement* statement);
-std::shared_ptr<const logic::Symbol> locationSymbolEndLocation(const program::Function* function);
+std::shared_ptr<const logic::Symbol> locationSymbolForStatement(
+    program::Statement* statement);
+std::shared_ptr<const logic::Symbol> locationSymbolEndLocation(
+    const program::Function* function);
 
-std::shared_ptr<const logic::Symbol> iteratorSymbol(program::WhileStatement* whileStatement);
-std::shared_ptr<const logic::Symbol> lastIterationSymbol(program::WhileStatement* whileStatement, unsigned numberOfTraces);
+std::shared_ptr<const logic::Symbol> iteratorSymbol(
+    program::WhileStatement* whileStatement);
+std::shared_ptr<const logic::Symbol> lastIterationSymbol(
+    program::WhileStatement* whileStatement, unsigned numberOfTraces);
 
 std::shared_ptr<const logic::Symbol> posVarSymbol();
 
@@ -29,7 +33,7 @@ void declareSymbolsForTraces(unsigned numberOfTraces);
 void declareSymbolsForFunction(const program::Function* function,
                                unsigned numberOfTraces);
 // helper method for declareSymbolsForFunction
-void declareSymbolsForStatements(program::Statement* statement, unsigned numberOfTraces);
-
+void declareSymbolsForStatements(program::Statement* statement,
+                                 unsigned numberOfTraces);
 
 #endif
