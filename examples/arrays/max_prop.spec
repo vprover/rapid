@@ -1,7 +1,7 @@
 func main()
 {
 	Int[] a;
-  const Int[] b;
+   const Int[] b;
 	const Int blength;
 
 	Int i = 0;
@@ -18,6 +18,10 @@ func main()
 		i = i + 1;
 	}
 }
+
+(axiom
+  (<= 0 blength)
+)
 
 (conjecture
    (forall ((pos Int))

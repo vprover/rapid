@@ -46,6 +46,17 @@ class Semantics {
   const unsigned numberOfTraces;
   InlinedVariableValues inlinedVariableValues;
 
+  // stores variables that are used in the left side of assignments, i.e.
+  // symbols that need to be colored and targeted for symbol elimination
+  std::unordered_map<std::string, std::shared_ptr<const program::Variable>>
+      coloredSymbols;
+  // used to track start timepoints of all loops to find the first relevant
+  // timepoint for target symbols
+  std::vector<std::shared_ptr<const logic::Term>> loopStartTimePoints;
+  // used to track start timepoints of all loops to find the last relevant
+  // timepoint for target symbols
+  std::vector<std::shared_ptr<const logic::Term>> loopEndTimePoints;
+
   std::shared_ptr<const logic::Formula> generateSemantics(
       const program::Statement* statement, SemanticsInliner& inliner,
       std::shared_ptr<const logic::Term> trace);
@@ -61,6 +72,8 @@ class Semantics {
   std::shared_ptr<const logic::Formula> generateSemantics(
       const program::SkipStatement* skipStatement, SemanticsInliner& inliner,
       std::shared_ptr<const logic::Term> trace);
+  // TODO: add break, continue
+  // TODO: add a notion of main function and function calls
 };
 }  // namespace analysis
 #endif

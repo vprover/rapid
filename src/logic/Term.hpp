@@ -27,6 +27,7 @@ class Term {
   virtual Type type() const = 0;
 
   virtual std::string toSMTLIB() const = 0;
+  virtual std::string toTPTP() const = 0;
   virtual std::string prettyString() const = 0;
 };
 
@@ -44,6 +45,7 @@ class LVariable : public Term {
 
   Type type() const override { return Term::Type::Variable; }
   std::string toSMTLIB() const override;
+  std::string toTPTP() const override;
   virtual std::string prettyString() const override;
 
   static unsigned freshId;
@@ -61,10 +63,11 @@ class FuncTerm : public Term {
   }
 
  public:
-  const std::vector<std::shared_ptr<const Term>> subterms;
+  const std::vector<std::shared_ptr<const Term> > subterms;
 
   Type type() const override { return Term::Type::FuncTerm; }
   std::string toSMTLIB() const override;
+  virtual std::string toTPTP() const override;
   virtual std::string prettyString() const override;
 };
 
@@ -77,10 +80,10 @@ inline std::ostream& operator<<(std::ostream& ostr, const Term& e) {
 // overloads are needed for bison
 std::ostream& operator<<(
     std::ostream& ostr,
-    const std::vector<std::shared_ptr<const logic::Term>>& t);
+    const std::vector<std::shared_ptr<const logic::Term> >& t);
 std::ostream& operator<<(
     std::ostream& ostr,
-    const std::vector<std::shared_ptr<const logic::LVariable>>& v);
+    const std::vector<std::shared_ptr<const logic::LVariable> >& v);
 }  // namespace logic
 
 // custom hash for terms
@@ -123,11 +126,11 @@ class Terms {
   static std::shared_ptr<const LVariable> var(
       std::shared_ptr<const Symbol> symbol);
   static std::shared_ptr<const FuncTerm> func(
-      std::string name, std::vector<std::shared_ptr<const Term>> subterms,
+      std::string name, std::vector<std::shared_ptr<const Term> > subterms,
       const Sort* sort, bool noDeclaration = false);
   static std::shared_ptr<const FuncTerm> func(
       std::shared_ptr<const Symbol> symbol,
-      std::vector<std::shared_ptr<const Term>> subterms);
+      std::vector<std::shared_ptr<const Term> > subterms);
 };
 }  // namespace logic
 #endif

@@ -25,6 +25,16 @@ std::string Formula::stringForLabel(unsigned indentation) const {
   return str;
 }
 
+std::string Formula::stringForLabelTPTP(unsigned indentation) const {
+  std::string str = "";
+  if (!label.empty()) {
+    str += std::string(indentation, ' ') + "%" + label + "\n";
+  }
+  return str;
+}
+
+#pragma - Methods to generate SMTLIB output
+
 std::string PredicateFormula::toSMTLIB(unsigned indentation) const {
   std::string str = stringForLabel(indentation);
   str += std::string(indentation, ' ');
@@ -150,6 +160,136 @@ std::string FalseFormula::toSMTLIB(unsigned indentation) const {
   std::string str = stringForLabel(indentation);
   return str + std::string(indentation, ' ') + "false";
 }
+
+#pragma - Methods to generate TPTP output
+std::string PredicateFormula::toTPTP(unsigned indentation) const {
+  std::string sym = "";
+
+  if (symbol.get()->name == "*") {
+    sym = "$product";
+  } else if (symbol.get()->name == "/") {
+    sym = "$quotient_e";
+  } else if (symbol.get()->name == "-") {
+    sym = "$uminus";
+  } else if (symbol.get()->name == ">") {
+    sym = "$greater";
+  } else if (symbol.get()->name == ">=") {
+    sym = "$greatereq";
+  } else if (symbol.get()->name == "<") {
+    sym = "$less";
+  } else if (symbol.get()->name == "<=") {
+    sym = "$lesseq";
+  } else if (symbol.get()->name == "true") {
+    sym = "$true";
+  } else if (symbol.get()->name == "false") {
+    sym = "$false";
+  }
+  if (symbol.get()->name == "!") {
+    sym = "~";
+  }
+
+  std::string str = stringForLabelTPTP(indentation);
+  if (subterms.size() == 0) {
+    str += symbol->toTPTP();
+  } else {
+    if (!sym.empty()) {
+      str += " " + sym + "(";
+    } else {
+      str += " " + symbol->toTPTP() + " ";
+    }
+    for (unsigned i = 0; i < subterms.size(); i++) {
+      str += subterms[i]->toTPTP();
+      str += (i == subterms.size() - 1) ? ") " : ", ";
+    }
+  }
+
+  return str;
+}
+
+std::string EqualityFormula::toTPTP(unsigned indentation) const {
+  std::string str = stringForLabelTPTP(indentation);
+  str += std::string(indentation, ' ');
+  if (polarity) {
+    str += " " + left->toTPTP() + "=" + right->toTPTP() + " ";
+  } else {
+    str += " " + left->toTPTP() + "!=" + right->toTPTP() + " ";
+  }
+  return str;
+}
+
+std::string ConjunctionFormula::toTPTP(unsigned indentation) const {
+  std::string str = stringForLabelTPTP(indentation);
+  if (conj.size() == 0) return "$true";
+  if (conj.size() == 1) return conj[0]->toTPTP();
+
+  for (unsigned i = 0; i < conj.size(); i++) {
+    str += "" + conj[i]->toTPTP() + "";
+    str += (i == conj.size() - 1) ? "" : "&";
+  }
+  return str;
+}
+
+std::string DisjunctionFormula::toTPTP(unsigned indentation) const {
+  std::string str = stringForLabelTPTP(indentation);
+  if (disj.size() == 0) return "$false";
+  if (disj.size() == 1) return disj[0]->toTPTP();
+  for (unsigned i = 0; i < disj.size(); i++) {
+    str += "(" + disj[i]->toTPTP() + ")";
+
+    str += (i == disj.size() - 1) ? "" : " | ";
+  }
+  return str;
+}
+
+std::string NegationFormula::toTPTP(unsigned indentation) const {
+  return "~(" + f->toTPTP() + ")";
+}
+
+std::string ExistentialFormula::toTPTP(unsigned indentation) const {
+  std::string str = "? [";
+  for (unsigned i = 0; i < vars.size(); i++) {
+    str += vars[i]->toTPTP() + " : " + vars[i]->rngSort->toTPTP();
+    if (i != vars.size() - 1) {
+      str += ", ";
+    }
+  }
+  str += "] : (" + f->toTPTP() + ")";
+  return str;
+}
+
+std::string UniversalFormula::toTPTP(unsigned indentation) const {
+  std::string str = "! [";
+  for (unsigned i = 0; i < vars.size(); i++) {
+    str += vars[i]->toTPTP() + " : " + vars[i]->rngSort->toTPTP();
+    if (i != vars.size() - 1) {
+      str += ", ";
+    }
+  }
+  str += "] : (" + f->toTPTP() + ")";
+  return str;
+}
+
+std::string ImplicationFormula::toTPTP(unsigned indentation) const {
+  return "(" + f1->toTPTP() + ")" + " => (" + f2->toTPTP() + ")";
+}
+
+std::string EquivalenceFormula::toTPTP(unsigned indentation) const {
+  std::string str = stringForLabelTPTP(indentation);
+  str += f1->toTPTP() + " = " + f2->toTPTP() + "\n";
+  return str;
+}
+
+std::string TrueFormula::toTPTP(unsigned indentation) const {
+  std::string str = stringForLabelTPTP(indentation);
+  return str + "$true";
+}
+
+std::string FalseFormula::toTPTP(unsigned indentation) const {
+  std::string str = stringForLabelTPTP(indentation);
+  return str + "$false";
+}
+
+#pragma - Methods for printing formulas
 
 std::string PredicateFormula::prettyString(unsigned indentation) const {
   auto str = std::string(indentation, ' ');

@@ -3,7 +3,6 @@ func main()
 	Int[] a;
 	const Int[] b;
 	const Int blength;
-
 	Int i = 0;
 	Int j = 0;
 	while(i < blength)
@@ -16,8 +15,12 @@ func main()
 
 (axiom
 	(forall ((it Nat))
-		(= (i (l9 it)) (j (l9 it)))
+		(= (i (l8 it)) (j (l8 it)))
 	)
+)
+
+(axiom
+  (<= 0 blength)
 )
 
 (conjecture

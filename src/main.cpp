@@ -70,7 +70,6 @@ int main(int argc, char* argv[]) {
         problemItems.insert(problemItems.end(),
                             parserResult.problemItems.begin(),
                             parserResult.problemItems.end());
-
         logic::Problem problem(problemItems);
 
         // generate reasoning tasks, convert each reasoning task to smtlib, and
@@ -81,6 +80,18 @@ int main(int argc, char* argv[]) {
           preamble << util::Output::comment << *parserResult.program
                    << util::Output::nocomment;
           task.outputSMTLIBToDir(outputDir, preamble.str());
+        }
+
+        if (util::Configuration::instance().postcondition()) {
+          for (const auto& task : tasks) {
+            if (task.conjecture.get()->name.find("user-conjecture") !=
+                std::string::npos) {
+              std::stringstream preamble;
+              preamble << util::Output::comment << *parserResult.program
+                       << util::Output::nocomment;
+              task.outputTPTPToDir(outputDir, preamble.str());
+            }
+          }
         }
       }
     }

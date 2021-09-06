@@ -11,6 +11,7 @@
 #include <utility>
 #include <vector>
 
+#include "Options.hpp"
 #include "Sort.hpp"
 
 #pragma mark - Symbol
@@ -30,7 +31,8 @@ class Symbol {
         argSorts(),
         rngSort(rngSort),
         isLemmaPredicate(isLemmaPredicate),
-        noDeclaration(noDeclaration) {
+        noDeclaration(noDeclaration),
+        isColorSymbol(false) {
     assert(!name.empty());
     assert(!isLemmaPredicate || isPredicateSymbol());
   }
@@ -41,9 +43,23 @@ class Symbol {
         argSorts(std::move(argSorts)),
         rngSort(rngSort),
         isLemmaPredicate(isLemmaPredicate),
+        isColorSymbol(false),
         noDeclaration(noDeclaration) {
     assert(!name.empty());
     assert(!isLemmaPredicate || isPredicateSymbol());
+  }
+
+  Symbol(std::string name, std::string orientation, bool isColorSymbol)
+      : name(name),
+        argSorts(),
+        rngSort(),
+        isLemmaPredicate(false),
+        noDeclaration(false),
+        orientation(orientation),
+        isColorSymbol(isColorSymbol) {
+    assert(!name.empty());
+    assert(!orientation.empty());
+    assert(orientation == "left" || orientation == "right");
   }
 
  public:
@@ -57,10 +73,17 @@ class Symbol {
       noDeclaration;  // true iff the symbol needs no declaration in smtlib
                       // (i.e. true only for interpreted symbols and variables)
 
+  // used for symbol elimination, values are either "left" or "right", can be
+  // empty for non-color symbols
+  const std::string orientation;
+  const bool isColorSymbol;
+
   bool isPredicateSymbol() const { return rngSort == Sorts::boolSort(); }
 
   std::string toSMTLIB() const;
+  std::string toTPTP() const;
   std::string declareSymbolSMTLIB() const;
+  std::string declareSymbolTPTP() const;
   std::string declareSymbolColorSMTLIB() const;
 
   bool operator==(const Symbol& s) const { return name == s.name; }
@@ -120,6 +143,9 @@ class Signature {
   // return Symbol without adding it to Signature
   static std::shared_ptr<const Symbol> varSymbol(std::string name,
                                                  const Sort* rngSort);
+
+  // construct color symbol declarations for symbol elimination
+  static void addColorSymbol(std::string name, std::string orientation);
 
   static const std::vector<std::shared_ptr<const Symbol>>&
   signatureOrderedByInsertion() {

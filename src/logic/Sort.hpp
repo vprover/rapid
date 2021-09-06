@@ -25,10 +25,12 @@ class Sort {
   bool operator==(Sort& o);
 
   std::string toSMTLIB() const;
+  std::string toTPTP() const;
 };
 std::ostream& operator<<(std::ostream& ostr, const Sort& s);
 
 std::string declareSortSMTLIB(const Sort& s);
+std::string declareSortTPTP(const Sort& s);
 
 #pragma mark - Sorts
 

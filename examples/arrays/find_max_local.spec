@@ -26,6 +26,10 @@ func main()
 	}
 }
 
+(axiom
+  (<= 1 alength)
+)
+
 (conjecture
 	(forall ((k Int))
 		(=>

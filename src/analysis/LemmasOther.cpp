@@ -13,11 +13,54 @@ namespace analysis {
 void AtLeastOneIterationLemmas::generateOutputFor(
     const program::WhileStatement* statement,
     std::vector<std::shared_ptr<const logic::ProblemItem>>& items) {
+  if (util::Configuration::instance().integerIterations()) {
+    AtLeastOneIterationLemmas::generateOutputForInteger(statement, items);
+  } else {
+    auto itSymbol = iteratorSymbol(statement);
+    auto it = iteratorTermForLoop(statement);
+
+    auto lStartZero =
+        timepointForLoopStatement(statement, logic::Theory::natZero());
+
+    for (unsigned traceNumber = 1; traceNumber < numberOfTraces + 1;
+         traceNumber++) {
+      auto trace = traceTerm(traceNumber);
+      auto n = lastIterationTermForLoop(statement, numberOfTraces, trace);
+
+      auto name = "atLeastOneIteration-" + statement->location +
+                  (numberOfTraces > 1 ? ("-" + trace->symbol->name) : "");
+
+      // forall enclosingIterators. (Cond(l(0)) => exists it. s(it)=n)
+      auto bareLemma = logic::Formulas::universal(
+          enclosingIteratorsSymbols(statement),
+          logic::Formulas::implication(
+              util::Configuration::instance().inlineSemantics()
+                  ? inlinedVarValues.toInlinedFormula(
+                        statement, statement->condition, lStartZero, trace)
+                  : toFormula(statement->condition, lStartZero, trace),
+              logic::Formulas::existential(
+                  {itSymbol},
+                  logic::Formulas::equality(logic::Theory::natSucc(it), n))));
+
+      std::vector<std::string> fromItems;
+      for (auto& item : programSemantics) {
+        fromItems.push_back(item->name);
+      }
+      items.push_back(std::make_shared<logic::Lemma>(
+          bareLemma, name, logic::ProblemItem::Visibility::Implicit,
+          fromItems));
+    }
+  }
+}
+
+void AtLeastOneIterationLemmas::generateOutputForInteger(
+    const program::WhileStatement* statement,
+    std::vector<std::shared_ptr<const logic::ProblemItem>>& items) {
   auto itSymbol = iteratorSymbol(statement);
   auto it = iteratorTermForLoop(statement);
 
   auto lStartZero =
-      timepointForLoopStatement(statement, logic::Theory::natZero());
+      timepointForLoopStatement(statement, logic::Theory::intZero());
 
   for (unsigned traceNumber = 1; traceNumber < numberOfTraces + 1;
        traceNumber++) {
@@ -37,7 +80,10 @@ void AtLeastOneIterationLemmas::generateOutputFor(
                 : toFormula(statement->condition, lStartZero, trace),
             logic::Formulas::existential(
                 {itSymbol},
-                logic::Formulas::equality(logic::Theory::natSucc(it), n))));
+                logic::Formulas::conjunction(
+                    {logic::Theory::intLessEqual(logic::Theory::intZero(), it),
+                     logic::Formulas::equality(logic::Theory::intSucc(it),
+                                               n)}))));
 
     std::vector<std::string> fromItems;
     for (auto& item : programSemantics) {

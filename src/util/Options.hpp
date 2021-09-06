@@ -69,16 +69,30 @@ class Configuration {
  public:
   Configuration()
       : _outputDir("-dir", ""),
-        _generateBenchmark("generateBenchmark", false),
+        _generateBenchmark("-generateBenchmark", false),
         _nativeNat("-nat", true),
         _inlineSemantics("-inlineSemantics", true),
         _lemmaPredicates("-lemmaPredicates", true),
+        _integerIterations("-integerIterations", false),
+        _inlineLemmas("-inlineLemmas", false),
+        _postcondition("-postcondition", false),
         _allOptions() {
+    
     registerOption(&_outputDir);
+    // for testing purposes only
     registerOption(&_generateBenchmark);
+    // use inbuilt nat sort provided with Rapid Vampire
     registerOption(&_nativeNat);
+    // inlines program semantics in a more compact way
     registerOption(&_inlineSemantics);
+    // uses lemma predicates for Rapid Vampire
     registerOption(&_lemmaPredicates);
+    // semantics with iterations using integer instead of natural number sort
+    registerOption(&_integerIterations);
+    // inline lemmas as one big formula without naming
+    registerOption(&_inlineLemmas);
+    // postcondition mode prints color and target symbols
+    registerOption(&_postcondition);
   }
 
   bool setAllValues(int argc, char* argv[]);
@@ -90,6 +104,9 @@ class Configuration {
   bool nativeNat() { return _nativeNat.getValue(); }
   bool inlineSemantics() { return _inlineSemantics.getValue(); }
   bool lemmaPredicates() { return _lemmaPredicates.getValue(); }
+  bool integerIterations() { return _integerIterations.getValue(); }
+  bool inlineLemmas() { return _inlineLemmas.getValue(); }
+  bool postcondition() { return _postcondition.getValue(); }
 
   static Configuration instance() { return _instance; }
 
@@ -99,6 +116,9 @@ class Configuration {
   BooleanOption _nativeNat;
   BooleanOption _inlineSemantics;
   BooleanOption _lemmaPredicates;
+  BooleanOption _integerIterations;
+  BooleanOption _inlineLemmas;
+  BooleanOption _postcondition;
 
   std::map<std::string, Option*> _allOptions;
 

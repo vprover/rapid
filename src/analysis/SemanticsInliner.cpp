@@ -4,7 +4,6 @@
 
 #include "SemanticsHelper.hpp"
 #include "SymbolDeclarations.hpp"
-#include "Term.hpp"
 #include "Theory.hpp"
 
 namespace analysis {
