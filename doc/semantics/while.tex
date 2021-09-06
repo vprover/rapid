@@ -1,0 +1,305 @@
+\section{Running Example}\label{sec:running}
+
+\begin{figure} 
+	\begin{lstlisting}[mathescape]
+	func main() {
+		const Int[] a;	
+		Int[] b;
+		Int i = 0;
+		Int j = 0;
+		while (i < a.length) {
+			if (a[i] $\geq$ 0) {
+				b[j] = a[i]; 
+				j = j + 1: 
+			}
+				i = i + 1;
+		}
+	}
+	assert ($\forall$k$_\Int. \exists$l$_\Int.  ((0 \leq$ k $<$j $\wedge$ a.length $\geq 0$) $\rightarrow$ b(k) = a(l)))
+	\end{lstlisting}
+	\caption{Program copying positive elements from array \pv{a} to \pv{b}.}\vspace*{-.5em}
+	\label{fig:running}
+\end{figure}
+
+\section{Programming Model  $\whilelang$} \label{sec:model}
+We consider 
+programs written in an imperative while-like programming language $\whilelang$. 
+We do not consider 
+multiple program traces in $\whilelang$.
+%Moreover, (ii) we 
+%extend~\cite{barthe2019verifying} by defining our programming
+%model for arbitrarily nested programs.
+In
+Section~\ref{sec:axiomatic-semantics}, we then introduce a generalized
+program semantics in trace logic $\tracelogic$, extended with reachability predicates.
+
+\begin{figure}[t!]
+	\centering
+	\begin{align*}
+	\text{program}    :=& \text{ function}\\
+	\text{function}    :=& \text{ \while{func main()\{} \text{context} \while{\}} }\\
+	\text{subprogram} :=& \text{ statement} \mid \text{context}\\
+	\text{statement} :=& \text{ atomicStatement}\\
+	\mid& \text{ \while{if(} \text{condition} \while{)\{} \text{context} \while{\} else \{} \text{context} \while{\}}}\\
+	\mid& \text{ \while{while(} \text{condition} \while{)\{} \text{context} \while{\}}}\\
+	\text{context} :=& \text{ statement; ... ; statement}\\[-2em]
+	\end{align*}
+	\caption{Grammar of $\whilelang$.\vspace*{-2em}}
+	\label{fig:while-grammar}
+\end{figure}
+
+Figure~\ref{fig:while-grammar} shows the (partial) grammar of our
+programming model $\whilelang$,
+emphasizing the  use of contexts to capture lists of statements.
+An input program in $\whilelang$ has a single  \pv{main}-function, 
+with arbitrary nestings of if-then-else conditionals and
+while-statements. %\texttt{\ifThenElseStatement}\ and \texttt{\whileStatement}\ statements. 
+%For simplicity,
+%whenever we refer to loops, we mean 
+%\whileStatement-statements. 
+%
+We consider \textit{mutable and constant variables}, where
+variables are either integer-valued numeric variables or arrays of such numeric variables. We include standard % integer variables and integer-arrays}, as well as standard
+\textit{side-effect free expressions over booleans and integers}. 
+
+%\LK{constant integer and int-array variables?}}, and standard \textit{side-effect free expressions over booleans and integers}. 
+%\LK{you mean numeric and array variables, right}
+%\pg{array variables are integer-based as well - is it more clear now?}
+
+\subsection{Locations and Timepoints}\label{sec:locations}
+
+A program in $\whilelang$ is considered as sets of locations, with
+each location corresponding to positions/lines of program
+statements in the program. 
+Given a program statement $\pv{s}$, we denote by 
+$l_s$ its (program) location. We reserve the location
+$l_{\textit{end}}$  to denote 
+the end of a program.  
+For programs with loops, some program locations might be revisited
+multiple times. % during execution when the corresponding statement is enclosed by loops. 
+%
+We therefore model locations $l_s$ corresponding to a statement
+$\pv{s}$ as functions of \textit{iterations} when the respective location is
+visited. For simplicity, we write
+$l_s$ also for the functional representation of the location $l_s$ of
+$\pv{s}$. 
+We thus consider locations as timepoints of a program and treat them $l_s$ as being functions $l_s$ over
+iterations. The target sort of locations $l_s$ is $\tpsort$. 
+For each enclosing loop of a statement $\pv{s}$, 
+the function symbol $l_s$ takes arguments of sort $\natsort$,
+corresponding to loop iterations. Further, when $\pv{s}$ is a loop
+itself, we also introduce a function symbol $n_s$ with argument and
+target sort $\natsort$; intuitively, $n_s$ corresponds to the last
+loop iteration of $\pv{s}$. %, that is the first iteration such that the loop condition of \pv{s} is false. We parameterize $n_s$ by a%n argument of sort $\natsort$ for
+%each enclosing loop of $\pv{s}$. 
+%This way, $n_s$ denotes the iteration in which $\pv{s}$ terminates for
+%given iterations of the enclosing loops of $\pv{s}$. 
+%We denote the set of all such function symbols $n_s$ as $\textit{S}_{n}$.
+%
+%
+%
+%
+% That is, for each such location $l_s$ corresponding to a program statement $\pv{s}$, 
+%we introduce a function symbol $l_s$ with target sort $\tpsort$ in our language, 
+%denoting the timepoint where the interpreter visits the location. 
+%For each enclosing loop of the statement $\pv{s}$, 
+%the function symbol $l_s$ has an argument of type $\natsort$; this
+%way, we distinguish between different iterations of the enclosing loop
+%of $\pv{s}$.
+We denote the set of all function symbols $l_s$ as $\tpsig$, whereas
+the set of all function symbols $n_s$ is written as  $\textit{S}_{n}$.
+%
+
+%\LK{in fig1 - there is no use of $n_s()$ as non-constant function}
+
+\noindent\begin{example}\label{ex:locations}
+	We refer to program statements $\pv{s}$
+	by their (first) line number in Figure~\ref{fig:running}. %of the first line of $\pv{s}$. 
+	Thus, $l_5$ encodes the timepoint corresponding to the first
+	assignment of $\pv{i}$ in the program (line~5). We write $l_{7}(\zero)$ and
+	$l_{7}(n_{7})$ to denote the timepoints of the first and last loop iteration, respectively. The timepoints  
+	$l_{8}(\suc(\zero))$ and $l_{8}(it)$ correspond to the beginning of
+	the loop body in the second and the $it$-th
+	loop iterations, respectively. \qed
+	%Note that we model natural numbers with term algebra expressions of $\Nat$.
+\end{example}
+
+\subsection{Expressions over Timepoints}\label{sec:tp}
+We next introduce commonly used expressions over 
+timepoints. 
+%
+For each  while-statement $\pv{w}$ of $\whilelang$, we introduce a
+function  $it^\pv{w}$  that returns a unique variable of sort
+$\natsort$ for $\pv{w}$, denoting loop iterations of \pv{w}. 
+% \LK{denoting what?}
+%We use this function to consistently use variable names.
+Let $w_1,\dots,w_k$  be the enclosing
+loops for statement $\pv{s}$ and consider an arbitrary term $it$ of
+sort $\natsort$. We define $tp_{\pv{s}}$ to be the expressions denoting 
+the timepoints of statements \pv{s} as%  respectively, as well as last iterations of while statements \pv{s} 
+%\LK{denoting what?} 
+%
+\begin{align*}
+tp_\pv{s} &:= l_s(it^{w_1}, \dots, it^{w_k})&&\text{ if $\pv{s}$ is non-while statement}\\
+tp_\pv{s}(it) &:= l_s(it^{w_1}, \dots, it^{w_k}, it) &&\text{ if $\pv{s}$ is while-statement}\\
+\mathit{lastIt}_\pv{s} &:= n_s(it^{w_1}, \dots, it^{w_k})&&\text{ if $\pv{s}$ is while-statement}
+\end{align*}
+%
+If $\pv{s}$ is a while-statement, we also introduce $lastIt_\pv{s}$
+to denote the last iteration of \pv{s}. 
+Further, consider an arbitrary subprogram $\pv{p}$, that is, \pv{p} is either a statement or a context.
+The timepoint $\mathit{start}_\pv{p}$ (parameterized by an iteration
+of each enclosing loop) denotes the timepoint when the execution of
+$\pv{p}$ has started and is defined as
+$$\mathit{start}_\pv{p} := 
+\begin{cases}
+tp_\pv{p}(\zero) &\text{ if \pv{p} is while-statement}\\
+tp_\pv{p} &\text{ if \pv{p} is non-while statement}\\
+\mathit{start}_{\pv{s}_1} &\text{ if \pv{p} is context \pv{s}\pvi{1};$\dots$;\pv{s}\pvi{k}}
+\end{cases}
+$$
+
+%
+We also introduce the timepoint $\mathit{end}_\pv{p}$ to denote the
+timepoint upon which a subprogram $\pv{p}$ has been completely
+evaluated and define it as
+% (including the evaluation of any subprograms of $\pv{p}$) is given by
+$$
+\mathit{end}_\pv{p}:=
+\begin{cases}	
+\mathit{start}_{\pv{s}}  &\text{if \pv{s} occurs after $\pv{p}$ in a context}\\
+\mathit{end}_{\pv{c}}  &\text{if \pv{p} is last statement in context \pv{c}}\\
+\mathit{end}_{\pv{s}} &\text{if \pv{p} is context of if-branch or } \\& \text{else-branch of \pv{s}}\\
+\mathit{tp}_\pv{s}(\suc(it^{s})) &\text{if \pv{p} is context of body of \pv{s}} \\
+l_\mathit{end} &\text{if $\pv{p}$ is top-level context}\\
+\end{cases}
+$$
+
+Finally, if $s$ is the topmost statement of the top-level context in \pv{main()}, we define $$\mathit{start} := \mathit{start}_s.$$
+
+\subsection{Program Variables}\label{sec:prgVars}
+%Reasoning in our framework is performed by expressing program behavior
+%as properties over program variables. In this sense,
+We express values of program variables $\pv{v}$ at various timepoints
+%(from $\tpsort$)
+of the program execution. To this end, we model
+(numeric) variables $\pv{v}$ as functions 
+$v: \tpsort \mapsto \intsort,$
+where $v(tp)$ gives the value of $\pv{v}$ at timepoint $tp$.
+%
+For array variables $\pv{v}$,
+we add an additional argument of sort $\intsort$, corresponding to
+the position where the array is accessed; that is, 
+$ v: \tpsort \times \intsort \mapsto \intsort$.
+%
+The set of such function symbols corresponding to program variables is
+denoted by $\pvsig$. % denotes all such function symbols corresponding
+% to program variables.
+
+Our framework for constant, non-mutable variables can be simplified by
+omitting the timepoint argument in the functional representation of 
+such program variables, as illustrated below.%denoted with the key word \pv{const}. 
+
+\begin{example}\label{ex:prgVars}
+	For Figure \ref{fig:running}, we denote by $i(l_5)$ the value of program variable 
+	$\pv{i}$ before being assigned in line 5. 
+	%We refer to $\pv{a.length}$ as a constant function
+	%$\textit{alength}$.
+	%\LK{removed alength - check for consistency}
+	As the array variable $\pv{a}$ is non-mutable (specified by \pv{const} in the program), we write $a(i(l_{8}(it)))$ for 
+	the value of array $\pv{a}$ at the position corresponding to the current value of $\pv{i}$ at timepoint $l_{8}(it)$.
+	For the  mutable array $\pv{b}$, we consider timepoints where
+	$\pv{b}$ has been updated and write $b(l_{9}(it),
+	j(l_{9}(it)))$ for the array $\pv{b}$ at position $\pv{j}$ at the
+	timepoint $l_{9}(it)$ during the loop.
+	%
+	\qed
+\end{example}
+
+
+We emphasize that we consider (numeric) program variables \pv{v} to be of sort
+$\intsort$, whereas loop iterations $it$ are of sort  $\natsort$. 
+%This is due to the fact, that reasoning over iterations is limited to reasoning over $\{0, \suc, \leq\}$ and we don't consider arithmetic expressions over addition and multiplication $\{+, *\}$ for loop iterations. 
+%
+\subsection{Program Expressions}\label{sec:exp}
+Arithmetic constants and program expressions are modeled using integer
+functions and predicates.
+Let $\pv{e}$ be an arbitrary program expression and write $\llbracket \pv{e} \rrbracket (tp)$ to denote 
+the value of the evaluation of $\pv{e}$ at timepoint $tp$. 
+%the following properties. % over  $\llbracket \pv{e} \rrbracket (tp)$.
+%With these notations at hand, we introduce definitions expressing properties
+%about values of expressions $\pv{e}$ at arbitrary timepoints.
+%We continue by defining some properties over values of expressions $\pv{e}$ at arbitrary timepoints, we will use in the axiomatization of program statements in the following section: 
+%
+Let $v\in \pvsig$, that is a function $v$ denoting a program variable
+$\pv{v}$. Consider $\pv{e},\pv{e}_1,\pv{e}_2$ to be program
+expressions and 
+let $tp_1, tp_2$ denote two timepoints. We define 
+\begin{equation*} \label{eq:eq:expressions}
+\begin{array}{l}
+Eq(v,tp_1,tp_2):= 
+\\
+\qquad\quad\left\{
+\begin{aligned}
+&\forall \mathit{pos}_{\Int}. \;\;v(tp_1, \mathit{pos}) \eql v(tp_2, \mathit{pos}), \hspace{-0.5em}, \text{ if \pv{v} is an array}\\&
+v(tp_1) \eql v(tp_2), \text{otherwise}
+\end{aligned}
+\right.
+\end{array}
+\end{equation*}
+
+%in \eqref{eq:eq:expressions} 
+to denote that the program variable $\pv{v}$ has the same values at
+$tp_1$ and $tp_2$.  
+%We finally introduce three definitions to express how the values of program variables change between two timepoints. First, define
+We further introduce
+\begin{equation*}\label{eq:eqall:expressions}
+\textit{EqAll}(tp_1,tp_2) := \bigwedge_{v \in \pvsig} Eq(v,tp_1,tp_2)
+\end{equation*}
+
+to define that all program variables have the same values at
+timepoints $tp_1$ and $tp_2$. We also define
+%
+\begin{equation*}
+\begin{array}{l}
+\mathit{Update}(v,e,tp_1,tp_2) := \\
+\qquad\quad	 v(tp_2) \eql \llbracket \pv{e} \rrbracket(tp_1) 
+\land \bigwedge_{v' \in \pvsig \setminus \{v\}} Eq(v',tp_1,tp_2), 
+\end{array}
+\end{equation*}
+asserting that the numeric program variable \pv{v} has been updated while
+all other program variables $\pv{v'}$ remain unchanged. This definition is
+further 
+extended  to array updates as
+%Finally, we define such an update on arrays as: 
+%\begin{subequations}
+\begin{equation*}
+\begin{array}{l}
+\mathit{Update}\mathit{Arr}(v,e_1,e_2,tp_1,tp_2) :=\\
+\qquad\quad \forall \mathit{pos}_{\Int}. \ (\mathit{pos} \neql \llbracket e_1\rrbracket(tp_1) \rightarrow 
+v(tp_2, \mathit{pos}) \eql v(tp_1, \mathit{pos}))
+\\
+\qquad\quad \land \ v(tp_2, \llbracket e_1 \rrbracket(tp_1)) \eql \llbracket e_2 \rrbracket(tp_1) 	\\
+\qquad\quad  \bigwedge_{v' \in \pvsig \setminus \{v\}} Eq(v',tp_1,tp_2). 	\nonumber 
+\end{array}
+\end{equation*}
+% \end{subequations}
+
+\begin{example}
+	In Figure \ref{fig:running}, we refer to the value of $\pv{i+1}$ at timepoint $l_{12}(it)$ as
+	$i(l_{12}(it))+1$. 
+	Let $\pvsig^\textit{1}$ be the set of function symbols
+	representing the program variables of Figure \ref{fig:running}.
+	% When we go from one iteration $it$ to the next iteration $\suc(it)$, \LK{all program values remain the same, given as }
+	%	\begin{align*}
+	%	EqAll&(l_5(\suc(it)), l_{13}(it))  :=  \\&
+	%	\bigwedge_{v \in \pvsig^\textit{1}} Eq(v, l_5(\suc(it), l_{13}(it))).
+	%	\end{align*}
+	For an update of \pv{j} in line~10 at some iteration $it$, we derive 
+	\begin{align*}
+	Update&(j, \pv{j+1}, l_9(it), l_{10}(it))  :=  j(l_{10}(it)) \eql (j(l_9(it))+1) 
+	\\& \land  \quad \bigwedge_{v' \in \pvsig^\textit{1} \setminus \{j\}} Eq(v', l_9(it), l_{10}(it)). 
+	\end{align*}\qed
+	%\LK{add Update/EqAll examples}
+\end{example}
+

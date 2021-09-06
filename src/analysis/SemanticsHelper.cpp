@@ -468,5 +468,4 @@ std::shared_ptr<const logic::Formula> allVarEqual(
   }
   return logic::Formulas::conjunction(conjuncts, label);
 }
-
 }  // namespace analysis

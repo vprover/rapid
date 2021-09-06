@@ -345,6 +345,30 @@ std::shared_ptr<const logic::Formula> SemanticsInliner::handlePersistence(
                 {posSymbol}, logic::Formulas::equalitySimp(
                                  toTerm(var, currTimepoint, pos, trace),
                                  toTerm(var, cachedTimepoint, pos, trace)));
+
+            // When a timepoint is used with a quantified variable like Itl9
+            // instead nl9 when dereferencing terms for main_end, f needs to
+            // universally quantify over Itl9 as well. This might occur when
+            // variable values are not changed throughout a loop, but are not
+            // propagated throughout all timepoints with inline semantics. This
+            // variable will only have cached timepoints from where its values
+            // were used, but not from the end of the loop.
+            if (cachedTimepoint.get()->prettyString().find("nl") ==
+                std::string::npos  &&
+            cachedTimepoint.get()->prettyString().find("Itl") !=
+                std::string::npos) {
+              auto cachedTimepointTerm =
+                  std::static_pointer_cast<const logic::FuncTerm>(
+                      cachedTimepoint);
+              auto quantifiedSym =
+                  cachedTimepointTerm->subterms.back().get()->symbol;
+              f = logic::Formulas::universalSimp(
+                  {posSymbol, quantifiedSym},
+                  logic::Formulas::equalitySimp(
+                      toTerm(var, currTimepoint, pos, trace),
+                      toTerm(var, cachedTimepoint, pos, trace)));
+            }
+
             conjuncts.push_back(f);
           } else {
             // note: cf. comment about why we need this case in the

@@ -77,26 +77,20 @@ class Configuration {
         _inlineLemmas("-inlineLemmas", false),
         _postcondition("-postcondition", false),
         _allOptions() {
+    
     registerOption(&_outputDir);
-
     // for testing purposes only
     registerOption(&_generateBenchmark);
-
     // use inbuilt nat sort provided with Rapid Vampire
     registerOption(&_nativeNat);
-
     // inlines program semantics in a more compact way
     registerOption(&_inlineSemantics);
-
     // uses lemma predicates for Rapid Vampire
     registerOption(&_lemmaPredicates);
-
     // semantics with iterations using integer instead of natural number sort
     registerOption(&_integerIterations);
-
     // inline lemmas as one big formula without naming
     registerOption(&_inlineLemmas);
-
     // postcondition mode prints color and target symbols
     registerOption(&_postcondition);
   }

@@ -54,7 +54,7 @@ class LVariable : public Term {
 class FuncTerm : public Term {
   friend class Terms;
   FuncTerm(std::shared_ptr<const Symbol> symbol,
-           std::vector<std::shared_ptr<const Term> > subterms)
+           std::vector<std::shared_ptr<const Term>> subterms)
       : Term(symbol), subterms(std::move(subterms)) {
     assert(this->symbol->argSorts.size() == this->subterms.size());
     for (int i = 0; i < this->symbol->argSorts.size(); ++i) {

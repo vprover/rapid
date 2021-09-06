@@ -5,7 +5,7 @@ PARSER_HDR=$(SRCDIR)/parser/WhileParser.hpp
 SCANNER_SRC=$(SRCDIR)/parser/WhileScanner.cpp
 
 BISON=/usr/local/opt/bison/bin/bison
-FLEX=/usr/local/Cellar/flex/2.6.4/bin/flex
+FLEX=/usr/local/opt/flex/bin/flex
 
 all: $(PARSER_SRC) $(PARSER_HDR) $(SCANNER_SRC)
 
@@ -19,5 +19,5 @@ $(SCANNER_SRC): WhileScanner.ll
 
 clean:
 
-mrproper: 
+mrproper:
 	rm $(PARSER_SRC) $(PARSER_HDR) $(SCANNER_SRC) stack.hh

@@ -62,9 +62,12 @@ class EqualityPreservationTracesLemmas
   virtual void generateOutputFor(
       const program::WhileStatement* statement,
       std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
+<<<<<<< HEAD
   virtual void generateOutputForInteger(
       const program::WhileStatement* statement,
       std::vector<std::shared_ptr<const logic::ProblemItem>>& items);
+=======
+>>>>>>> main
 };
 
 /*
@@ -133,9 +136,12 @@ class NEqualLemmas
   virtual void generateOutputFor(
       const program::WhileStatement* statement,
       std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
+<<<<<<< HEAD
   virtual void generateOutputForInteger(
       const program::WhileStatement* statement,
       std::vector<std::shared_ptr<const logic::ProblemItem>>& items);
+=======
+>>>>>>> main
 };
 }  // namespace analysis
 

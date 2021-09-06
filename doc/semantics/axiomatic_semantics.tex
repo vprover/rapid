@@ -1,0 +1,270 @@
+
+\section{Axiomatic Semantics in Trace Logic $\tracelogic$
+}\label{sec:axiomatic-semantics}
+ 
+
+\subsection{Trace Logic $\tracelogic$}
+Trace logic $\tracelogic$ is an instance of
+many-sorted first-order logic with equality. We define the signature
+$\Sigma(\tracelogic)$  of trace logic as 
+$$ \Sigma(\tracelogic) : = \natsig \union \intsig \union \tpsig \union \pvsig \union \lastsig,$$
+containing the signatures of the theory of natural numbers (term
+algebra) $\natsort$ and integers $\intsort$,
+as well the respective sets of timepoints, program variables and last
+iteration symbols as defined in section \ref{sec:model}.
+
+We next define the semantics of $\whilelang$ in trace logic $\tracelogic$. 
+
+%\LK{what is trace logic? Need to introduce it as the axioms belows are trace logic formulas.}
+
+%
+%In this subsection, we state axiomatic semantics of $\whilelang$.%
+%We first define $\mathit{Reach}$, and then use $\mathit{Reach}$ to define the semantics of an arbitrary program.
+
+%\subsection{Axiomatization of reachability}\label{sec:reach}
+\subsection{Reachability and its Axiomatization}\label{sec:reach} 
+We introduce a predicate $\mathit{Reach}: \tpsort \mapsto \mathbb{B}$
+to capture the set of timepoints reachable in an execution and use
+$\mathit{Reach}$ to define the axiomatic
+semantics of $\whilelang$ in trace logic $\tracelogic$.
+We define reachability $\mathit{Reach}$ as a predicate over
+timepoints, in contrast to defining reachability as a predicate over program
+configurations such as in~\cite{hoder2012generalized, bjorner2015horn, fedyukovich2019quantified, ish2020putting}.
+%\LK{cite some works that do the predicate-setting of reachability}
+
+We axiomatize $\mathit{Reach}$ using trace
+logic formulas as follows. 
+
+\begin{definition}[$\mathit{Reach}$-predicate]
+	For any context $c$, any statement \pv{s}, let
+	$\mathit{Cond}_{s}$ be the expression denoting a potential
+	branching condition in \pv{s}.
+	%and $lastIt_s$ denote the last iteration if \pv{s} is a
+	%while-statement.
+	We define 
+	\begin{equation*}
+	\begin{array}{l}
+	\mathit{Reach}(\mathit{start}_c) := 
+	\begin{cases}
+	true,  \\ \quad \text{if \pv{c} is top-level context}\\
+	\mathit{Reach}(\mathit{start}_{s}) \land \mathit{Cond}_{s}(\mathit{start}_{s}), \\ \quad\text{if \pv{c} is context of if-branch of \pv{s}}\\
+	\mathit{Reach}(\mathit{start}_{s}) \land \neg\mathit{Cond}_{s}(\mathit{start}_{s}), \\ \quad\text{if \pv{c} is  context of else-branch of \pv{s}}\\
+	\mathit{Reach}(\mathit{start}_{s}) \land it^{s}< \mathit{lastIt}_{s}, \\ \quad\text{if \pv{c} is context of body of \pv{s}}.
+	\end{cases}
+	\end{array}
+	\end{equation*}
+	
+	
+	%\LK{work on the format and spelling above and define $Cond_s$}
+	%\LK{work on the format and spelling  above; define $Cond_s$; removed
+	%  def of $lastIt_s$ as it was defined before}
+	For any non-while statement $\pv{s}^\prime$ occurring in 
+	context \pv{c}, let
+	$$\mathit{Reach}(\mathit{start}_{s^\prime}) := \mathit{Reach}(\mathit{start_c}),$$
+	
+	and for any while-statement $\pv{s}^\prime$ occurring in context \pv{c}, let 
+	$$\mathit{Reach}(tp_{s^\prime}(it^{s^\prime})) := \mathit{Reach}(\mathit{start}_{c}) \land it^{s^\prime} \leq \mathit{lastIt}_{s^\prime}.$$
+	
+	Finally let $\mathit{Reach(\mathit{end})}:= true$.\qed
+\end{definition}
+
+Note that our reachability predicate $\mathit{Reach}$ allows specifying
+properties about intermediate timepoints
+(since those properties can only hold if the referred timepoints are
+reached) and supports reasoning about which locations are reached.
+%(e.g. for analyzing outgoing calls in smart contracts).
+%\begin{example}
+%	Consider again Figure \ref{fig:running}. Let $\pv{w}_1$ denote the while-statement at line 7. Let $it_\natsort$ be an arbitrary iteration such that $it < lastIt_{\pv{w}_1}$. Let $it^\prime_\natsort$ be an arbitrary iteration such that $lastIt_{\pv{w}_1} < it^\prime$. Let $tp_{\pv{w}_1}(it) := l_5(it)$
+%	We have 
+%	$$ Reach(l_5(it)) := Reach(start_c) \wedge it \leq lastIt_{\pv{w}_1} = true $$
+%	since $it < lastIt_{\pv{w}_1}$ by assumption and $Reach(start_c)$ is true since $c$ is the top-level context. 
+%	For $it^\prime$, we obtain,	
+%	$$ Reach(l_5(it^\prime)) := Reach(start_c) \wedge it^\prime \leq lastIt_{\pv{w}_1} = false $$
+%	since $it^\prime \nleq lastIt_{\pv{w}_1}$ by assumption. 
+%\qed
+%\end{example}
+
+%\LK{can we have an example of Reach{} for Figure 1?}
+%\pg{I added it, but I think it's too long and not very interesting given the fact that Reach just gives true or false. - I commented the reachability example for now as we're still almost a column over the page limit}
+
+\subsection{Axiomatic Semantics of $\whilelang$}
+We axiomatize the semantics of each program statement in $\whilelang$,
+and define the semantics of a program  in $\whilelang$ as the conjunction of all these axioms.
+
+\paragraph{Main-function}
+Let $\pv{p\pvi{0}}$ be an arbitrary, but fixed program in
+$\whilelang$; we give our
+definitions relative to $\pv{p\pvi{0}}$. %an arbitrary  a fixed program.
+The semantics of $\pv{p\pvi{0}}$, denoted by $\llbracket \pv{p\pvi{0}}
+\rrbracket$,  consists of a conjunction of one implication per statement, where each implication has the reachability of the start-timepoint of the statement as premise and the semantics of the statement as conclusion:
+$$\llbracket \pv{p\pvi{0}} \rrbracket := \Land_{\pv{s} \text{ statement of \pv{p\pvi{0}}}}  \forall \mathit{enclIts}. \big(Reach(\mathit{start}_s) \limp \llbracket \pv{s} \rrbracket\big)$$
+
+%\LK{what is $enclIts$? not used in the formula?}
+
+where $enclIts$ is the set of iterations $\{it^{w_1},\dots,
+it^{w_n}\}$ of  all enclosing loops $w_1, \dots, w_n$ of some statement \pv{s} in $\pv{p\pvi{0}}$, and
+the semantics $\llbracket \pv{s} \rrbracket$ of program statements $\pv{s}$ is defined as follows.
+
+\paragraph{Skip}
+Let $\pv{s}$ be a statement \while{skip}. Then 
+\begin{equation}\label{semantics_skip}
+\llbracket \pv{s}\rrbracket := EqAll(\mathit{end}_\pv{s},\mathit{start}_\pv{s})
+\end{equation}
+
+\paragraph{Break}
+Let $\pv{s}$ be a statement \while{break}. Then 
+\begin{equation}\label{semantics_break}
+TODO
+\end{equation}
+
+\paragraph{Continue}
+Let $\pv{s}$ be a statement \while{continue}. Then 
+\begin{equation}\label{semantics_continue}
+TODO
+\end{equation}
+
+\paragraph{Early-Return}
+Let $\pv{s}$ be a statement \while{return}. Then 
+\begin{equation}\label{semantics_return}
+TODO
+\end{equation}
+
+\paragraph{Integer assignments}
+Let $\pv{s}$ be an assignment \while{v = e}, %$\pv{v = e}$
+where $\pv{v}$ is an integer-valued  program variable and
+$\pv{e}$ is an expression.
+%We reason as follows. 
+%The assignment $\pv{s}$ is evaluated in one step. 
+The evaluation of $\pv{s}$ is performed in one step such that, after the evaluation, the variable $\pv{v}$ has the same value as $\pv{e}$ before the evaluation. 
+All other variables remain unchanged and thus 
+%
+\begin{equation}\label{semantics_int_assign}
+\llbracket \pv{s}\rrbracket := \mathit{Update}(v,e,\mathit{end}_s,\mathit{start}_s)
+\end{equation}
+
+\paragraph{Array assignments}
+Consider $\pv{s}$ of the form \while{a[e$_1$] = e$_2$},
+with $\pv{a}$ being an array variable and
+$\pv{e\pvi{1}}, \pv{e\pvi{2}}$ being expressions.
+The assignment is evaluated in one step. 
+After the evaluation of $\pv{s}$, the array $\pv{a}$ contains the
+value of $\pv{e\pvi{2}}$ before the evaluation at position
+$\mathit{pos}$ corresponding to the value of $\pv{e\pvi{1}}$ before
+the evaluation. The values at all other positions of $\pv{a}$ and all
+other program variables remain unchanged and hence 
+%
+\begin{equation}\label{semantics_arr_assign}
+\llbracket \pv{s}\rrbracket := \mathit{UpdateArr}(v,e_1,e_2,\mathit{end}_s,\mathit{start}_s)
+\end{equation}
+
+\paragraph{Conditional \ifThenElseStatement{} Statements}
+Let $\pv{s}$ be \while{if(Cond)\{c$_1$\} else \{c$_2$\}}.
+The semantics of $\pv{s}$ states that entering the if-branch and/or entering the else-branch 
+does not change the values of the variables and we have 
+\begin{subequations}
+	\begin{align}
+	\label{semantics_ite_1}
+	\llbracket \pv{s} \rrbracket := 
+	&		    && \llbracket \pv{Cond} \rrbracket (\mathit{start}_s) \rightarrow \mathit{EqAll}(\mathit{start}_\pv{c\pvi{1}},\mathit{start}_s)\\
+	\label{semantics_ite_2}
+	&\land	&\neg&\llbracket \pv{Cond} \rrbracket (\mathit{start}_s) \rightarrow \mathit{EqAll}(\mathit{start}_\pv{c\pvi{2}},\mathit{start}_s)
+	\end{align}
+\end{subequations}
+where the semantics
+$\llbracket \pv{Cond} \rrbracket$ of the expression $\pv{Cond}$ is according
+to Section~\ref{sec:exp}. 
+
+\paragraph{While-Statements}
+
+Let $\pv{s}$ be the \whileStatement-statement \while{while(Cond)\{c\}}.
+%
+We refer to $\pv{Cond}$ as the \emph{loop condition}.
+%
+The semantics of $\pv{s}$ is captured by conjunction of the  following three  properties: 
+(\ref{semantics_while_1}) the iteration $\mathit{lastIt}_s$ is the first iteration where $\pv{Cond}$ does not hold,
+(\ref{semantics_while_2}) entering the loop body does not change the values of the variables, 
+(\ref{semantics_while_3}) the values of the variables at the end of evaluating $\pv{s}$ 
+are the same as the variable values 
+at the loop condition location in iteration $\mathit{lastIt}_s$. As
+such, we have 
+\begin{subequations}
+	\begin{align}
+	\llbracket \pv{s} \rrbracket :=      &&&\forall it^s_{\Nat}. \; (it^s<\mathit{lastIt}_\pv{s} \rightarrow \llbracket \pv{Cond} \rrbracket (tp_\pv{s}(it^s))) \nonumber\\
+	&\land &&\neg \llbracket \pv{Cond} \rrbracket (tp(\mathit{lastIt}_\pv{s})) \label{semantics_while_1}\\
+	&\land &&\forall it^s_{\Nat}. \; (it^s<\mathit{lastIt}_\pv{s} \rightarrow \mathit{EqAll}(\mathit{start}_\pv{c},tp_\pv{s}(it^s)) \label{semantics_while_2}\\
+	&\land && \mathit{EqAll}(\mathit{end}_\pv{s}, tp_s(\mathit{lastIt}_\pv{s})) \label{semantics_while_3}
+	\end{align}
+\end{subequations}
+
+\subsection{Soundness and Completeness.}
+
+The axiomatic semantics of $\whilelang$ in trace logic is sound. That
+is, given a program $\pv{p}$ in $\whilelang$ and a trace logic
+property $F \in \tracelogic$,
+we have that any interpretation in $\tracelogic$ is a model of
+$F$ according to the small-step operational semantics of
+$\whilelang$. We conclude the next theorem - and refer
+to~\cite{extendedversion} for details. 
+%Appendix~\ref{sec:soundness} for a formal proof. 
+
+%$F$ is $\whilelang$\textit{-sound}, intuitively if for
+%any model $M$ of $\phi$ according to the operational semantics of $\whilelang$, we have $M \models F$. For a formal definition and proof on these
+%following results we refer to Appendix~\ref{sec:appendix}.
+%
+%\LK{gibe maybe intuition what soundness means}
+%\pg{is that okay like this? the intuition is hard to state here as it is very technical and it heavily depends on this notion of "execution interpretation" which we only introduce in the appendix for space reasons}
+
+\begin{theorem}[$\whilelang$-Soundness\label{thm:sound}]
+	Let $\pv{p}$ be a program. Then the axiomatic semantics
+	$\llbracket \pv{p} \rrbracket$ is sound with respect to
+	standard small-step operational semantics.
+	\qed[-.5em]
+\end{theorem}
+
+Next, we show that the axiomatic semantics of $\whilelang$ in trace
+logic $\tracelogic$  is complete with respect to Hoare logic \cite{hoare1969axiomatic}, as follows.
+
+Intuitively, a Hoare Triple $\{F_1\}\pv{p}\{F_2\}$ corresponds to the trace logic formula
+\begin{equation}\label{eq:translation-hoare}
+\hspace*{-.75em}	\forall
+\mathit{enclIts}. \big(\mathit{Reach}(\mathit{start}_{p}) \limp
+([F_1](\mathit{start}_p)\rightarrow [F_2](\mathit{end}_p))\big)\hspace*{-.75em}
+\end{equation}
+
+where the expressions $[F_1](\mathit{start}_p)$ and
+$[F_2](\mathit{end}_p)$ denote the result of adding to each program
+variable in $F_1$ and $F_2$ the timepoints $\mathit{start}_p$
+respectively  $\mathit{end}_p$ as first arguments.
+We therefore define that the axiomatic semantics of $\whilelang$ is \emph{complete with respect to Hoare logic}, if for any Hoare triple $\{F_1\}\pv{p}\{F_2\}$ valid relative to the background theory $\mathcal{T}$, the corresponding trace logic formula \eqref{eq:translation-hoare}	is derivable from the axiomatic semantics of $\whilelang$ in the background theory $\mathcal{T}$.
+With this definition at hand, we get the following result, proved
+formally in~\cite{extendedversion}.% Appendix~\ref{sec:completeness}.
+\begin{theorem}[$\whilelang$-Completeness with respect to Hoare logic\label{thm:completeness}]
+	The axiomatic semantics of $\whilelang$  in trace logic is
+	complete with respect to Hoare logic.
+	\qed
+\end{theorem}
+
+
+
+
+
+% In addition and most importantly, thanks to the axiomatization and use of the $\mathit{Reach}$ predicate,
+% we also conclude that axiomatic semantics of $\whilelang$ in trace logic is 
+% complete with respect to Hoare logic \cite{hoare1969axiomatic} being relatively complete with respect to Peano Arithmetic, consider \cite{apt1981ten, bergstra1982expressiveness}. 
+
+% Intuitively, for every valid Hoare Triple $\{P\}p\{Q\}$ that can be derived with Hoare logic, we can derive a proof for a property $F$ of the form $P' \rightarrow Q'$ expressed in trace logic $\tracelogic$ for a program $p^\prime$ in $\whilelang$ - translated from $p$. More precisely, we can prove the following from trace logic axioms as stated above: 
+% $$\forall \mathit{enclIts}. \big(\mathit{Reach}(\mathit{start}_{p^\prime}) \limp (P^\prime(\mathit{start}_{s})\limp Q^\prime(\mathit{end}_{s}))\big),$$ 
+% where $P'$ and $Q'$ are formulas over timepoints $\mathit{start}_s$ resp. $\mathit{end}_s$ for some statement $\pv{s}$ with enclosing iterators $\mathit{enclIts}$ in $p'$.
+% For a formal argument of completeness  We thus have the following completeness result. 
+
+% \LK{add here details - what does actuallty completeness mean? whatever is provable in
+% 	Hoare Logic, is also provable in trace logic, and hence any valid
+% 	Hoare triple/correctness assertion can be proved to be valid using
+% 	our axiomatic semantics.
+% 	Also details as informal discussions on how the proof using Reach is carried
+% 	out. } 
+% \pg{please check if it's okay like this.}
+
+% \begin{theorem}[$\whilelang$-Completeness with respect to Hoare logic\label{thm:completeness}]
+% 	The axiomatic semantics of $\whilelang$  in trace logic is complete with respect to Hoare logic.
+% \end{theorem}

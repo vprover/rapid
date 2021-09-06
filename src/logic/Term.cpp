@@ -73,9 +73,6 @@ std::string FuncTerm::toTPTP() const {
     std::string str = symbol->toTPTP() + "(";
     for (unsigned i = 0; i < subterms.size(); i++) {
       str += subterms[i]->toTPTP();
-      str += (i == subterms.size() - 1) ? ")" : ",";
-    }
-
     // replace trace logic function terms with target symbols for postcondition
     if (str.find("main_end") != std::string::npos) {
       std::string toReplace("(main_end");

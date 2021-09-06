@@ -1,0 +1,510 @@
+\section{Trace Lemmas}
+
+\subsection{Trace Lemmas $\mathcal{T_L}$ for Verification}\label{sec:TL}
+%Enabled by explicit timepoint reasoning,
+Trace logic
+properties support arbitrary quantification over timepoints and
+describe values of program variables at arbitrary loop  iterations and
+timepoints. We therefore can relate timepoints with values of program
+variables in trace logic $\tracelogic$, allowing us to describe the value
+distributions of program variables as functions of timepoints
+throughout program executions. As such, trace logic $\tracelogic$ supports 
+%arbitrary quantification over timepoints, reasoning about properties
+%over unbounded data structures, such as arrays, 
+\begin{enumerate}
+	\item[(1)] reasoning about the {\it existence} of a specific
+	loop iteration, allowing us to split the range of loop
+	iterations at a particular timepoint, based  on the safety
+	property we want to prove. For example, we can express and derive loop iterations
+	corresponding to timepoints where one program variable takes
+	a specific value for {\it the first time during loop
+		execution}; 
+	%This is particularly useful since the refu)tational prover enables backwards reasoning starting from property.  
+	\item[(2)] universal quantification over the array content and
+	range of 
+	loop iterations bounded by two arbitrary left and right
+	bounds, allowing us 
+	to apply instances of the induction
+	scheme~\eqref{eq:tr:ind} within a range of loop iterations
+	bounded, for example, by $it$ and $lastIt_s$ for some while-statement \pv{s}. 
+	%        \LK{$lastIt$ vs $lastIt_s$}
+\end{enumerate}
+Addressing these benefits of trace logic, we 
+%Explicit timepoints in trace logic thus allow us to automatically
+express generic patterns of inductive program properties as
+\emph{trace lemmas}. % over unbounded data structures, such as
+%arrays. %formalizing gee that supersede program-specific invariants for reasoning over array values and surpass any expressiveness of automated or template-driven invariant generation in this regard. %
+%Specifically, we relate timepoints of sort natural number with integer values of program variables 
+%%for specific loop iterations 
+%in such a way that enables deriving their behavior throughout the program execution 
+%in terms of reflexive and transitive relations 
+%by such lemmas. As discussed in \ref{sec:running}, this allows for example to derive the fact that once an array value is set, it will not be changed over time if a specific iteration of a loop cannot be reached again.
+%addition
+% \todoIn{define tedious and motivate why covering tedious inductive consequences is important}.
+%Identifying a good set of such trace lemmas is a big effort and heavily depends on the set of input problems, similar to identifying abstract domains for abstract interpretation or program-specific invariant generation. We therefore suggest the following research task to the community:\\
+%      \textbf{Research task.}
+Identifying a  suitable set $\mathcal{T_L}$ of trace lemmas to automate
+inductive reasoning in trace logic $\tracelogic$ is however challenging and
+domain-specific. We propose  three
+trace lemmas for inductive reasoning over arrays and integers,
+by considering
+\begin{description}
+	\item[(A1)] one trace lemma
+	%for first-order reasoning covering %tedious 
+	%induction over specific sets of problems.
+	%
+	%\subsection*{\textbf{A suitable set of Trace Lemmas}}
+	%We now present an initial solution for a set of suitable trace lemmas for inductive reasoning over arrays and integers. 
+	%For each lemma, we establish its soundness and motivate its utility. 
+	%Note that such a set also exists over multiple computation traces for proving relational security properties such as program equivalence and noninterference \cite{barthe2019verifying}. 
+	%
+	%We categorize the lemmas into two groups: (A) Lemmas
+	describing how values of program variables change during an
+	interval of loop iterations;
+	
+	\item[(B1-B2)] two trace lemmas to describe the behavior of loop
+	counters. 
+\end{description}
+%While our trace lemmas can be regarded as invariant
+%templates, we note that our trace lemmas are not program-specific
+%but capture inductive properties of arbitrary programs. 
+%      , as shown
+We prove soundness of our trace lemmas - below we
+include only one  proof and refer to~\cite{extendedversion} for further details.
+%to Appendix~\ref{sec:trace-lemmas} for further details.
+
+% (C) lemmas relating the execution of multiple traces\footnote{For the sake of brevity relational lemmas can be found in the appendix.} and (D) other lemmas. 
+
+\subsubsection*{\textbf{(A1) Value Evolution Trace Lemma}} \label{lemma:valueEvolution}
+Let $\pv{w}$ be a while-statement, let $\pv{v}$ be a mutable program
+variable and let $\circ$ be a reflexive and transitive relation -
+that is $\eql$ or $\leq$ in the setting of trace logic. 
+%
+The \emph{value evolution trace lemma of $\pv{w}$, $\pv{v}$, and $\circ$} is defined as
+\begin{equation}\label{eq:TLA1}
+\begin{array}{l}
+\forall bl_{\natsort}, br_{\natsort}.\\
+\bigg( 
+\forall it_{\natsort}. 
+\Big(( bl\leq it < br \land v(tp_\pv{w}(bl)) \circ v(tp_\pv{w}(it))) 
+\\  \qquad \qquad\limp v(tp_\pv{w}(bl)) \circ v(tp_\pv{w}(\suc(it)))\Big) \tag{A1}
+\\\quad\limp 
+\big( bl \leq br \limp v(tp_\pv{w}(br)) \circ v(tp_\pv{w}(br)) \big) %\label{form:evolution-conclusion}
+\bigg) 
+\end{array}
+\end{equation}
+%
+In our work, the value evolution trace
+lemma is mainly instantiated with
+the equality predicate $\eql$
+to conclude that the value of a variable does not change during a
+range of loop iterations, provided that the variable value does not
+change at any of the considered loop iterations.
+%~It is the powerhouse of inductive reasoning over arrays and shows the strength of our approach since it allows us to derive complex program invariants automatically. 
+%Instantiating the lemma with $\leq$ or $\geq$ is not as useful for our current set of benchmarks, but is still needed in some situations.
+
+\begin{example}
+	For Figure~\ref{fig:running}, the value evaluation trace lemma (A1) 
+	yields the property
+	%\LK{add the value evolution trace lemma for Fig1}
+	\begin{equation*}\label{eq:running:evolution}
+	\begin{array}{l}
+	\forall j_\intsort.\ \forall bl_\natsort.\ \forall br_\natsort.\ \\
+	\bigg( 
+	\forall it_\natsort. \Big( (bl \leq it < br \ \wedge \  b(l_8(bl), j) = b(l_8(it), j) ) \\
+	\qquad \qquad \rightarrow b(l_8(bl), j) = b(l_8(s(it)), j)
+	\Big) \\ \rightarrow 
+	\big( bl \leq br \rightarrow b(l_8(bl), j) = b(l_8(br), j) \big)
+	\bigg), 
+	\end{array}
+	\end{equation*}
+	%
+	which allows to prove that the value of $\pv{b}$ at some position
+	$\pv{j}$
+	remains the same from the timepoint $it$ the value was first set until
+	the end of program execution. That is, we derive $b(l_9(end), j(l_9(it))) = a(i(l_8(it)))$.\qed
+\end{example}
+
+We next prove soundness of our trace lemma~\eqref{eq:TLA1}.
+
+\noindent{\bf Proof {\it (Soundness Proof of Value Evolution Trace
+		Lemma~\eqref{eq:TLA1})}} 
+Let $bl$ and $br$ be arbitrary but fixed and assume that the 
+premise of the outermost implication of~\eqref{eq:TLA1}
+holds. That is, 
+\begin{equation}\label{eq:TLA1:Prem}
+\begin{array}{l}
+\forall it_{\natsort}.  \big(( bl\leq it < br \land v(tp_\pv{w}(bl)) \circ v(tp_\pv{w}(it))) \\
+\qquad\quad\limp v(tp_\pv{w}(bl)) \circ
+v(tp_\pv{w}(\suc(it)))\big)
+\end{array}
+\end{equation}
+We use the induction axiom
+scheme~\eqref{eq:tr:ind}  and consider its instance
+with $P(it) := v(tp_\pv{w}(bl)) \circ v(tp_\pv{w}(it))$,
+yielding the following instance of~\eqref{eq:tr:ind}:
+%We obtain the following
+%properties corresponding to the base case (BC), inductive case 
+%(IC) and conclusion (Con) of~\eqref{eq:tr:ind}: 
+\begin{subequations}	
+	\begin{align}
+	\hspace*{-1em} 	&\Big( v(tp_\pv{w}(bl)) \circ v(tp_\pv{w}(it)) \quad
+	\wedge \label{form:A1-a}\\
+	\hspace*{-1em} 	&\quad\forall it_{\natsort}. 
+	\big(( bl\leq it < br \land v(tp_\pv{w}(bl)) \circ v(tp_\pv{w}(it))) \label{form:A1-b}\\
+	\hspace*{-1em} 	&	\qquad\qquad\limp v(tp_\pv{w}(bl)) \circ v(tp_\pv{w}(\suc(it)))\big) \Big)
+	\nonumber\\
+	\hspace*{-1em} &	\limp\forall it_{\natsort}. \Big(bl\leq it \leq br \limp v(tp_\pv{w}(bl)) \circ v(tp_\pv{w}(it))\Big)\label{form:A1-c}
+	\end{align}
+\end{subequations} 
+Note that  the base case property~\eqref{form:A1-a} holds
+since  $\circ$ is reflexive. Further, the inductive
+case~\eqref{form:A1-b} holds also  since it is
+implied by~\eqref{eq:TLA1:Prem}. We thus derive 
+property~\eqref{form:A1-c}, and %that is: $$\forall
+%       it_{\natsort}. \Big(bl\leq it \leq br \limp v(tp_\pv{w}(bl))
+%       \circ v(tp_\pv{w}(it))\Big).$$
+in particular 
+%We next instantiate $it$ in the conclusion \ref{form:evolution-axiom-c} to $it_R$, which yields 
+$bl\leq br \leq br \limp v(tp_\pv{w}(bl)) \circ
+v(tp_\pv{w}(br))$. Since $\leq$ is reflexive, we conclude $bl\leq br \limp v(tp_\pv{w}(bl)) \circ
+v(tp_\pv{w}(br))$, proving thus our trace
+lemma~\eqref{eq:TLA1}.
+\qed
+%\end{proof}
+
+
+\vskip.5em
+
+\subsubsection*{\textbf{(B1) Intermediate
+		Value Trace Lemma}} \label{lemma:intermediateValue}
+Let $\pv{w}$ be a while-statement and let $\pv{v}$ be a mutable program
+variable. We call $\pv{v}$ to be \emph{dense} if the following holds:
+%
+\begin{align*}
+\mathit{De}&\mathit{nse}_{w,v} :=  \forall it_{\natsort}.
+\Big(
+it<\mathit{lastIt}_\pv{w}
+\limp\\
+&\big(
+v(tp_\pv{w}(\suc(it)))=v(tp_\pv{w}(it))
+\ \lor \ \\ &
+v(tp_\pv{w}(\suc(it)))=v(tp_\pv{w}(it)) + 1
+\big)
+\Big)
+\end{align*}
+
+%Let $\pv{w}$ be a while-statement and let $v$ be a mutable program variable. 
+
+The \emph{intermediate value trace lemma of $\pv{w}$ and $\pv{v}$} is
+defined as
+\begin{equation}\label{eq:TLB1}
+\begin{array}{l}
+\forall  x_{\intsort}. \Big(
+\big(
+\mathit{Dense}_{w,v} \land
+v(tp_\pv{w}(\zero)) \leq x < v(tp_\pv{w}(\mathit{lastIt}_\pv{w}))
+\big) \limp \\
+\quad\quad \exists it_{\natsort}.
+\big(
+it < \mathit{lastIt}_\pv{w}
+\land\
+v(tp_\pv{w}(it)) \eql x \ \land \tag{B1}\\
+\qquad\quad\quad \		
+v(tp_\pv{w}(\suc(it))) \eql v(tp_\pv{w}(it)) + 1
+\big)
+\Big)
+\end{array}\hspace*{-2em}
+\end{equation}
+The intermediate value trace lemma~\eqref{eq:TLB1} allows us conclude
+that if the variable $\pv{v}$ is dense, and if the value $x$ is between the
+value of $\pv{v}$ at the beginning of the loop and the value of $\pv{v}$ at the
+end of the loop, then there is an iteration in the loop, where $\pv{v}$ has
+exactly the value $x$ and is incremented.
+This trace lemma is mostly used to find specific iterations
+corresponding to positions $x$ in an array.
+
+\begin{example}
+	In Figure~\ref{fig:running}, using trace lemma~\eqref{eq:TLB1} we
+	synthesize the iteration $it$ such that $b(l_9(it), j(l_9(it))) =
+	a(i(l_8(it)))$.\qed
+\end{example}
+% The value $x$ usually denotes some position in an array.
+% One can see this lemma as a discrete version of the Intermediate Value Theorem for continuous functions.
+
+%\textit{Remark}. The lemma bounds for the intermediate value theorem are not generalized as is the case for value evolution. While with the latter, we might need the generalization of these bounds to find a specific iteration from which on the equality over a variable value holds, here this generalization is not necessary as we are merely looking for \textit{some} iteration within the execution of the loop \pv{w}.
+
+\vskip.5em
+
+\subsubsection*{\textbf{(B2) Iteration Injectivity Trace Lemma}}
+Let $\pv{w}$ be a while-statement and let $\pv{v}$ be a mutable program variable.
+The \emph{iteration injectivity trace lemma of $\pv{w}$ and $\pv{v}$} is
+\begin{align*}
+\forall it^1_\Nat, it^2_\Nat. \Big(
+&\big(
+\mathit{Dense}_{w,v} \land
+v(tp_\pv{w}(\suc(it^1))) = v(tp_\pv{w}(it^1)) + 1  \\& \land
+it^1 < it^2 \leq \mathit{lastIt}_\pv{w}
+\big)\tag{B2}\\
+&\limp
+v(tp_\pv{w}(it^1)) \neql v(tp_\pv{w}(it^2))
+\Big)
+\end{align*}
+
+%Iterator variables often have the property that they visit each
+%element of the data structure at most once.
+The trace lemma (B2) states that a strongly-dense variable visits each array-position at most once.
+As a consequence, if each array position is visited only once in a loop, we know that its value has not changed after the first visit, and in particular the value at the end of the loop is the value after the first visit. 
+\begin{example}
+	Trace lemma (B2) is necessary in Figure~\ref{fig:running} to apply
+	the value evolution trace lemma (A1) for \pv{b}, as we need to
+	make sure we will never reach the same position of \pv{j}
+	twice. \qed
+\end{example}
+
+%\LK{???Due to lack of space, we defer the full list of trace lemmas
+%  and the correctness proofs of these lemmas to the Appendix.??? What
+%  trace lemmas are there in addition? The appendix also has only these
+%  three trace lemmas}
+
+Based on the soundness of our trace lemmas, we conclude the next
+result.
+
+\begin{theorem}[Trace Lemmas and Induction]
+	Let $\pv{p}$ be a program. Let $L$ be a trace lemma for some
+	while-statement $\pv{w}$ of $\pv{p}$ and some variable $\pv{v}$ of
+	$\pv{p}$.
+	Then $L$ is a consequence of the bounded induction
+	scheme~\eqref{eq:tr:ind} and of the axiomatic semantics of $\llbracket
+	\pv{p} \rrbracket$ in trace logic $\tracelogic$.
+	\qed
+\end{theorem}
+%TODO: maybe say a word about multiple traces and put the proofs in the appendix - personally I would neglect the relational setting and just mention it in the intro.
+%\subsubsection{C1: Preservation of Trace-Equalities (only applicable to two traces).}
+%Let $t_1$ and $t_2$ be the constants denoting the two traces. Let further $\pv{w}$ be a while-statement and let $v$ be a mutable program variable.
+%Then the Equality Preservation for Traces lemma is the instance of the induction axiom scheme with
+%\begin{align*}
+%	\text{BC: }&v(tp_\pv{w}(it_L),t_1) \eql v(tp_\pv{w}(it_L),t_2)\\
+%	\text{IC: }&\forall it^\Nat. 
+%	\Big(\big(it_L \leq it < it_R \land v(tp_\pv{w}(it),t_1) \eql v(tp_\pv{w}(it),t_2) \big)\\
+%	&\qquad\limp v(tp_\pv{w}(\suc(it)),t_1) \eql v(tp_\pv{w}(\suc(it)),t_2) \Big)\\
+%	\text{Con: }&\forall it^\Nat. \Big(it_L \leq it \leq it_R \limp v(tp_\pv{w}(it),t_1) \eql v(tp_\pv{w}(it),t_2) \Big),
+%\end{align*}
+%obtained from the induction axiom scheme with $$P(it) := v(tp_\pv{w}(it),t_1) \eql v(tp_\pv{w}(it),t_2).$$
+%
+%This lemma is central for reasoning about relational properties, since it allows us to identify values of variables in both traces. Often many variables have the same value in both traces.
+%
+%\begin{proof}
+%	The Equality Preservation for Traces lemma is an instance of the induction axiom scheme and therefore holds.
+%\end{proof}
+
+%
+%\subsubsection{C2: Equal number of iterations (only applicable to two traces).}
+%Consider two arbitrary but fixed traces $t_1$ and $t_2$, and let $\pv{w}$ be a while-statement. Let further $V$ denote the set of function-symbols denoting mutable program variables occuring in the loop condition of $\pv{w}$ and let $VC$ be the set of function-symbols denoting constant program variables occuring in the loop condition of $\pv{w}$. Consider finally the macros
+%\begin{align*}
+%	EqV(it)	&:= \Land_{v \in V} v(tp_\pv{w}(it),t_1)\eql v(tp_\pv{w}(it),t_2)\\
+%	EqVC 	&:= \Land_{v \in VC} v(t_1)\eql v(t_2),
+%\end{align*}
+%where intuitively $EqV(it)\land EqVC$ is a sufficient condition to conclude that the loop condition check in iteration $it$ evaluates to the same value in $t_1$ and $t_2$.
+%
+%Then the \emph{equal-number-of-iteration lemma} is
+%\begin{align*}
+%	\bigg(
+%		&EqVC \land EqV(\zero) \land \\
+%		&\forall it^\Nat. \Big(
+%			\big( 
+%				it<\mathit{lastIt_\pv{w}}(t_1) \land 
+%				it<\mathit{lastIt_\pv{w}}(t_2) \land
+%				EqV(it)
+%			\big)
+%			\limp
+%			EqV(\suc(it))
+%		\Big)
+%	\bigg)\\
+%	&\limp \mathit{lastIt_\pv{w}}(t_1) \eql \mathit{lastIt_\pv{w}}(t_2)
+%\end{align*}
+
+%The equal-number-of-iteration lemma represents a sufficient condition to conclude that both loops terminate in the same number of iterations, which is usually the first step in a correctness proof for hyperproperties. The lemma is based on the observation that the variables used in the loop condition check often have the same value in both traces.
+
+%\begin{proof}
+%	Note that $it<\mathit{lastIt_\pv{w}}(t_1) \land it<\mathit{lastIt_\pv{w}}(t_2)$ is equivalent to $$it<min(\mathit{lastIt_\pv{w}}(t_1),\mathit{lastIt_\pv{w}}(t_2)).$$
+%	Now consider the instance of the induction axiom scheme with
+%	\begin{subequations}	
+%	\begin{align}
+%		\text{BC: }&EqV(\zero)\label{form:equal-n-axiom-a}\\
+%		\text{IC: }&\forall it^\Nat. 
+%		\Big(\big(\zero \leq it < min(\mathit{lastIt_\pv{w}}(t_1),\mathit{lastIt_\pv{w}}(t_2)) \land EqV(it) \big) \label{form:equal-n-axiom-b}\\
+%		&\qquad\limp EqV(\suc(it)) \Big) \nonumber\\
+%		\text{Con: }&\forall it^\Nat. \Big(\zero \leq it \leq min(\mathit{lastIt_\pv{w}}(t_1),\mathit{lastIt_\pv{w}}(t_2)) \limp EqV(it) \Big),\label{form:equal-n-axiom-c}
+%	\end{align}
+%	\end{subequations} 
+%	%
+%	obtained from the induction axiom scheme with $P(it) := EqV(it)$ by instantiating $it_L$ and $it_R$ to $\zero$ resp. $min(\mathit{lastIt_\pv{w}}(t_1),\mathit{lastIt_\pv{w}}(t_2))$.
+%	%
+%	Both the base case \ref{form:equal-n-axiom-a} and the inductive case \ref{form:equal-n-axiom-b} occur as assumption in the lemma and therefore hold. Therefore also the conclusion \ref{form:equal-n-axiom-c} holds, and in particular $$EqV(min(\mathit{lastIt_\pv{w}}(t_1),\mathit{lastIt_\pv{w}}(t_2)))$$ holds. By definition of $EqV$ and $EqVC$, we are therefore able to derive
+%	\begin{align*}
+%		&\mathit{Cond}_\pv{w}(min(\mathit{lastIt_\pv{w}}(t_1),\mathit{lastIt_\pv{w}}(t_2)), t_1) \liff\\
+%		&\mathit{Cond}_\pv{w}(min(\mathit{lastIt_\pv{w}}(t_1),\mathit{lastIt_\pv{w}}(t_2)), t_2)
+%	\end{align*}
+%
+%	Next we show that neither $\mathit{lastIt_\pv{w}}(t_1)<\mathit{lastIt_\pv{w}}(t_2)$ nor $\mathit{lastIt_\pv{w}}(t_2)<\mathit{lastIt_\pv{w}}(t_1)$ holds.
+%	\begin{itemize}
+%		\item Assume $\mathit{lastIt_\pv{w}}(t_1) < \mathit{lastIt_\pv{w}}(t_2)$ holds: We know $\neg \mathit{Cond}_\pv{w}(\mathit{lastIt_\pv{w}}(t_1), t_1)$ from the semantics. Therefore also $\neg \mathit{Cond}_\pv{w}(\mathit{lastIt_\pv{w}}(t_1), t_2)$ holds. But this contradicts $\mathit{Cond}_\pv{w}(\mathit{lastIt_\pv{w}}(t_1), t_2)$, which follows from our semantics since $\mathit{lastIt_\pv{w}}(t_2)$ is the first iteration in which the loop iteration doesn't hold. \todoIn{reference \emph{by number} relevant parts of the semantics}
+%		\item Assume $\mathit{lastIt_\pv{w}}(t_2) < \mathit{lastIt_\pv{w}}(t_1)$ holds: Analogously to the previous case.
+%	\end{itemize}
+%	By the totality of $<$, we therefore know that $\mathit{lastIt_\pv{w}}(t_1) = \mathit{lastIt_\pv{w}}(t_2)$ holds, which concludes the proof.
+%\end{proof}
+
+
+% \subsubsection*{\textbf{(D1) At Least One Iteration}}
+% Let $\pv{w}$ be a while-statement and let $\mathit{Cond}_\pv{w}(it)$ denote the loop condition check of $\pv{w}$ in iteration $it$.
+% Then the \emph{At-least-one-iteration lemma} is
+% \begin{align*}
+% 	\mathit{Cond_\pv{w}}(\zero) \limp \exists it^\Nat. \suc(it)\eql \mathit{lastIt_\pv{w}}
+% \end{align*}
+
+% \begin{figure} 
+% 	\begin{lstlisting}[mathescape]
+% 		func main() {
+% 			Int x;
+% 			Int found = 0;
+% 			while(found == 0) {
+% 				if(x > 0) {
+% 					x = x - 1;
+% 				}
+% 				else {
+% 					found = 1;
+% 				}
+% 			}
+% 		}
+% 	\end{lstlisting}
+% 	\caption{Break when $x=0$.}\vspace*{-2em}
+% 	\label{fig:break}
+% \end{figure}
+
+% While this lemma does not add logical strength that cannot be otherwise derived, it helps the prover where superposition will not directly derive the necessary consequences as inequalities are not eagerly propagated, that is from $\mathit{Cond_\pv{w}(\zero)}$ and $\neg \mathit{Cond_\pv{w}(\mathit{lastIt_\pv{w}})}$ the superposition calculus can't conclude $\zero \neql \mathit{lastIt_\pv{w}}$.
+
+% The lemma has proven to be useful for reasoning over \pv{break}-like statements or programs that simulate such behavior by breaking a loop conditionally. Since it states that there exists an iteration \textit{right before} the last iteration $lastIt_\pv{w}$, it basically allows to conclude that a loop is at least executed once. 
+
+% To demonstrate its usefulness, we consider the program in figure \ref{fig:break} that simulates a \pv{break}-statement by exiting a loop based on the value of \pv{found}. The property we want to show is $x(end) \leq 0$. Intuitively, the proof works as follows: by \pv{line 4}, we know that the loop condition holds, thus using this lemma allows to infer that at least one iteration of the loop has been executed, specifically we know the existence of the iteration $it$ that is exactly \textit{one step away} from $lastIt_\pv{w}$, thus we know that $found(it)$ is set to $1$. The remaining reasoning can now proceed merely by the semantics of the \pv{if}-condition: since $found(it)$ is set to $1$, we know that the $else$-part was actually executed, thus we know that $\neg \mathit{Cond_\pv{w}}$ is true, that is $x(it) \leq 0$. Now since $x(s(it)) = x(lastIt_\pv{w}) = x(end)$, the prover derives the desired property $x(end) \leq 0$ with ease. 
+
+% % It is unclear why this lemma is useful at all. It doesn't cover any inductive reasoning we couldn't conclude from other axioms.
+% %It could be the case that it is useful, since superposition doesn't propagate inequality eagerly, that is, from $\mathit{Cond_\pv{w}(\zero)}$ and $\neg \mathit{Cond_\pv{w}(\mathit{lastIt_\pv{w}})}$ the superposition calculus can't conclude $\zero \neql \mathit{lastIt_\pv{w}}$.
+% We proceed with the proof of soundness:
+% \begin{proof}
+% From $\mathit{Cond_\pv{w}(\zero)}$ and $\neg \mathit{Cond_\pv{w}}(\mathit{lastIt_\pv{w}})$ we conclude $\zero \neql \mathit{lastIt_\pv{w}}$. 
+% We then use the fact $\forall it_1^\Nat. (\zero \neql it_1 \limp \exists it_2^\Nat.\suc(it_2)=it_1)$ to conclude $\exists it^\Nat. \suc(it)\eql \mathit{lastIt_\pv{w}}$.
+% \end{proof}
+
+\subsection{Correctness of trace lemmas}
+\label{sec:trace-lemmas}
+We already proved soundness of trace lemma (A1) in
+Section~\ref{sec:verification}.
+In this section, we prove the remaining two trace lemmas (B1-B2).
+
+\begin{proof}[Soundness of Intermediate Value Trace Lemma (B1)]
+	We prove the following equivalent formula obtained from the
+	intermediate value trace lemma (B1) by modus tollens.
+	\begin{equation}
+	\label{form:intermediate-modus-tollens}
+	\begin{array}{l}
+	\hspace*{-1.5em}\forall x_\Int. \bigg(
+	\Big(
+	\mathit{Dense}_{w,v} \land
+	v(tp_\pv{w}(\zero)) \leq x \;\land 
+	\\
+	\hspace*{-.5em}\forall it_\Nat.\big(
+	(
+	it < \mathit{lastIt}_\pv{w}
+	\land
+	v(tp_\pv{w}(\suc(it))) \eql v(tp_\pv{w}(it)) + 1
+	) 
+	\\
+	\hspace*{-.5em}	\limp
+	v(tp_\pv{w}(it)) \neql x
+	\big)
+	\Big)\\
+	\limp 
+	v(tp_\pv{w}(\mathit{lastIt}_\pv{w})) \leq x
+	\bigg)
+	\end{array}\hspace*{-2em}
+	\end{equation}
+	The proof proceeds by deriving the conclusion of formula \eqref{form:intermediate-modus-tollens} from the premises of formula 
+	\eqref{form:intermediate-modus-tollens}.
+	
+	Consider the instance of the induction axiom scheme with
+	\begin{subequations}	
+		\begin{align}
+		\text{{\scriptsize Base case: }}&v(tp_\pv{w}(\zero)) \leq x 
+		\label{form:intermediate-axiom-a}\\
+		\text{{\scriptsize Inductive case: }}&\forall it_\Nat. 
+		\Big(\big(\zero \leq it < \mathit{lastIt}_\pv{w} \land v(tp_\pv{w}(it)) \leq x \big) \label{form:intermediate-axiom-b} 
+		\\ &\limp v(tp_\pv{w}(\suc(it))) \leq x \Big)  \nonumber \\
+		\hspace*{-1em}\text{{\scriptsize Conclusion: }}&\forall it_\Nat. \Big(\zero \leq it \leq \mathit{lastIt}_\pv{w} \limp v(tp_\pv{w}(it)) \leq x \Big),\hspace*{-2em}	\label{form:intermediate-axiom-c}
+		\end{align}
+	\end{subequations} 
+	obtained from the bounded induction axiom
+	scheme~\eqref{eq:tr:ind} with $P(it) := v(tp_\pv{w}(it)) \leq x$. % for bounds $\zero$ to $\mathit{lastIt}_\pv{w}$. 
+	%by instantiating $it_L$ and $it_R$ to $\zero$ resp. $\mathit{lastIt}_\pv{w}$.
+	
+	The base case~\eqref{form:intermediate-axiom-a} holds, since it occurs as second premise of formula \eqref{form:intermediate-modus-tollens}. For the inductive case \eqref{form:intermediate-axiom-b}, assume $\zero \leq it < \mathit{lastIt}_\pv{w}$ and $v(tp_\pv{w}(it)) \leq x$. By density of $v$, we obtain two cases: 
+	%We proceed with a case distinction: (note that this case distinction covers all cases, since $v$ is dense):
+	\begin{itemize}
+		\item Assume $v(tp_\pv{w}(\suc(it)))=v(tp_\pv{w}(it))$. Since we also assume $v(tp_\pv{w}(it)) \leq x$, we immediately get $v(tp_\pv{w}(\suc(it))) \leq x$.
+		\item Assume $v(tp_\pv{w}(\suc(it)))=v(tp_\pv{w}(it)) + 1$. From the assumption $it < \mathit{lastIt}_\pv{w}$ and the third premise of formula \ref{form:intermediate-modus-tollens}, we get $v(tp_\pv{w}(it)) \neql x$, which combined with $v(tp_\pv{w}(it)) \leq x$ and the totality-axiom of $<$ for integers gives $v(tp_\pv{w}(it)) < x$. Finally we combine this fact with $v(tp_\pv{w}(\suc(it)))=v(tp_\pv{w}(it)) + 1$ and the integer-theory-lemma $x<y \limp x+1\leq y$ to derive $v(tp_\pv{w}(\suc(it))) \leq x$.
+	\end{itemize}
+	%Since we have concluded $v(tp_\pv{w}(\suc(it))) \leq x$ for all cases, we 
+	Hence, we conclude that the inductive case \eqref{form:intermediate-axiom-b} holds.
+	Thus, the conclusion \eqref{form:intermediate-axiom-c} also
+	holds. Since the theory axiom $\forall it_\Nat. \ \zero \leq
+	it$ holds, formula \eqref{form:intermediate-axiom-c} implies
+	the conclusion of formula
+	\eqref{form:intermediate-modus-tollens}, which concludes the
+	proof.
+	\qed
+\end{proof}
+
+
+\begin{proof}[Soundness of Iteration Injectivity Trace Lemma (B2)]
+	For arbitrary but fixed iterations $it^1$ and $it^2$, assume that the premises of the lemma hold.
+	Now consider the instance of the induction axiom scheme with
+	\begin{subequations}	
+		\begin{align}
+		\text{{\scriptsize Base case: }}&v(tp_\pv{w}(it^1)) < v(tp_\pv{w}(\suc(it^1))) \label{form:injectivity-axiom-a}\\
+		\text{{\scriptsize Inductive case: }}&\forall it_\Nat. \Big(\big(\suc(it^1) \leq it < \mathit{lastIt}_\pv{w}  \nonumber\\
+		&		\qquad\quad\land v(tp_\pv{w}(it^1)) < v(tp_\pv{w}(it)) \big) \label{form:injectivity-axiom-b}\\
+		&\qquad\limp v(tp_\pv{w}(it^1)) < v(tp_\pv{w}(\suc(it))) \Big) \nonumber\\
+		\hspace*{-1em}\text{{\scriptsize Conclusion: }}&\forall
+		it_\Nat. \Big(\suc(it^1)
+		\leq it \leq
+		\mathit{lastIt}_\pv{w}
+		\limp
+		\nonumber\\
+		& \qquad\quad v(tp_\pv{w}(it^1)) < v(tp_\pv{w}(it)) \Big),\label{form:injectivity-axiom-c}
+		\end{align}
+	\end{subequations} 
+	%
+	obtained from the bounded induction axiom
+	scheme~\eqref{eq:tr:ind} with $P(it) := v(tp_\pv{w}(it^1)) <
+	v(tp_\pv{w}(it))$, by instantiating $bl$ and $br$ to
+	$\suc(it^1)$, respectively $\mathit{lastIt}_\pv{w}$.
+	%
+	
+	The base case \eqref{form:injectivity-axiom-a} holds since by integer theory we have $\forall x_\Int.\ x<x+1$ and by assumption $v(tp_\pv{w}(\suc(it^1))) = v(tp_\pv{w}(it^1)) + 1$ holds.
+	%Combining the second premise $v(tp_\pv{w}(\suc(it^1))) = v(tp_\pv{w}(it^1)) + 1$ with the integer-theory-axiom $\forall x_\Int. x<x+1$ yields that Formula \ref{form:injectivity-axiom-a} holds.
+	%
+	
+	For the inductive case, we assume for arbitrary but fixed $it$ that $v(tp_\pv{w}(it^1)) < v(tp_\pv{w}(it))$ holds. Combined with $\mathit{Dense}_{w,v}$ and $\forall x_\Int. (x<y \limp x<y+1)$ this yields $v(tp_\pv{w}(it^1)) < v(tp_\pv{w}(\suc(it)))$, so~\eqref{form:injectivity-axiom-b} holds.
+	%
+	Since both premises~\eqref{form:injectivity-axiom-a}
+	and~\eqref{form:injectivity-axiom-b} hold, also the
+	conclusion~\eqref{form:injectivity-axiom-c} holds. Next,
+	$it^1<it^2$ implies $\suc(it^1)\leq it^2$ (using the
+	monotonicity of $\suc$). We therefore have $\suc(it^1)\leq
+	it^2 < \mathit{lastIt}_\pv{w}$, so we are able to instantiate
+	the conclusion\eqref{form:injectivity-axiom-c} to obtain
+	$v(tp_\pv{w}(it^1)) < v(tp_\pv{w}(it^2))$. Finally, we use the
+	arithmetic property $\forall x_\Int, y_\Int. (x<y \limp x \neql
+	y)$ to conclude $v(tp_\pv{w}(it^1)) \neql v(tp_\pv{w}(it^2))$.
+	\qed
+\end{proof}
