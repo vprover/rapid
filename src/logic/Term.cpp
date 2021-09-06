@@ -154,14 +154,14 @@ namespace logic {
         return std::shared_ptr<const LVariable>(new LVariable(symbol));
     }
     
-    std::shared_ptr<const FuncTerm> Terms::func(std::string name, std::vector<std::shared_ptr<const Term>> subterms, const Sort* sort, bool noDeclaration)
+    std::shared_ptr<const FuncTerm> Terms::func(std::string name, std::vector<std::shared_ptr<const Term>> subterms, const Sort* sort, bool noDeclaration, bool constProgramVar)
     {
         std::vector<const Sort*> subtermSorts;
         for (const auto& subterm : subterms)
         {
             subtermSorts.push_back(subterm->symbol->rngSort);
         }
-        auto symbol = Signature::fetchOrAdd(name, subtermSorts, sort, false, noDeclaration);
+        auto symbol = Signature::fetchOrAdd(name, subtermSorts, sort, false, noDeclaration, constProgramVar);
         return std::shared_ptr<const FuncTerm>(new FuncTerm(symbol, subterms));
     }
     

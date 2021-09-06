@@ -33,6 +33,12 @@ namespace logic {
 
             if (argSorts.size() == 0 && !(isLemmaPredicate && util::Configuration::instance().lemmaPredicates()))
             {
+
+                if (name.rfind("l", 0) == 0){
+                    //TODO shouldn't output this based on string analysis. Will do for now
+                    return"(declare-const-time-point " + toSMTLIB() + " " + rngSort->toSMTLIB() + ")\n";
+                } 
+
                 if (name.rfind("nl", 0) == 0){
                     //TODO shouldn't output this based on string analysis. Will do for now
                     return "(declare-final-loop-count " + toSMTLIB() + " " + rngSort->toSMTLIB() + ")\n";
@@ -42,15 +48,21 @@ namespace logic {
                     return "(declare-main-end " + toSMTLIB() + " " + rngSort->toSMTLIB() + ")\n";                    
                 }
 
+                if(constProgramVar){
+                    return "(declare-const-var " + toSMTLIB() + " " + rngSort->toSMTLIB() + ")\n";                     
+                }
+
                 return "(declare-const " + toSMTLIB() + " " + rngSort->toSMTLIB() + ")\n";
             }
             else
             {
-                std::string res = (isLemmaPredicate && util::Configuration::instance().lemmaPredicates()) ? "(declare-lemma-predicate " : "(declare-fun ";
+                std::string res = (isLemmaPredicate && util::Configuration::instance().lemmaPredicates()) ? "(declare-lemma-predicate " : "(declare-fun "; 
+                
                 if (name.rfind("l", 0) == 0){
                     //TODO shouldn't output this based on string analysis. Will do for now
                     res = "(declare-time-point ";
                 }                
+                
                 res += toSMTLIB() + " (";
                 for (int i=0; i < argSorts.size(); ++i)
                 {
@@ -180,12 +192,12 @@ namespace logic {
         return (it != _signature.end());
     }
     
-    std::shared_ptr<const Symbol> Signature::add(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool noDeclaration)
+    std::shared_ptr<const Symbol> Signature::add(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool noDeclaration, bool constProgramVar)
     {
         // there must be no symbol with name name already added
         assert(_signature.count(name) == 0);
         
-        auto pair = _signature.insert(std::make_pair(name,std::unique_ptr<Symbol>(new Symbol(name, argSorts, rngSort, false, noDeclaration, false))));
+        auto pair = _signature.insert(std::make_pair(name,std::unique_ptr<Symbol>(new Symbol(name, argSorts, rngSort, false, noDeclaration, false, constProgramVar))));
         assert(pair.second); // must succeed since we checked that no such symbols existed before the insertion
 
         auto symbol = pair.first->second;
@@ -201,9 +213,9 @@ namespace logic {
         return it->second;
     }
     
-    std::shared_ptr<const Symbol> Signature::fetchOrAdd(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool isLemmaPredicate, bool noDeclaration)
+    std::shared_ptr<const Symbol> Signature::fetchOrAdd(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool isLemmaPredicate, bool noDeclaration, bool constProgramVar)
     {
-        auto pair = _signature.insert(std::make_pair(name, std::shared_ptr<Symbol>(new Symbol(name, argSorts, rngSort, isLemmaPredicate, noDeclaration, false))));
+        auto pair = _signature.insert(std::make_pair(name, std::shared_ptr<Symbol>(new Symbol(name, argSorts, rngSort, isLemmaPredicate, noDeclaration, false, constProgramVar))));
         auto symbol = pair.first->second;
 
         if (pair.second)

@@ -153,7 +153,7 @@ void declareSymbolForProgramVar(const program::Variable* var)
         argSorts.push_back(logic::Sorts::traceSort());
     }
     
-    logic::Signature::add(var->name, argSorts, logic::Sorts::intSort());
+    logic::Signature::add(var->name, argSorts, logic::Sorts::intSort(), false, var->isConstant);
 }
 
 

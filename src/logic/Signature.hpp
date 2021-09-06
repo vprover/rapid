@@ -31,20 +31,22 @@ namespace logic {
         isLemmaPredicate(isLemmaPredicate),
         noDeclaration(noDeclaration),
         isColorSymbol(false),
-        variable(variable)        
+        variable(variable),
+        constProgramVar(false)       
         {
             assert(!name.empty());
             assert(!isLemmaPredicate || isPredicateSymbol());
         }
 
-        Symbol(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool isLemmaPredicate, bool noDeclaration, bool variable) :
+        Symbol(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool isLemmaPredicate, bool noDeclaration, bool variable, bool pvar) :
         name(name),
         argSorts(std::move(argSorts)),
         rngSort(rngSort),
         isLemmaPredicate(isLemmaPredicate),
         isColorSymbol(false),
         noDeclaration(noDeclaration),
-        variable(variable)
+        variable(variable),
+        constProgramVar(pvar) 
         {
             assert(!name.empty());
             assert(!isLemmaPredicate || isPredicateSymbol());
@@ -58,7 +60,8 @@ namespace logic {
         noDeclaration(false),
         variable(false),
         orientation(orientation),
-        isColorSymbol(isColorSymbol)
+        isColorSymbol(isColorSymbol),
+        constProgramVar(false) 
         {
             assert(!name.empty());
             assert(!orientation.empty());
@@ -78,7 +81,8 @@ namespace logic {
         // used for symbol elimination, values are either "left" or "right", can be empty for non-color symbols     
         const std::string orientation; 
         const bool isColorSymbol; 
-
+        const bool constProgramVar;
+         
         bool isPredicateSymbol() const { return rngSort == Sorts::boolSort(); }
          
         std::string toSMTLIB() const;
@@ -132,9 +136,9 @@ namespace logic {
         static bool isDeclared(std::string name);
 
         // construct new symbols
-        static std::shared_ptr<const Symbol> add(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool noDeclaration=false);
+        static std::shared_ptr<const Symbol> add(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool noDeclaration=false, bool constProgramVar=false);
         static std::shared_ptr<const Symbol> fetch(std::string name);
-        static std::shared_ptr<const Symbol> fetchOrAdd(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool isLemmaPredicate=false, bool noDeclaration=false);
+        static std::shared_ptr<const Symbol> fetchOrAdd(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool isLemmaPredicate=false, bool noDeclaration=false, bool constProgramVar=false);
 
         // check that variable doesn't use name which already occurs in Signature
         // return Symbol without adding it to Signature
