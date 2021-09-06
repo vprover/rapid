@@ -24,10 +24,9 @@ class TransformationInfo;
 class Statement {
  public:
   Statement(unsigned lineNumber)
-      : location("l" +
-      std::to_string(lineNumber != 0
-                     ? lineNumber
-                     : Statement::additionalTimepoints--)),
+      : location("l" + std::to_string(lineNumber != 0
+                                          ? lineNumber
+                                          : Statement::additionalTimepoints--)),
         enclosingLoops(std::make_unique<std::vector<WhileStatement *>>()) {}
 
   virtual ~Statement() {}
@@ -49,17 +48,18 @@ class Statement {
   virtual std::string toString(int indentation) const = 0;
 
   /**
-   * Will be decremented starting with UINT_MAX  (counts downward to avoid collisions with existing line numbers)
-   * for example generting the implicit else branch gives:
+   * Will be decremented starting with UINT_MAX  (counts downward to avoid
+   * collisions with existing line numbers) for example generating the implicit
+   * else branch gives:
    *
    * line nr                          Code
    * --------------------------------------------------
    * n + 0                               : if (...) {
    * n + 1                               : ...
    * n + m                               : }
-   * UINT_MAX - additionalTimepoints     : else {  // This line is added automatically
-   * UINT_MAX - additionalTimepoints - 1 : skip    // This line is added automatically
-   * -                                   : }       // This line is added automatically
+   * UINT_MAX - additionalTimepoints     : else {  // Added automatically
+   * UINT_MAX - additionalTimepoints - 1 : skip    // Added automatically
+   * -                                   : }       // Added automatically
    * n + m + 1                           : ...
    */
   static unsigned additionalTimepoints;
@@ -68,13 +68,13 @@ class Statement {
       std::vector<std::shared_ptr<Statement>> &statements,
       std::unordered_map<std::string,
                          std::vector<std::shared_ptr<program::Variable>>>
-      &locationToActiveVars,
+          &locationToActiveVars,
       unsigned traces);
 
   virtual TransformationInfo transform(
       std::unordered_map<std::string,
                          std::vector<std::shared_ptr<program::Variable>>>
-      &locationToActiveVars,
+          &locationToActiveVars,
       unsigned traces) = 0;
 };
 
@@ -106,7 +106,7 @@ class Assignment : public Statement {
   TransformationInfo transform(
       std::unordered_map<std::string,
                          std::vector<std::shared_ptr<program::Variable>>>
-      &locationToActiveVars,
+          &locationToActiveVars,
       unsigned traces) override;
 };
 
@@ -137,7 +137,7 @@ class IfElseStatement : public Statement {
   TransformationInfo transform(
       std::unordered_map<std::string,
                          std::vector<std::shared_ptr<program::Variable>>>
-      &locationToActiveVars,
+          &locationToActiveVars,
       unsigned traces) override;
 };
 
@@ -166,40 +166,40 @@ class WhileStatement : public Statement {
   TransformationInfo transform(
       std::unordered_map<std::string,
                          std::vector<std::shared_ptr<program::Variable>>>
-      &locationToActiveVars,
+          &locationToActiveVars,
       unsigned traces) override;
 };
 
 class BreakStatement : public Statement {
  public:
-  BreakStatement(unsigned lineNumber) : Statement(lineNumber) {};
+  BreakStatement(unsigned lineNumber) : Statement(lineNumber){};
 
   std::string toString(int indentation) const override;
 
   TransformationInfo transform(
       std::unordered_map<std::string,
                          std::vector<std::shared_ptr<program::Variable>>>
-      &locationToActiveVars,
+          &locationToActiveVars,
       unsigned traces) override;
 };
 
 class ContinueStatement : public Statement {
  public:
-  ContinueStatement(unsigned lineNumber) : Statement(lineNumber) {};
+  ContinueStatement(unsigned lineNumber) : Statement(lineNumber){};
 
   std::string toString(int indentation) const override;
 
   TransformationInfo transform(
       std::unordered_map<std::string,
                          std::vector<std::shared_ptr<program::Variable>>>
-      &locationToActiveVars,
+          &locationToActiveVars,
       unsigned traces) override;
 };
 
 class ReturnStatement : public Statement {
  public:
   ReturnStatement(unsigned lineNumber, std::shared_ptr<Expression> returnValue)
-      : Statement(lineNumber), returnValue(std::move(returnValue)) {};
+      : Statement(lineNumber), returnValue(std::move(returnValue)){};
 
   std::string toString(int indentation) const override;
 
@@ -208,27 +208,28 @@ class ReturnStatement : public Statement {
   TransformationInfo transform(
       std::unordered_map<std::string,
                          std::vector<std::shared_ptr<program::Variable>>>
-      &locationToActiveVars,
+          &locationToActiveVars,
       unsigned traces) override;
 };
 
 class SkipStatement : public Statement {
  public:
-  SkipStatement(unsigned lineNumber) : Statement(lineNumber) {};
+  SkipStatement(unsigned lineNumber) : Statement(lineNumber){};
 
   std::string toString(int indentation) const override;
 
   TransformationInfo transform(
       std::unordered_map<std::string,
                          std::vector<std::shared_ptr<program::Variable>>>
-      &locationToActiveVars,
+          &locationToActiveVars,
       unsigned traces) override;
 };
 
 /**
- * Contains a list of break, continue, and return that currently affect the control flow
- * If some break/continue/return is encountered a new variable is introduced. The variables that are
- * currently relevant are collected in this class
+ * Contains a list of break, continue, and return that currently affect the
+ * control flow If some break/continue/return is encountered a new variable is
+ * introduced. The variables that are currently relevant are collected in this
+ * class
  */
 class TransformationInfo {
  public:

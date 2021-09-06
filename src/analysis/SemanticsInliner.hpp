@@ -38,10 +38,11 @@ class SemanticsInliner {
   // note:
   // - we handle persistent terms referencing a timepoint as soon as we visit
   // the location of the timepoint.
-  // - since a const variable is formalized as term without a timepoint/location, we
-  // would miss to handle persistance for such terms.
-  // - we solve this by handling persistance for terms which formalize const variables
-  // immediately when they are declared in setIntVarValue/setArrayVarTimepoint.
+  // - since a const variable is formalized as term without a
+  // timepoint/location, we would miss to handle persistance for such terms.
+  // - we solve this by handling persistance for terms which formalize const
+  // variables immediately when they are declared in
+  // setIntVarValue/setArrayVarTimepoint.
 
   // returns formula which defines persistent terms (if necessary) for variables
   // in 'activeVars'. note: at the timepoint of calling this method we assume
