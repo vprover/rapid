@@ -244,7 +244,7 @@ std::shared_ptr<const logic::Term> SemanticsInliner::handlePersistence(
     std::shared_ptr<const logic::Term> timepoint,
     const std::vector<std::shared_ptr<program::Variable>> &activeVars,
     std::string label) {
-  // define persistent terms for non-Variables
+  // define persistent terms for non-const variables
   std::vector<std::shared_ptr<const logic::Term>> conjuncts;
   for (const auto &var : activeVars) {
     if (!var->isConstant) {
@@ -306,6 +306,8 @@ std::shared_ptr<const logic::Term> SemanticsInliner::handlePersistence(
             // variable will only have cached timepoints from where its values
             // were used, but not from the end of the loop.
             if (cachedTimepoint.get()->prettyString().find("nl") ==
+                std::string::npos  &&
+                cachedTimepoint.get()->prettyString().find("Itl") !=
                 std::string::npos) {
               auto cachedTimepointTerm =
                   std::static_pointer_cast<const logic::FuncTerm>(

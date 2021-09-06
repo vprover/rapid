@@ -307,16 +307,6 @@ std::ostream &operator<<(
 
 }  // namespace logic
 
-// hack needed for bison: std::vector has no overload for ostream, but these
-// overloads are needed for bison
-std::ostream& operator<<(
-    std::ostream& ostr,
-    const std::vector<std::shared_ptr<const logic::Term>>& t);
-std::ostream& operator<<(
-    std::ostream& ostr,
-    const std::vector<std::shared_ptr<const logic::LVariable>>& v);
-}  // namespace logic
-
 // custom hash for terms
 namespace std {
 template <>

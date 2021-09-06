@@ -16,10 +16,17 @@
 #include "util/Output.hpp"
 
 void outputUsage() {
-  std::cout << "Usage: rapid -dir <outputDir> <filename>" << std::endl;
+  std::cout
+      << "Usage: rapid "
+      << "-dir <outputDir> "
+      << "[-inlineSemantics on|off] "
+      << "[-lemmaPredicates on|off] "
+      << "[-nat on|off] "
+      << "[-overwriteExisting on|off] "
+      << "<filename>" << std::endl;
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
   if (argc <= 1) {
     outputUsage();
   } else {
@@ -27,75 +34,62 @@ int main(int argc, char* argv[]) {
       if (util::Output::initialize()) {
         std::string inputFile = argv[argc - 1];
 
-void outputUsage() {
-    std::cout
-            << "Usage: rapid "
-            << "-dir <outputDir> "
-            << "[-inlineSemantics on|off] "
-            << "[-lemmaPredicates on|off] "
-            << "[-nat on|off] "
-            << "[-overwriteExisting on|off] "
-            << "<filename>" << std::endl;
-}
+        // check that inputFile ends in ".spec"
+        std::string extension = ".spec";
+        assert(inputFile.size() > extension.size());
+        assert(inputFile.compare(inputFile.size() - extension.size(), extension.size(), extension) == 0);
+        std::string inputFileWithoutExtension = inputFile.substr(0, inputFile.size() - extension.size());
 
-int main(int argc, char *argv[]) {
-    if (argc <= 1) {
-        outputUsage();
-    }
-    else {
-        if (util::Configuration::instance().setAllValues(argc, argv)) {
-            if (util::Output::initialize()) {
-                std::string inputFile = argv[argc - 1];
+        // parse inputFile
+        parser::WhileParserResult parserResult = parser::parse(inputFile);
 
-                // check that inputFile ends in ".spec"
-                std::string extension = ".spec";
-                assert(inputFile.size() > extension.size());
-                assert(inputFile.compare(inputFile.size() - extension.size(), extension.size(), extension) == 0);
-                std::string inputFileWithoutExtension = inputFile.substr(0, inputFile.size() - extension.size());
+        // setup outputDir
+        std::string outputDir = util::Configuration::instance().outputDir();
+        if (outputDir == "") {
+          std::cout << "Error: dir parameter required" << std::endl;
+          exit(1);
+        }
 
-                // parse inputFile
-                parser::WhileParserResult parserResult = parser::parse(inputFile);
+        // generate problem
+        std::vector<std::shared_ptr<const logic::ProblemItem>> problemItems;
 
-                // setup outputDir
-                std::string outputDir = util::Configuration::instance().outputDir();
-                if (outputDir == "") {
-                    std::cout << "Error: dir parameter required" << std::endl;
-                    exit(1);
-                }
+        analysis::TheoryAxioms theoryAxiomsGenerator;
+        std::vector<std::shared_ptr<const logic::Axiom>> theoryAxioms = theoryAxiomsGenerator.generate();
+        for (const auto &axiom : theoryAxioms) {
+          problemItems.push_back(axiom);
+        }
 
-                // generate problem
-                std::vector<std::shared_ptr<const logic::ProblemItem>> problemItems;
+        analysis::Semantics::applyTransformations(parserResult.program->functions,
+                                                  parserResult.locationToActiveVars,
+                                                  parserResult.numberOfTraces);
 
-                analysis::TheoryAxioms theoryAxiomsGenerator;
-                std::vector<std::shared_ptr<const logic::Axiom>> theoryAxioms = theoryAxiomsGenerator.generate();
-                for (const auto &axiom : theoryAxioms) {
-                    problemItems.push_back(axiom);
-                }
+        analysis::Semantics s(*parserResult.program,
+                              parserResult.locationToActiveVars,
+                              parserResult.problemItems,
+                              parserResult.numberOfTraces);
+        auto[semantics, inlinedVarValues] = s.generateSemantics();
+        problemItems.insert(problemItems.end(), semantics.begin(), semantics.end());
 
-                analysis::Semantics::applyTransformations(parserResult.program->functions, parserResult.locationToActiveVars, parserResult.numberOfTraces);
+        auto traceLemmas = analysis::generateTraceLemmas(*parserResult.program,
+                                                         parserResult.locationToActiveVars,
+                                                         parserResult.numberOfTraces,
+                                                         semantics,
+                                                         inlinedVarValues);
+        problemItems.insert(problemItems.end(), traceLemmas.begin(), traceLemmas.end());
 
-                analysis::Semantics s(*parserResult.program, parserResult.locationToActiveVars, parserResult.problemItems, parserResult.numberOfTraces);
-                auto[semantics, inlinedVarValues] = s.generateSemantics();
-                problemItems.insert(problemItems.end(), semantics.begin(), semantics.end());
+        problemItems.insert(problemItems.end(), parserResult.problemItems.begin(), parserResult.problemItems.end());
 
-                auto traceLemmas = analysis::generateTraceLemmas(*parserResult.program, parserResult.locationToActiveVars, parserResult.numberOfTraces, semantics, inlinedVarValues);
-                problemItems.insert(problemItems.end(), traceLemmas.begin(), traceLemmas.end());
+        logic::Problem problem(problemItems);
 
-                problemItems.insert(problemItems.end(), parserResult.problemItems.begin(), parserResult.problemItems.end());
-
-                logic::Problem problem(problemItems);
-
-                // generate reasoning tasks, convert each reasoning task to smtlib, and output it to output-file
-                std::vector<logic::ReasoningTask> tasks = problem.generateReasoningTasks();
-                for (const auto &task : tasks) {
-                    std::stringstream preamble;
-                    preamble << util::Output::comment << *parserResult.program << util::Output::nocomment;
-                    task.outputSMTLIBToDir(outputDir, preamble.str());
-                }
-            }
+        // generate reasoning tasks, convert each reasoning task to smtlib, and output it to output-file
+        std::vector<logic::ReasoningTask> tasks = problem.generateReasoningTasks();
+        for (const auto &task : tasks) {
+          std::stringstream preamble;
+          preamble << util::Output::comment << *parserResult.program << util::Output::nocomment;
+          task.outputSMTLIBToDir(outputDir, preamble.str());
         }
       }
     }
-    return 0;
   }
+  return 0;
 }

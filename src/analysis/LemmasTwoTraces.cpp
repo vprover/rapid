@@ -109,7 +109,7 @@ void NEqualLemmas::generateOutputFor(
 
       // PART 1: Add induction-axiom
       // IH(it) :=
-      // "forall" non-Variables v
+      // "forall" non-const variables v
       //    v(l(it),t1) = v(l(it),t2)
       auto inductionHypothesis = [&](std::shared_ptr<const logic::Term> arg) {
         auto lStartArg = timepointForLoopStatement(statement, arg);

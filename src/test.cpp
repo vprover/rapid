@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
             yyset_lineno(1);
             loc.initialize();
             logic::Signature::reset(); // reset signatures
-            program::Statement::additionalTimepoints = 0;
+            program::Statement::additionalTimepoints = UINT_MAX;
 
             if (util::Output::initialize()) {
                 // parse inputFile

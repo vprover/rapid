@@ -78,10 +78,10 @@ class EqualityPreservationTracesLemmas
  *    n(t1)=n(t2)
  * where:
  * - EqVC :=
- *   "forall" Variables v
+ *   "forall" const variables v
  *      v(t1) = v(t2)
  * - IH(it) :=
- *   "forall" non-Variables v
+ *   "forall" non-const variables v
  *      v(l(it),t1) = v(l(it),t2)
  * - IC :=
  *   forall it.

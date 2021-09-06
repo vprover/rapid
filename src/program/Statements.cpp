@@ -4,18 +4,19 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <climits>
 
 #include "SymbolDeclarations.hpp"
 
 namespace program {
 
-unsigned Statement::additionalTimepoints = 0;
+unsigned Statement::additionalTimepoints = UINT_MAX;
 
 TransformationInfo Statement::transformBlock(
     std::vector<std::shared_ptr<Statement>> &statements,
     std::unordered_map<std::string,
                        std::vector<std::shared_ptr<program::Variable>>>
-        &locationToActiveVars,
+    &locationToActiveVars,
     unsigned traces) {
   TransformationInfo retInfo;
   TransformationInfo transformationInfo;
@@ -30,7 +31,7 @@ TransformationInfo Statement::transformBlock(
         std::vector<std::shared_ptr<program::Variable>> visible;
 
         for (const auto &break_condition :
-             transformationInfo.break_conditions) {
+            transformationInfo.break_conditions) {
           if (skipCondition.get() == nullptr) {
             skipCondition = break_condition;
           } else {
@@ -40,7 +41,7 @@ TransformationInfo Statement::transformBlock(
           visible.push_back(break_condition->var);
         }
         for (const auto &continue_condition :
-             transformationInfo.continue_conditions) {
+            transformationInfo.continue_conditions) {
           if (skipCondition.get() == nullptr) {
             skipCondition = continue_condition;
           } else {
@@ -50,7 +51,7 @@ TransformationInfo Statement::transformBlock(
           visible.push_back(continue_condition->var);
         }
         for (const auto &return_condition :
-             transformationInfo.return_conditions) {
+            transformationInfo.return_conditions) {
           if (skipCondition.get() == nullptr) {
             skipCondition = return_condition;
           } else {
@@ -65,12 +66,16 @@ TransformationInfo Statement::transformBlock(
         std::vector<std::shared_ptr<Statement>> elseStmts;
 
         elseStmts.push_back(
-            std::make_shared<SkipStatement>(-++additionalTimepoints));
+            std::make_shared<SkipStatement>(additionalTimepoints--));
         locationToActiveVars[elseStmts[0]->location] = visible;
 
-        statements[i] = std::make_shared<IfElseStatement>(
-            -++additionalTimepoints, std::move(skipCondition), thenStmts,
-            elseStmts);
+        statements.erase(statements.begin() + i, statements.end());
+
+        statements.push_back(
+            std::make_shared<IfElseStatement>(
+                additionalTimepoints--, std::move(skipCondition), thenStmts,
+                elseStmts)
+        );
         retInfo.mergeBreak(transformationInfo.break_conditions);
         retInfo.mergeContinue(transformationInfo.continue_conditions);
         retInfo.mergeReturn(transformationInfo.return_conditions);
@@ -91,7 +96,7 @@ TransformationInfo Statement::transformBlock(
           std::move(transformationInfo.introduced_var));
       auto value = std::make_shared<BooleanConstant>(true);
       statement = std::make_shared<Assignment>(
-          -(++Statement::additionalTimepoints), access, value);
+          Statement::additionalTimepoints--, access, value);
       std::vector<std::shared_ptr<program::Variable>> visible;
       visible.push_back(access->var);
       locationToActiveVars[statement->location] = visible;
@@ -112,20 +117,20 @@ std::ostream &operator<<(std::ostream &ostr, Statement &v) {
 
 std::string Assignment::toString(int indentation) const {
   return std::string(indentation, ' ') + lhs->toString() + " = " +
-         rhs->toString() + " @" + location;
+      rhs->toString() + " @" + location;
 }
 
 TransformationInfo Assignment::transform(
     std::unordered_map<std::string,
                        std::vector<std::shared_ptr<program::Variable>>>
-        &locationToActiveVars,
+    &locationToActiveVars,
     unsigned traces) {
   return TransformationInfo();
 }
 
 std::string IfElseStatement::toString(int indentation) const {
   auto s = std::string(indentation, ' ') + "if (" + condition->toString() +
-           ") @" + location + "\n";
+      ") @" + location + "\n";
   s += std::string(indentation, ' ') + "{\n";
   for (const auto &statement : ifStatements) {
     s += statement->toString(indentation + 3) + "\n";
@@ -143,7 +148,7 @@ std::string IfElseStatement::toString(int indentation) const {
 TransformationInfo IfElseStatement::transform(
     std::unordered_map<std::string,
                        std::vector<std::shared_ptr<program::Variable>>>
-        &locationToActiveVars,
+    &locationToActiveVars,
     unsigned traces) {
   TransformationInfo thenInfo =
       Statement::transformBlock(ifStatements, locationToActiveVars, traces);
@@ -159,7 +164,7 @@ TransformationInfo IfElseStatement::transform(
 
 std::string WhileStatement::toString(int indentation) const {
   auto s = std::string(indentation, ' ') + "while (" + condition->toString() +
-           ") @" + location + "\n";
+      ") @" + location + "\n";
   s += std::string(indentation, ' ') + "{\n";
   for (const auto &statement : bodyStatements) {
     s += statement->toString(indentation + 3) + "\n";
@@ -171,7 +176,7 @@ std::string WhileStatement::toString(int indentation) const {
 TransformationInfo WhileStatement::transform(
     std::unordered_map<std::string,
                        std::vector<std::shared_ptr<program::Variable>>>
-        &locationToActiveVars,
+    &locationToActiveVars,
     unsigned traces) {
   TransformationInfo info =
       Statement::transformBlock(bodyStatements, locationToActiveVars, traces);
@@ -184,6 +189,21 @@ TransformationInfo WhileStatement::transform(
   for (const auto &return_condition : info.return_conditions) {
     newCondition = std::make_shared<BooleanAnd>(
         condition, std::make_shared<BooleanNot>(return_condition));
+  }
+
+  for (const auto &break_condition : info.break_conditions) {
+    auto assignment = std::make_shared<Assignment>(additionalTimepoints--,
+                                                   std::make_shared<VariableAccess>(break_condition->var),
+                                                   std::make_shared<BooleanConstant>(false));
+    bodyStatements.insert(bodyStatements.begin(), assignment);
+    locationToActiveVars[assignment->location] = { break_condition->var };
+  }
+  for (const auto &continue_condition : info.continue_conditions) {
+    auto assignment = std::make_shared<Assignment>(additionalTimepoints--,
+                                                   std::make_shared<VariableAccess>(continue_condition->var),
+                                                   std::make_shared<BooleanConstant>(false));
+    bodyStatements.insert(bodyStatements.begin(), assignment);
+    locationToActiveVars[assignment->location] = { continue_condition->var };
   }
 
   condition = newCondition;
@@ -200,7 +220,7 @@ std::string BreakStatement::toString(int indentation) const {
 TransformationInfo BreakStatement::transform(
     std::unordered_map<std::string,
                        std::vector<std::shared_ptr<program::Variable>>>
-        &locationToActiveVars,
+    &locationToActiveVars,
     unsigned traces) {
   TransformationInfo info;
   std::string name = "break_" + location;
@@ -219,7 +239,7 @@ std::string ContinueStatement::toString(int indentation) const {
 TransformationInfo ContinueStatement::transform(
     std::unordered_map<std::string,
                        std::vector<std::shared_ptr<program::Variable>>>
-        &locationToActiveVars,
+    &locationToActiveVars,
     unsigned traces) {
   TransformationInfo info;
   std::string name = "continue_" + location;
@@ -234,13 +254,13 @@ TransformationInfo ContinueStatement::transform(
 
 std::string ReturnStatement::toString(int indentation) const {
   return std::string(indentation, ' ') + "return " + returnValue->toString() +
-         " @" + location;
+      " @" + location;
 }
 
 TransformationInfo ReturnStatement::transform(
     std::unordered_map<std::string,
                        std::vector<std::shared_ptr<program::Variable>>>
-        &locationToActiveVars,
+    &locationToActiveVars,
     unsigned traces) {
   TransformationInfo info;
   std::string name = "return_" + location;
@@ -259,7 +279,7 @@ std::string SkipStatement::toString(int indentation) const {
 TransformationInfo SkipStatement::transform(
     std::unordered_map<std::string,
                        std::vector<std::shared_ptr<program::Variable>>>
-        &locationToActiveVars,
+    &locationToActiveVars,
     unsigned traces) {
   return TransformationInfo();
 }
