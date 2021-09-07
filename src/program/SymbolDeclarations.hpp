@@ -15,7 +15,17 @@ std::shared_ptr<const logic::Symbol> iteratorSymbol(
 std::shared_ptr<const logic::Symbol> lastIterationSymbol(
     program::WhileStatement* whileStatement, unsigned numberOfTraces);
 
+std::shared_ptr<const logic::Symbol> intIteratorSymbol(
+    program::WhileStatement* whileStatement);
+std::shared_ptr<const logic::Symbol> intLastIterationSymbol(
+    program::WhileStatement* whileStatement, unsigned numberOfTraces);
+
 std::shared_ptr<const logic::Symbol> posVarSymbol();
+std::shared_ptr<const logic::Symbol> declareInitTargetSymbol(
+    const program::Variable* var);
+std::shared_ptr<const logic::Symbol> declareFinalTargetSymbol(
+    const program::Variable* var);
+void declareColorSymbolLeft(const program::Variable* var);
 
 std::shared_ptr<const logic::Symbol> traceSymbol(unsigned traceNumber);
 

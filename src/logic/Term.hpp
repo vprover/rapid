@@ -45,16 +45,16 @@ class Term {
 
   virtual Type type() const = 0;
 
-  virtual std::string toSMTLIB(unsigned indentation = 0) const = 0;
-
-  virtual std::string prettyString(unsigned indentation = 0) const = 0;
+  virtual std::string toSMTLIB(unsigned indentation) const = 0;
+  virtual std::string toTPTP(unsigned indentation) const = 0;
+  virtual std::string prettyString(unsigned indentation) const = 0;
 
  protected:
   std::string stringForLabel(unsigned indentation) const;
+  std::string stringForLabelTPTP(unsigned indentation) const;
 };
 
 bool operator==(const Term &t1, const Term &t2);
-
 bool operator!=(const Term &t1, const Term &t2);
 
 class LVariable : public Term {
@@ -67,9 +67,8 @@ class LVariable : public Term {
   const unsigned id;
 
   Type type() const override { return Term::Type::Variable; }
-
   std::string toSMTLIB(unsigned indentation) const override;
-
+  std::string toTPTP(unsigned indentation) const override;
   virtual std::string prettyString(unsigned indentation) const override;
 
   static unsigned freshId;
@@ -93,12 +92,11 @@ class FuncTerm : public Term {
       : FuncTerm(std::move(symbol), std::move(subterms), "") {}
 
  public:
-  const std::vector<std::shared_ptr<const Term>> subterms;
+  const std::vector<std::shared_ptr<const Term> > subterms;
 
   Type type() const override { return Term::Type::FuncTerm; }
-
   std::string toSMTLIB(unsigned indentation) const override;
-
+  virtual std::string toTPTP(unsigned indentation) const override;
   virtual std::string prettyString(unsigned indentation) const override;
 };
 
@@ -109,9 +107,12 @@ class PredicateFormula : public FuncTerm {
   PredicateFormula(std::shared_ptr<const Symbol> symbol,
                    std::vector<std::shared_ptr<const Term>> subterms,
                    std::string label = "")
-      : FuncTerm(std::move(symbol), std::move(subterms), label) {}
+      : FuncTerm(std::move(symbol), std::move(subterms), std::move(label)) {}
 
   Type type() const override { return Term::Type::Predicate; }
+  std::string toSMTLIB(unsigned indentation) const override;
+  virtual std::string toTPTP(unsigned indentation) const override;
+  virtual std::string prettyString(unsigned indentation) const override;
 };
 
 class EqualityFormula : public Term {
@@ -121,7 +122,7 @@ class EqualityFormula : public Term {
   // TODO: refactor polarity into explicit negation everywhere
   EqualityFormula(bool polarity, std::shared_ptr<const Term> left,
                   std::shared_ptr<const Term> right, std::string label = "")
-      : Term(label), polarity(polarity), left(left), right(right) {}
+      : Term(std::move(label)), polarity(polarity), left(std::move(left)), right(std::move(right)) {}
 
   const bool polarity;
   const std::shared_ptr<const Term> left;
@@ -129,9 +130,9 @@ class EqualityFormula : public Term {
 
   Type type() const override { return Term::Type::Equality; }
 
-  std::string toSMTLIB(unsigned indentation = 0) const override;
-
-  std::string prettyString(unsigned indentation = 0) const override;
+  std::string toSMTLIB(unsigned indentation) const override;
+  std::string toTPTP(unsigned indentation) const override;
+  std::string prettyString(unsigned indentation) const override;
 };
 
 class ConjunctionFormula : public Term {
@@ -140,15 +141,15 @@ class ConjunctionFormula : public Term {
  public:
   ConjunctionFormula(std::vector<std::shared_ptr<const Term>> conj,
                      std::string label = "")
-      : Term(label), conj(conj) {}
+      : Term(std::move(label)), conj(std::move(conj)) {}
 
   const std::vector<std::shared_ptr<const Term>> conj;
 
   Type type() const override { return Term::Type::Conjunction; }
 
-  std::string toSMTLIB(unsigned indentation = 0) const override;
-
-  std::string prettyString(unsigned indentation = 0) const override;
+  std::string toSMTLIB(unsigned indentation) const override;
+  std::string toTPTP(unsigned indentation) const override;
+  std::string prettyString(unsigned indentation) const override;
 };
 
 class DisjunctionFormula : public Term {
@@ -157,15 +158,15 @@ class DisjunctionFormula : public Term {
  public:
   DisjunctionFormula(std::vector<std::shared_ptr<const Term>> disj,
                      std::string label = "")
-      : Term(label), disj(disj) {}
+      : Term(std::move(label)), disj(std::move(disj)) {}
 
   const std::vector<std::shared_ptr<const Term>> disj;
 
   Type type() const override { return Term::Type::Disjunction; }
 
-  std::string toSMTLIB(unsigned indentation = 0) const override;
-
-  std::string prettyString(unsigned indentation = 0) const override;
+  std::string toSMTLIB(unsigned indentation) const override;
+  std::string toTPTP(unsigned indentation) const override;
+  std::string prettyString(unsigned indentation) const override;
 };
 
 class NegationFormula : public Term {
@@ -173,15 +174,15 @@ class NegationFormula : public Term {
 
  public:
   NegationFormula(std::shared_ptr<const Term> f, std::string label = "")
-      : Term(label), f(f) {}
+      : Term(std::move(label)), f(std::move(f)) {}
 
   const std::shared_ptr<const Term> f;
 
   Type type() const override { return Term::Type::Negation; }
 
-  std::string toSMTLIB(unsigned indentation = 0) const override;
-
-  std::string prettyString(unsigned indentation = 0) const override;
+  std::string toSMTLIB(unsigned indentation) const override;
+  std::string toTPTP(unsigned indentation) const override;
+  std::string prettyString(unsigned indentation) const override;
 };
 
 class ExistentialFormula : public Term {
@@ -190,8 +191,8 @@ class ExistentialFormula : public Term {
  public:
   ExistentialFormula(std::vector<std::shared_ptr<const Symbol>> vars,
                      std::shared_ptr<const Term> f, std::string label = "")
-      : Term(label), vars(std::move(vars)), f(f) {
-    for (const auto &var : vars) {
+      : Term(std::move(label)), vars(std::move(vars)), f(std::move(f)) {
+    for (const auto &var : this->vars) {
       assert(var->argSorts.empty());
     }
   }
@@ -201,9 +202,9 @@ class ExistentialFormula : public Term {
 
   Type type() const override { return Term::Type::Existential; }
 
-  std::string toSMTLIB(unsigned indentation = 0) const override;
-
-  std::string prettyString(unsigned indentation = 0) const override;
+  std::string toSMTLIB(unsigned indentation) const override;
+  std::string toTPTP(unsigned indentation) const override;
+  std::string prettyString(unsigned indentation) const override;
 };
 
 class UniversalFormula : public Term {
@@ -212,8 +213,8 @@ class UniversalFormula : public Term {
  public:
   UniversalFormula(std::vector<std::shared_ptr<const Symbol>> vars,
                    std::shared_ptr<const Term> f, std::string label = "")
-      : Term(label), vars(std::move(vars)), f(f) {
-    for (const auto &var : vars) {
+      : Term(std::move(label)), vars(std::move(vars)), f(std::move(f)) {
+    for (const auto &var : this->vars) {
       assert(var->argSorts.empty());
     }
   }
@@ -223,9 +224,9 @@ class UniversalFormula : public Term {
 
   Type type() const override { return Term::Type::Universal; }
 
-  std::string toSMTLIB(unsigned indentation = 0) const override;
-
-  std::string prettyString(unsigned indentation = 0) const override;
+  std::string toSMTLIB(unsigned indentation) const override;
+  std::string toTPTP(unsigned indentation) const override;
+  std::string prettyString(unsigned indentation) const override;
 };
 
 class ImplicationFormula : public Term {
@@ -234,16 +235,16 @@ class ImplicationFormula : public Term {
  public:
   ImplicationFormula(std::shared_ptr<const Term> f1,
                      std::shared_ptr<const Term> f2, std::string label = "")
-      : Term(label), f1(f1), f2(f2) {}
+      : Term(std::move(label)), f1(std::move(f1)), f2(std::move(f2)) {}
 
   const std::shared_ptr<const Term> f1;
   const std::shared_ptr<const Term> f2;
 
   Type type() const override { return Term::Type::Implication; }
 
-  std::string toSMTLIB(unsigned indentation = 0) const override;
-
-  std::string prettyString(unsigned indentation = 0) const override;
+  std::string toSMTLIB(unsigned indentation) const override;
+  std::string toTPTP(unsigned indentation) const override;
+  std::string prettyString(unsigned indentation) const override;
 };
 
 class EquivalenceFormula : public Term {
@@ -252,29 +253,29 @@ class EquivalenceFormula : public Term {
  public:
   EquivalenceFormula(std::shared_ptr<const Term> f1,
                      std::shared_ptr<const Term> f2, std::string label = "")
-      : Term(label), f1(f1), f2(f2) {}
+      : Term(std::move(label)), f1(std::move(f1)), f2(std::move(f2)) {}
 
   const std::shared_ptr<const Term> f1;
   const std::shared_ptr<const Term> f2;
 
   Type type() const override { return Term::Type::Equivalence; }
 
-  std::string toSMTLIB(unsigned indentation = 0) const override;
-
-  std::string prettyString(unsigned indentation = 0) const override;
+  std::string toSMTLIB(unsigned indentation) const override;
+  std::string toTPTP(unsigned indentation) const override;
+  std::string prettyString(unsigned indentation) const override;
 };
 
 class TrueFormula : public Term {
   friend class Formulas;
 
  public:
-  TrueFormula(std::string label = "") : Term(label) {}
+  TrueFormula(std::string label = "") : Term(std::move(label)) {}
 
   Type type() const override { return Term::Type::True; }
 
-  std::string toSMTLIB(unsigned indentation = 0) const override;
-
-  std::string prettyString(unsigned indentation = 0) const override;
+  std::string toSMTLIB(unsigned indentation) const override;
+  std::string toTPTP(unsigned indentation) const override;
+  std::string prettyString(unsigned indentation) const override;
 };
 
 class FalseFormula : public Term {
@@ -285,13 +286,13 @@ class FalseFormula : public Term {
 
   Type type() const override { return Term::Type::False; }
 
-  std::string toSMTLIB(unsigned indentation = 0) const override;
-
-  std::string prettyString(unsigned indentation = 0) const override;
+  std::string toSMTLIB(unsigned indentation) const override;
+  std::string toTPTP(unsigned indentation) const override;
+  std::string prettyString(unsigned indentation) const override;
 };
 
 inline std::ostream &operator<<(std::ostream &ostr, const Term &e) {
-  ostr << e.toSMTLIB();
+  ostr << e.toSMTLIB(0);
   return ostr;
 }
 
@@ -309,7 +310,7 @@ std::ostream &operator<<(
 
 // custom hash for terms
 namespace std {
-template <>
+template<>
 struct hash<const logic::Term> {
   using argument_type = const logic::Term;
   using result_type = std::size_t;
@@ -319,18 +320,18 @@ struct hash<const logic::Term> {
     size_t result = std::hash<const logic::Symbol>()(*t.symbol);
     // then integrate type into the hash
     result ^= std::hash<logic::Term::Type>()(t.type()) + 0x9e3779b9 +
-              (result << 6) + (result >> 2);
+        (result << 6) + (result >> 2);
     if (t.type() == logic::Term::Type::Variable) {
       // for an LVariable, finally integrate id into the hash
       auto castedTerm = dynamic_cast<const logic::LVariable &>(t);
       result ^= std::hash<unsigned>()(castedTerm.id) + 0x9e3779b9 +
-                (result << 6) + (result >> 2);
+          (result << 6) + (result >> 2);
     } else {
       // for a FuncTerm, integrate each subterm into the hash
       auto castedTerm = dynamic_cast<const logic::FuncTerm &>(t);
       for (const auto &subterm : castedTerm.subterms) {
         result ^= std::hash<const logic::Term>()(*subterm) + 0x9e3779b9 +
-                  (result << 6) + (result >> 2);
+            (result << 6) + (result >> 2);
       }
     }
     return result;
@@ -348,12 +349,11 @@ class Terms {
       std::shared_ptr<const Symbol> symbol);
 
   static std::shared_ptr<const FuncTerm> func(
-      std::string name, std::vector<std::shared_ptr<const Term>> subterms,
+      std::string name, std::vector<std::shared_ptr<const Term> > subterms,
       const Sort *sort, bool noDeclaration = false);
-
   static std::shared_ptr<const FuncTerm> func(
       std::shared_ptr<const Symbol> symbol,
-      std::vector<std::shared_ptr<const Term>> subterms);
+      std::vector<std::shared_ptr<const Term> > subterms);
 };
 }  // namespace logic
 #endif

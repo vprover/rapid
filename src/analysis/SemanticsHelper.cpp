@@ -2,6 +2,7 @@
 
 #include <cassert>
 
+#include "Options.hpp"
 #include "SymbolDeclarations.hpp"
 #include "Term.hpp"
 #include "Theory.hpp"
@@ -30,11 +31,63 @@ std::vector<std::shared_ptr<const logic::Term>> traceTerms(
   return traces;
 }
 
+#pragma mark - Methods for generating color and target symbols for symbol elimination
+
+std::shared_ptr<const logic::LVariable> initTargetSymbol(
+    const program::Variable* var) {
+  return logic::Terms::var(declareInitTargetSymbol(var));
+}
+
+std::shared_ptr<const logic::LVariable> finalTargetSymbol(
+    const program::Variable* var) {
+  return logic::Terms::var(declareFinalTargetSymbol(var));
+}
+
+void colorSymbol(const program::Variable* var) { declareColorSymbolLeft(var); }
+
+std::shared_ptr<const logic::Term> defineTargetSymbol(
+    std::shared_ptr<const logic::LVariable> target,
+    std::shared_ptr<program::Variable> origin,
+    std::shared_ptr<const logic::Term> tp) {
+  std::shared_ptr<const logic::Term> formula;
+  std::vector<std::shared_ptr<const logic::Term>> arguments;
+  auto trace = traceTerm(origin->numberOfTraces);
+
+  if (!origin->isConstant) {
+    assert(tp != nullptr);
+    arguments.push_back(tp);
+  }
+
+  if (origin->isArray) {
+    auto posSymbol = posVarSymbol();
+    auto pos = posVar();
+    arguments.push_back(pos);
+    std::vector<std::shared_ptr<const logic::Term>> targetArguments;
+    targetArguments.push_back(pos);
+
+    formula = logic::Formulas::universal(
+        {posSymbol},
+        logic::Formulas::equality(
+            logic::Terms::func(target->symbol->name, targetArguments,
+                               logic::Sorts::intSort()),
+            toTerm(origin, tp, pos, trace)));
+  } else {
+    formula = logic::Formulas::equality(
+        logic::Terms::func(target->symbol->name, {}, logic::Sorts::intSort()),
+        logic::Terms::func(origin->name, arguments, logic::Sorts::intSort()));
+  }
+  return formula;
+}
+
 #pragma mark - Methods for generating most used timepoint terms and symbols
 
 std::shared_ptr<const logic::LVariable> iteratorTermForLoop(
     program::WhileStatement *whileStatement) {
   assert(whileStatement != nullptr);
+
+  if (util::Configuration::instance().integerIterations()) {
+    return intIteratorTermForLoop(whileStatement);
+  }
 
   return logic::Terms::var(iteratorSymbol(whileStatement));
 }
@@ -45,9 +98,13 @@ std::shared_ptr<const logic::Term> lastIterationTermForLoop(
   assert(whileStatement != nullptr);
   assert(trace != nullptr);
 
+  if (util::Configuration::instance().integerIterations()) {
+    return intLastIterationTermForLoop(whileStatement, numberOfTraces, trace);
+  }
+
   auto symbol = lastIterationSymbol(whileStatement, numberOfTraces);
   std::vector<std::shared_ptr<const logic::Term>> subterms;
-  for (const auto &loop : *whileStatement->enclosingLoops) {
+  for (const auto& loop : *whileStatement->enclosingLoops) {
     subterms.push_back(iteratorTermForLoop(loop));
   }
   if (numberOfTraces > 1) {
@@ -60,6 +117,10 @@ std::shared_ptr<const logic::Term> timepointForNonLoopStatement(
     program::Statement *statement) {
   assert(statement != nullptr);
   assert(typeid(*statement) != typeid(program::WhileStatement));
+
+  if (util::Configuration::instance().integerIterations()) {
+    return intTimepointForNonLoopStatement(statement);
+  }
 
   auto enclosingLoops = *statement->enclosingLoops;
   auto enclosingIteratorTerms =
@@ -80,6 +141,10 @@ std::shared_ptr<const logic::Term> timepointForLoopStatement(
   assert(whileStatement != nullptr);
   assert(innerIteration != nullptr);
 
+  if (util::Configuration::instance().integerIterations()) {
+    return intTimepointForLoopStatement(whileStatement, innerIteration);
+  }
+
   auto enclosingLoops = *whileStatement->enclosingLoops;
   auto enclosingIteratorTerms =
       std::vector<std::shared_ptr<const logic::Term>>();
@@ -94,7 +159,10 @@ std::shared_ptr<const logic::Term> timepointForLoopStatement(
 }
 
 std::shared_ptr<const logic::Term> startTimepointForStatement(
-    program::Statement *statement) {
+    program::Statement* statement) {
+  if (util::Configuration::instance().integerIterations()) {
+    return intStartTimepointForStatement(statement);
+  }
   if (typeid(*statement) != typeid(program::WhileStatement)) {
     return timepointForNonLoopStatement(statement);
   } else {
@@ -104,11 +172,98 @@ std::shared_ptr<const logic::Term> startTimepointForStatement(
 }
 
 std::vector<std::shared_ptr<const logic::Symbol>> enclosingIteratorsSymbols(
-    program::Statement *statement) {
+    program::Statement* statement) {
+  if (util::Configuration::instance().integerIterations()) {
+    return intEnclosingIteratorsSymbols(statement);
+  }
   auto enclosingIteratorsSymbols =
       std::vector<std::shared_ptr<const logic::Symbol>>();
   for (const auto &enclosingLoop : *statement->enclosingLoops) {
     enclosingIteratorsSymbols.push_back(iteratorSymbol(enclosingLoop));
+  }
+  return enclosingIteratorsSymbols;
+}
+
+#pragma mark - Methods for generating most used timepoint terms and symbols in integer sort
+
+std::shared_ptr<const logic::LVariable> intIteratorTermForLoop(
+    program::WhileStatement* whileStatement) {
+  assert(whileStatement != nullptr);
+
+  return logic::Terms::var(intIteratorSymbol(whileStatement));
+}
+
+std::shared_ptr<const logic::Term> intLastIterationTermForLoop(
+    program::WhileStatement* whileStatement, unsigned numberOfTraces,
+    std::shared_ptr<const logic::Term> trace) {
+  assert(whileStatement != nullptr);
+  assert(trace != nullptr);
+
+  auto symbol = intLastIterationSymbol(whileStatement, numberOfTraces);
+  std::vector<std::shared_ptr<const logic::Term>> subterms;
+  for (const auto& loop : *whileStatement->enclosingLoops) {
+    subterms.push_back(intIteratorTermForLoop(loop));
+  }
+  if (numberOfTraces > 1) {
+    subterms.push_back(trace);
+  }
+  return logic::Terms::func(symbol, subterms);
+}
+
+std::shared_ptr<const logic::Term> intTimepointForNonLoopStatement(
+    program::Statement* statement) {
+  assert(statement != nullptr);
+  assert(typeid(*statement) != typeid(program::WhileStatement));
+
+  auto enclosingLoops = *statement->enclosingLoops;
+  auto enclosingIteratorTerms =
+      std::vector<std::shared_ptr<const logic::Term>>();
+  for (const auto& enclosingLoop : enclosingLoops) {
+    auto intEnclosingIteratorSymbol = intIteratorSymbol(enclosingLoop);
+    enclosingIteratorTerms.push_back(
+        logic::Terms::var(intEnclosingIteratorSymbol));
+  }
+
+  return logic::Terms::func(locationSymbolForStatement(statement),
+                            enclosingIteratorTerms);
+}
+
+std::shared_ptr<const logic::Term> intTimepointForLoopStatement(
+    program::WhileStatement* whileStatement,
+    std::shared_ptr<const logic::Term> innerIteration) {
+  assert(whileStatement != nullptr);
+  assert(innerIteration != nullptr);
+
+  auto enclosingLoops = *whileStatement->enclosingLoops;
+  auto enclosingIteratorTerms =
+      std::vector<std::shared_ptr<const logic::Term>>();
+  for (const auto& enclosingLoop : enclosingLoops) {
+    auto enclosingIteratorSymbol = intIteratorSymbol(enclosingLoop);
+    enclosingIteratorTerms.push_back(
+        logic::Terms::var(enclosingIteratorSymbol));
+  }
+  enclosingIteratorTerms.push_back(innerIteration);
+  return logic::Terms::func(locationSymbolForStatement(whileStatement),
+                            enclosingIteratorTerms);
+}
+
+std::shared_ptr<const logic::Term> intStartTimepointForStatement(
+    program::Statement* statement) {
+  if (typeid(*statement) != typeid(program::WhileStatement)) {
+    return intTimepointForNonLoopStatement(statement);
+  } else {
+    auto whileStatement = static_cast<program::WhileStatement*>(statement);
+    return intTimepointForLoopStatement(whileStatement,
+                                        logic::Theory::intZero());
+  }
+}
+
+std::vector<std::shared_ptr<const logic::Symbol>> intEnclosingIteratorsSymbols(
+    const program::Statement* statement) {
+  auto enclosingIteratorsSymbols =
+      std::vector<std::shared_ptr<const logic::Symbol>>();
+  for (const auto& enclosingLoop : *statement->enclosingLoops) {
+    enclosingIteratorsSymbols.push_back(intIteratorSymbol(enclosingLoop));
   }
   return enclosingIteratorsSymbols;
 }

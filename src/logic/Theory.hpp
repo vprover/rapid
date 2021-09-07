@@ -18,6 +18,7 @@ class Theory {
   static void declareTheories();
 
   static std::shared_ptr<const FuncTerm> intConstant(int i);
+  static std::shared_ptr<const FuncTerm> intZero();
   static std::shared_ptr<const FuncTerm> intAddition(
       std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2);
   static std::shared_ptr<const FuncTerm> intSubtraction(
@@ -28,6 +29,7 @@ class Theory {
       std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2);
   static std::shared_ptr<const FuncTerm> intAbsolute(
       std::shared_ptr<const Term> t);
+  static std::shared_ptr<const FuncTerm> intSucc(std::shared_ptr<const Term> t);
 
   static std::shared_ptr<const Term> intLess(std::shared_ptr<const Term> t1,
                                              std::shared_ptr<const Term> t2,
@@ -51,11 +53,20 @@ class Theory {
   static std::shared_ptr<const FuncTerm> natPre(
       std::shared_ptr<const Term> term);
   static std::shared_ptr<const Term> natSub(std::shared_ptr<const Term> t1,
-                                            std::shared_ptr<const Term> t2,
-                                            std::string label = "");
+                                               std::shared_ptr<const Term> t2,
+                                               std::string label = "");
   static std::shared_ptr<const Term> natSubEq(std::shared_ptr<const Term> t1,
-                                              std::shared_ptr<const Term> t2,
-                                              std::string label = "");
+                                                 std::shared_ptr<const Term> t2,
+                                                 std::string label = "");
+
+  static std::shared_ptr<const FuncTerm> zero();
+  static std::shared_ptr<const FuncTerm> succ(std::shared_ptr<const Term> t);
+  static std::shared_ptr<const Term> less(std::shared_ptr<const Term> t1,
+                                             std::shared_ptr<const Term> t2,
+                                             std::string label = "");
+  static std::shared_ptr<const Term> lessEq(std::shared_ptr<const Term> t1,
+                                               std::shared_ptr<const Term> t2,
+                                               std::string label = "");
 };
 
 /*

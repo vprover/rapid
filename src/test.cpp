@@ -9,7 +9,6 @@
 
 #include "program/Program.hpp"
 
-#include "util/Options.hpp"
 #include "util/Output.hpp"
 
 #include "parser/WhileParserWrapper.hpp"

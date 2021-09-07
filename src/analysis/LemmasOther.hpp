@@ -56,6 +56,9 @@ class AtLeastOneIterationLemmas
   virtual void generateOutputFor(
       program::WhileStatement* statement,
       std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
+  virtual void generateOutputForInteger(
+      program::WhileStatement* statement,
+      std::vector<std::shared_ptr<const logic::ProblemItem>>& items);
 };
 
 /*

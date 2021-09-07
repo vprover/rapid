@@ -20,6 +20,22 @@ std::shared_ptr<const logic::Term> traceTerm(unsigned traceNumber);
 std::vector<std::shared_ptr<const logic::Term>> traceTerms(
     unsigned numberOfTraces);
 
+#pragma mark - Methods for generating color and target symbols for symbol elimination
+// adds initial target symbol to signature and returns the symbol to add
+// assertion
+std::shared_ptr<const logic::LVariable> initTargetSymbol(
+    const program::Variable* var);
+// adds final target symbol to signature and returns the symbol to add assertion
+std::shared_ptr<const logic::LVariable> finalTargetSymbol(
+    const program::Variable* var);
+// adds color symbol left to signature
+void colorSymbol(const program::Variable* var);
+// generate equality assertion for target symbol and trace logic pendant
+std::shared_ptr<const logic::Term> defineTargetSymbol(
+    std::shared_ptr<const logic::LVariable> target,
+    std::shared_ptr<program::Variable> origin,
+    std::shared_ptr<const logic::Term> tp);
+
 #pragma mark - Methods for generating most used timepoint terms and symbols
 std::shared_ptr<const logic::LVariable> iteratorTermForLoop(
     program::WhileStatement* whileStatement);
@@ -39,9 +55,28 @@ std::shared_ptr<const logic::Term> startTimepointForStatement(
 std::vector<std::shared_ptr<const logic::Symbol>> enclosingIteratorsSymbols(
     program::Statement* statement);
 
+#pragma mark - Methods for generating most used timepoint terms and symbols in integer sort
+std::shared_ptr<const logic::LVariable> intIteratorTermForLoop(
+    program::WhileStatement* whileStatement);
+std::shared_ptr<const logic::Term> intLastIterationTermForLoop(
+    program::WhileStatement* whileStatement, unsigned numberOfTraces,
+    std::shared_ptr<const logic::Term> trace);
+
+std::shared_ptr<const logic::Term> intTimepointForNonLoopStatement(
+    program::Statement* statement);
+std::shared_ptr<const logic::Term> intTimepointForLoopStatement(
+    program::WhileStatement* whileStatement,
+    std::shared_ptr<const logic::Term> innerIteration);
+
+std::shared_ptr<const logic::Term> intStartTimepointForStatement(
+    program::Statement* statement);
+
+std::vector<std::shared_ptr<const logic::Symbol>> intEnclosingIteratorsSymbols(
+    const program::Statement* statement);
+
 #pragma mark - Methods for generating most used terms/predicates denoting program-expressions
 /*
- * convert a program variable to a logical term refering to the value of
+ * convert a program variable to a logical term referring to the value of
  * Variable var at the Timepoint timepoint in the Trace trace. The first version
  * must only be used for non-array variables, the second version must only be
  * used for array-variables (where position refers to the position in the
@@ -58,7 +93,7 @@ std::shared_ptr<const logic::Term> toTerm(
     std::shared_ptr<const logic::Term> trace);
 
 /*
- * convert the expression expr to a logical term refering to the value of the
+ * convert the expression expr to a logical term referring to the value of the
  * Expression expr at the Timepoint timepoint. calls toTerm(var,...) internally.
  */
 std::shared_ptr<const logic::Term> toTerm(

@@ -111,6 +111,9 @@ class ValueEvolutionLemmas
   virtual void generateOutputFor(
       program::WhileStatement* statement,
       std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
+  virtual void generateOutputForInteger(
+      program::WhileStatement* statement,
+      std::vector<std::shared_ptr<const logic::ProblemItem>>& items);
 };
 
 /* LEMMA 2
@@ -190,6 +193,12 @@ class StaticAnalysisLemmas
   virtual void generateOutputFor(
       program::WhileStatement* statement,
       std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
+  virtual void generateOutputForInteger(
+      program::WhileStatement* statement,
+      std::vector<std::shared_ptr<const logic::ProblemItem>>& items);
+
+  std::unordered_set<std::shared_ptr<const program::Variable>>
+  computeAssignedVars(const program::Statement* statement);
 };
 }  // namespace analysis
 

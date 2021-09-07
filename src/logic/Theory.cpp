@@ -20,15 +20,21 @@ void Theory::declareTheories() {
   intLessEqual(intConst, intConst);
   intGreater(intConst, intConst);
   intGreaterEqual(intConst, intConst);
+  auto zero = Theory::zero();
 
-  auto zero = natZero();
-  natSucc(zero);
-  natPre(zero);
-  natSub(zero, zero);
+  if (!util::Configuration::instance().integerIterations()) {
+    natSucc(zero);
+    natPre(zero);
+    natSub(zero, zero);
+  }
 }
 
 std::shared_ptr<const FuncTerm> Theory::intConstant(int i) {
   return Terms::func(std::to_string(i), {}, Sorts::intSort(), true);
+}
+
+std::shared_ptr<const FuncTerm> Theory::intZero() {
+  return Theory::intConstant(0);
 }
 
 std::shared_ptr<const FuncTerm> Theory::intAddition(
@@ -56,21 +62,25 @@ std::shared_ptr<const FuncTerm> Theory::intAbsolute(
   return Terms::func("abs", {t}, Sorts::intSort(), true);
 }
 
+std::shared_ptr<const FuncTerm> Theory::intSucc(std::shared_ptr<const Term> t) {
+  return intAddition(t, Theory::intConstant(1));
+}
+
 std::shared_ptr<const Term> Theory::intLess(std::shared_ptr<const Term> t1,
-                                            std::shared_ptr<const Term> t2,
-                                            std::string label) {
+                                               std::shared_ptr<const Term> t2,
+                                               std::string label) {
   return Formulas::predicate("<", {t1, t2}, label, true);
 }
 
-std::shared_ptr<const Term> Theory::intLessEqual(std::shared_ptr<const Term> t1,
-                                                 std::shared_ptr<const Term> t2,
-                                                 std::string label) {
+std::shared_ptr<const Term> Theory::intLessEqual(
+    std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2,
+    std::string label) {
   return Formulas::predicate("<=", {t1, t2}, label, true);
 }
 
-std::shared_ptr<const Term> Theory::intGreater(std::shared_ptr<const Term> t1,
-                                               std::shared_ptr<const Term> t2,
-                                               std::string label) {
+std::shared_ptr<const Term> Theory::intGreater(
+    std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2,
+    std::string label) {
   return Formulas::predicate(">", {t1, t2}, label, true);
 }
 
@@ -103,17 +113,49 @@ std::shared_ptr<const FuncTerm> Theory::natPre(
 }
 
 std::shared_ptr<const Term> Theory::natSub(std::shared_ptr<const Term> t1,
-                                           std::shared_ptr<const Term> t2,
-                                           std::string label) {
+                                              std::shared_ptr<const Term> t2,
+                                              std::string label) {
   bool alreadyDeclared = util::Configuration::instance().nativeNat();
   return Formulas::predicate("Sub", {t1, t2}, label, alreadyDeclared);
 }
 
 std::shared_ptr<const Term> Theory::natSubEq(std::shared_ptr<const Term> t1,
-                                             std::shared_ptr<const Term> t2,
-                                             std::string label) {
+                                                std::shared_ptr<const Term> t2,
+                                                std::string label) {
   // encode t1<=t2 as t1 < s(t2).
   return Theory::natSub(t1, natSucc(t2), label);
+}
+
+std::shared_ptr<const FuncTerm> Theory::succ(std::shared_ptr<const Term> t) {
+  if (util::Configuration::instance().integerIterations()) {
+    return Theory::intSucc(t);
+  }
+  return Theory::natSucc(t);
+}
+
+std::shared_ptr<const Term> Theory::less(std::shared_ptr<const Term> t1,
+                                            std::shared_ptr<const Term> t2,
+                                            std::string label) {
+  if (util::Configuration::instance().integerIterations()) {
+    return Theory::intLess(t1, t2, label);
+  }
+  return Theory::natSub(t1, t2, label);
+}
+
+std::shared_ptr<const Term> Theory::lessEq(std::shared_ptr<const Term> t1,
+                                              std::shared_ptr<const Term> t2,
+                                              std::string label) {
+  if (util::Configuration::instance().integerIterations()) {
+    return Theory::intLessEqual(t1, t2, label);
+  }
+  return Theory::natSubEq(t1, t2, label);
+}
+
+std::shared_ptr<const FuncTerm> Theory::zero() {
+  if (util::Configuration::instance().integerIterations()) {
+    return Theory::intZero();
+  }
+  return Theory::natZero();
 }
 
 std::tuple<std::shared_ptr<logic::Definition>,
@@ -131,6 +173,14 @@ inductionAxiom1(
       logic::Signature::varSymbol("boundR", logic::Sorts::natSort());
   auto itIndSymbol =
       logic::Signature::varSymbol("itInd", logic::Sorts::natSort());
+
+  if (util::Configuration::instance().integerIterations()) {
+    boundLSymbol =
+        logic::Signature::varSymbol("boundL", logic::Sorts::intSort());
+    boundRSymbol =
+        logic::Signature::varSymbol("boundR", logic::Sorts::intSort());
+    itIndSymbol = logic::Signature::varSymbol("itInd", logic::Sorts::intSort());
+  }
 
   auto boundL = Terms::var(boundLSymbol);
   auto boundR = Terms::var(boundRSymbol);
@@ -162,10 +212,10 @@ inductionAxiom1(
           Formulas::universal(
               {itIndSymbol},
               Formulas::implication(
-                  Formulas::conjunction({Theory::natSubEq(boundL, itInd),
-                                         Theory::natSub(itInd, boundR),
+                  Formulas::conjunction({Theory::lessEq(boundL, itInd),
+                                         Theory::less(itInd, boundR),
                                          inductionHypothesis(itInd)}),
-                  inductionHypothesis(Theory::natSucc(itInd))))));
+                  inductionHypothesis(Theory::succ(itInd))))));
   auto conclusionDef = Formulas::universal(
       argSymbols2,
       Formulas::equivalence(
@@ -173,8 +223,8 @@ inductionAxiom1(
           Formulas::universal(
               {itIndSymbol},
               Formulas::implication(
-                  Formulas::conjunction({Theory::natSubEq(boundL, itInd),
-                                         Theory::natSubEq(itInd, boundR)}),
+                  Formulas::conjunction({Theory::lessEq(boundL, itInd),
+                                         Theory::lessEq(itInd, boundR)}),
                   inductionHypothesis(itInd)))));
 
   auto inductionAxiom = Formulas::universal(
@@ -205,6 +255,9 @@ inductionAxiom2(
     ProblemItem::Visibility visibility) {
   auto itIndSymbol =
       logic::Signature::varSymbol("itInd", logic::Sorts::natSort());
+  if (util::Configuration::instance().integerIterations()) {
+    itIndSymbol = logic::Signature::varSymbol("itInd", logic::Sorts::intSort());
+  }
   auto itInd = Terms::var(itIndSymbol);
 
   std::vector<std::shared_ptr<const Term>> freeVars = {};
@@ -218,7 +271,7 @@ inductionAxiom2(
 
   auto baseCaseDef = Formulas::universal(
       freeVarSymbols,
-      Formulas::equivalence(baseCase, inductionHypothesis(Theory::natZero())));
+      Formulas::equivalence(baseCase, inductionHypothesis(Theory::zero())));
   auto inductiveCaseDef = Formulas::universal(
       freeVarSymbols,
       Formulas::equivalence(
@@ -226,10 +279,10 @@ inductionAxiom2(
           Formulas::universal(
               {itIndSymbol},
               Formulas::implication(
-                  Formulas::conjunction({Theory::natSub(itInd, nt1),
-                                         Theory::natSub(itInd, nt2),
+                  Formulas::conjunction({Theory::less(itInd, nt1),
+                                         Theory::less(itInd, nt2),
                                          inductionHypothesis(itInd)}),
-                  inductionHypothesis(Theory::natSucc(itInd))))));
+                  inductionHypothesis(Theory::succ(itInd))))));
   auto conclusionDef = Formulas::universal(
       freeVarSymbols,
       Formulas::equivalence(

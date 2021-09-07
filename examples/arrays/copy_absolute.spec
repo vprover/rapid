@@ -20,12 +20,17 @@ func main()
 	}
 }
 
+(axiom 
+	(<= 0 blength)
+)
+
 (conjecture
 	(forall ((k Int))
 		(=>
 			(and
 				(<= 0 k)
 				(< k blength)
+				(<= 0 blength)
 			)
 			(or
 				(= (a main_end k) (b k) )
@@ -41,6 +46,7 @@ func main()
 			(and
 				(<= 0 k)
 				(< k blength)
+				(<= 0 blength)
 			)
 				(<= 0 (a main_end k))
 		)

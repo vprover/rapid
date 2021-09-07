@@ -8,6 +8,7 @@
 
 #include "Formula.hpp"
 #include "Options.hpp"
+#include "Sort.hpp"
 #include "SymbolDeclarations.hpp"
 #include "Term.hpp"
 #include "Theory.hpp"
@@ -74,6 +75,37 @@ Semantics::generateSemantics() {
         // semantics directly
         conjunctsFunction = conjunctsTrace;
       }
+
+      std::vector<std::shared_ptr<const logic::Term>> targetSymbolAxioms;
+
+      // postcondition mode
+      // TODO: handling for multiple traces
+      if (util::Configuration::instance().postcondition()) {
+        for (auto i = coloredSymbols.begin(); i != coloredSymbols.end(); ++i) {
+          auto var = i->second;
+          auto variable = var.get();
+
+          // add target-symbols
+          auto symInit = initTargetSymbol(variable);
+          auto symFinal = finalTargetSymbol(variable);
+          colorSymbol(variable);
+          // hack to get the start and end timepoint of the first (outermost)
+          // while loop
+          auto lEnd = loopEndTimePoints.front();
+          auto lStart = loopStartTimePoints.front();
+
+          // add definitions for final and initial values
+          targetSymbolAxioms.push_back(
+              defineTargetSymbol(symInit, var, lStart));
+          targetSymbolAxioms.push_back(defineTargetSymbol(symFinal, var, lEnd));
+        }
+      }
+
+      auto targetFormula = std::make_shared<logic::Axiom>(
+          logic::Formulas::conjunctionSimp(targetSymbolAxioms),
+          "target symbol definitions for symbol elimination",
+          logic::ProblemItem::Visibility::Implicit);
+      axioms.push_back(targetFormula);
     }
 
     auto axiomFormula = logic::Formulas::conjunctionSimp(conjunctsFunction);
@@ -120,6 +152,10 @@ std::shared_ptr<const logic::Term> Semantics::generateSemantics(
   if (typeid(*assignment->lhs) == typeid(program::VariableAccess)) {
     auto castedLhs =
         std::static_pointer_cast<program::VariableAccess>(assignment->lhs);
+
+    // add integer symbols for coloring
+    coloredSymbols.insert_or_assign(assignment->lhs->toString(),
+                                    castedLhs->var);
 
     if (util::Configuration::instance().inlineSemantics()) {
       inliner.currTimepoint = l1;
@@ -172,6 +208,10 @@ std::shared_ptr<const logic::Term> Semantics::generateSemantics(
     assert(typeid(*assignment->lhs) == typeid(program::ArrayApplication));
     auto application =
         std::static_pointer_cast<program::ArrayApplication>(assignment->lhs);
+
+    // add array symbols for coloring
+    coloredSymbols.insert_or_assign(application->array->name,
+                                    application->array);
 
     if (util::Configuration::instance().inlineSemantics()) {
       inliner.currTimepoint = l1;
@@ -449,15 +489,16 @@ std::shared_ptr<const logic::Term> Semantics::generateSemantics(
   auto n = lastIterationTermForLoop(whileStatement, numberOfTraces, trace);
 
   auto lStart0 =
-      timepointForLoopStatement(whileStatement, logic::Theory::natZero());
+      timepointForLoopStatement(whileStatement, logic::Theory::zero());
+  loopStartTimePoints.push_back(lStart0);
   auto lStartIt = timepointForLoopStatement(whileStatement, it);
   auto lStartSuccOfIt =
-      timepointForLoopStatement(whileStatement, logic::Theory::natSucc(it));
+      timepointForLoopStatement(whileStatement, logic::Theory::succ(it));
   auto lStartN = timepointForLoopStatement(whileStatement, n);
   auto lBodyStartIt =
       startTimepointForStatement(whileStatement->bodyStatements.front().get());
   auto lEnd = endTimePointMap.at(whileStatement);
-
+  loopEndTimePoints.push_back(lStartN);
   auto posSymbol = posVarSymbol();
   auto pos = posVar();
 
@@ -480,9 +521,10 @@ std::shared_ptr<const logic::Term> Semantics::generateSemantics(
       }
     }
     auto f1 = inliner.handlePersistenceOfLoop(lStart0, lStartIt, vars);
+
     conjuncts.push_back(logic::Formulas::universalSimp(
         {itSymbol},
-        logic::Formulas::implicationSimp(logic::Theory::natSubEq(it, n), f1),
+        logic::Formulas::implicationSimp(logic::Theory::lessEq(it, n), f1),
         "Define referenced terms denoting variable values at " +
             whileStatement->location));
 
@@ -514,9 +556,9 @@ std::shared_ptr<const logic::Term> Semantics::generateSemantics(
         // iterations Itl9 of the loop.
         auto tps = inliner.getCachedArrayVarTimepoints();
         auto cachedTimepoint = tps[var];
-        if (cachedTimepoint.get()->prettyString().find("nl") ==
+        if (cachedTimepoint.get()->prettyString(0).find("nl") ==
                 std::string::npos &&
-            cachedTimepoint.get()->prettyString().find("Itl") !=
+            cachedTimepoint.get()->prettyString(0).find("Itl") !=
                 std::string::npos) {
           auto cachedTimepointTerm =
               std::static_pointer_cast<const logic::FuncTerm>(cachedTimepoint);
@@ -548,12 +590,23 @@ std::shared_ptr<const logic::Term> Semantics::generateSemantics(
       }
     }
 
-    conjuncts.push_back(logic::Formulas::universal(
-        {itSymbol},
-        logic::Formulas::implication(
-            logic::Theory::natSub(it, n),
-            inliner.toCachedTerm(whileStatement->condition)),
-        "The loop-condition holds always before the last iteration"));
+    if (util::Configuration::instance().integerIterations()) {
+      conjuncts.push_back(logic::Formulas::universal(
+          {itSymbol},
+          logic::Formulas::implication(
+              logic::Formulas::conjunction(
+                  {logic::Theory::lessEq(logic::Theory::intZero(), it),
+                   logic::Theory::less(it, n)}),
+              inliner.toCachedTerm(whileStatement->condition)),
+          "The loop-condition holds always before the last iteration"));
+    } else {
+      conjuncts.push_back(logic::Formulas::universal(
+          {itSymbol},
+          logic::Formulas::implication(
+              logic::Theory::less(it, n),
+              inliner.toCachedTerm(whileStatement->condition)),
+          "The loop-condition holds always before the last iteration"));
+    }
 
     // Extra part: collect in inlinedVarValues the values of all variables,
     // which occur in the loop condition but are not assigned to.
@@ -604,12 +657,24 @@ std::shared_ptr<const logic::Term> Semantics::generateSemantics(
       }
     }
 
-    conjuncts.push_back(logic::Formulas::universalSimp(
-        {itSymbol},
-        logic::Formulas::implicationSimp(
-            logic::Theory::natSub(it, n),
-            logic::Formulas::conjunctionSimp(conjunctsBody)),
-        "Semantics of the body"));
+    // Semantics of the body
+    if (util::Configuration::instance().integerIterations()) {
+      conjuncts.push_back(logic::Formulas::universalSimp(
+          {itSymbol},
+          logic::Formulas::implicationSimp(
+              logic::Formulas::conjunctionSimp(
+                  {logic::Theory::lessEq(logic::Theory::intZero(), it),
+                   logic::Theory::less(it, n)}),
+              logic::Formulas::conjunctionSimp(conjunctsBody)),
+          "Semantics of the body"));
+    } else {
+      conjuncts.push_back(logic::Formulas::universalSimp(
+          {itSymbol},
+          logic::Formulas::implicationSimp(
+              logic::Theory::less(it, n),
+              logic::Formulas::conjunctionSimp(conjunctsBody)),
+          "Semantics of the body"));
+    }
 
     // Part 4: define values of assignedVars after the execution of the loop
     inliner.currTimepoint = lStartN;
@@ -628,6 +693,13 @@ std::shared_ptr<const logic::Term> Semantics::generateSemantics(
         inliner.toCachedTerm(whileStatement->condition),
         "The loop-condition doesn't hold in the last iteration"));
 
+    // for iterations of sort integer, assert last iteration nl >= 0
+    if (util::Configuration::instance().integerIterations()) {
+      conjuncts.push_back(logic::Theory::lessEq(
+          logic::Theory::zero(), n,
+          "The last iteration is >= 0 when of sort integer"));
+    }
+
     return logic::Formulas::conjunctionSimp(
         conjuncts, "Loop at location " + whileStatement->location);
   } else {
@@ -636,9 +708,19 @@ std::shared_ptr<const logic::Term> Semantics::generateSemantics(
     auto part1 = logic::Formulas::universal(
         {itSymbol},
         logic::Formulas::implication(
-            logic::Theory::natSub(it, n),
+            logic::Theory::less(it, n),
             allVarEqual(activeVars, lBodyStartIt, lStartIt, trace)),
         "Jumping into the loop body doesn't change the variable values");
+    if (util::Configuration::instance().integerIterations()) {
+      part1 = logic::Formulas::universal(
+          {itSymbol},
+          logic::Formulas::implication(
+              logic::Formulas::conjunctionSimp(
+                  {logic::Theory::lessEq(logic::Theory::intZero(), it),
+                   logic::Theory::less(it, n)}),
+              allVarEqual(activeVars, lBodyStartIt, lStartIt, trace)),
+          "Jumping into the loop body doesn't change the variable values");
+    }
     conjuncts.push_back(part1);
 
     // Part 2: collect all formulas describing semantics of body
@@ -650,9 +732,19 @@ std::shared_ptr<const logic::Term> Semantics::generateSemantics(
     auto bodySemantics = logic::Formulas::universal(
         {itSymbol},
         logic::Formulas::implication(
-            logic::Theory::natSub(it, n),
+            logic::Theory::less(it, n),
             logic::Formulas::conjunction(conjunctsBody)),
         "Semantics of the body");
+    if (util::Configuration::instance().integerIterations()) {
+      bodySemantics = logic::Formulas::universal(
+          {itSymbol},
+          logic::Formulas::implication(
+              logic::Formulas::conjunctionSimp(
+                  {logic::Theory::lessEq(logic::Theory::intZero(), it),
+                   logic::Theory::less(it, n)}),
+              logic::Formulas::conjunction(conjunctsBody)),
+          "Semantics of the body");
+    }
     conjuncts.push_back(bodySemantics);
 
     // Part 3: Define last iteration
@@ -660,9 +752,20 @@ std::shared_ptr<const logic::Term> Semantics::generateSemantics(
     auto universal = logic::Formulas::universal(
         {itSymbol},
         logic::Formulas::implication(
-            logic::Theory::natSub(it, n),
+            logic::Theory::less(it, n),
             toTerm(whileStatement->condition, lStartIt, trace)),
         "The loop-condition holds always before the last iteration");
+
+    if (util::Configuration::instance().integerIterations()) {
+      universal = logic::Formulas::universal(
+          {itSymbol},
+          logic::Formulas::implication(
+              logic::Formulas::conjunctionSimp(
+                  {logic::Theory::lessEq(logic::Theory::intZero(), it),
+                   logic::Theory::less(it, n)}),
+              toTerm(whileStatement->condition, lStartIt, trace)),
+          "The loop-condition holds always before the last iteration");
+    }
     conjuncts.push_back(universal);
 
     // loop condition doesn't hold at n

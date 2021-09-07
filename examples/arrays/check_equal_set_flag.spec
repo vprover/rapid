@@ -27,6 +27,11 @@ func main()
   }
 }
 
+(axiom
+  (<= 0 length)
+)
+
+
 (conjecture
   (=>
     (and

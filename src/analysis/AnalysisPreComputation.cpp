@@ -3,6 +3,7 @@
 #include <cassert>
 #include <memory>
 
+#include "Options.hpp"
 #include "SemanticsHelper.hpp"
 #include "SymbolDeclarations.hpp"
 #include "Theory.hpp"
@@ -110,8 +111,7 @@ void AnalysisPreComputation::addEndTimePointForWhileStatement(
   // of the while-statement in the next iteration
   auto lastStatement = whileStatement->bodyStatements.back().get();
   auto nextTimepointForStatement = timepointForLoopStatement(
-      whileStatement,
-      logic::Theory::natSucc(iteratorTermForLoop(whileStatement)));
+      whileStatement, logic::Theory::succ(iteratorTermForLoop(whileStatement)));
   addEndTimePointForStatement(lastStatement, nextTimepointForStatement,
                               endTimePointMap);
 }

@@ -13,6 +13,11 @@ func main()
 	}
 }
 
+(axiom
+  (<= 0 blength)
+)
+
+
 (conjecture
 	(=>
 		(<= k blength)

@@ -4,7 +4,6 @@
 
 #include "SemanticsHelper.hpp"
 #include "SymbolDeclarations.hpp"
-#include "Term.hpp"
 #include "Theory.hpp"
 
 namespace analysis {
@@ -305,9 +304,9 @@ std::shared_ptr<const logic::Term> SemanticsInliner::handlePersistence(
             // propagated throughout all timepoints with inline semantics. This
             // variable will only have cached timepoints from where its values
             // were used, but not from the end of the loop.
-            if (cachedTimepoint.get()->prettyString().find("nl") ==
+            if (cachedTimepoint.get()->prettyString(0).find("nl") ==
                     std::string::npos &&
-                cachedTimepoint.get()->prettyString().find("Itl") !=
+                cachedTimepoint.get()->prettyString(0).find("Itl") !=
                     std::string::npos) {
               auto cachedTimepointTerm =
                   std::static_pointer_cast<const logic::FuncTerm>(
