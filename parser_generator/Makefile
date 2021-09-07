@@ -20,4 +20,4 @@ $(SCANNER_SRC): WhileScanner.ll
 clean:
 
 mrproper:
-	rm $(PARSER_SRC) $(PARSER_HDR) $(SCANNER_SRC) stack.hh
+	rm $(PARSER_SRC) $(PARSER_HDR) $(SCANNER_SRC) $(SRCDIR)/parser/stack.hh
