@@ -17,7 +17,8 @@ std::shared_ptr<const logic::Symbol> locationSymbol(std::string location, unsign
             enclosingIteratorTypes.push_back(logic::Sorts::natSort());
         }
     }
-    return logic::Signature::fetchOrAdd(location, enclosingIteratorTypes, logic::Sorts::timeSort());
+    logic::Symbol::SymbolType typ = logic::Symbol::SymbolType::TimePoint;
+    return logic::Signature::fetchOrAdd(location, enclosingIteratorTypes, logic::Sorts::timeSort(), false, false, typ);
 
 }
 
@@ -52,7 +53,8 @@ std::shared_ptr<const logic::Symbol> lastIterationSymbol(const program::WhileSta
     {
         argumentSorts.push_back(logic::Sorts::traceSort());
     }
-    return logic::Signature::fetchOrAdd("n" + statement->location, argumentSorts, logic::Sorts::natSort());
+    logic::Symbol::SymbolType typ = logic::Symbol::SymbolType::FinalLoopCount;    
+    return logic::Signature::fetchOrAdd("n" + statement->location, argumentSorts, logic::Sorts::natSort(),false, false, typ);
 }
 
 std::shared_ptr<const logic::Symbol> iteratorSymbol(const program::WhileStatement* whileStatement)
@@ -63,6 +65,7 @@ std::shared_ptr<const logic::Symbol> iteratorSymbol(const program::WhileStatemen
     return logic::Signature::varSymbol("It" + whileStatement->location, logic::Sorts::natSort());
 }
 
+//TODO no need for two functions?
 std::shared_ptr<const logic::Symbol> intLastIterationSymbol(const program::WhileStatement* statement, unsigned numberOfTraces)
 {
     std::vector<const logic::Sort*> argumentSorts;
@@ -74,7 +77,8 @@ std::shared_ptr<const logic::Symbol> intLastIterationSymbol(const program::While
     {
         argumentSorts.push_back(logic::Sorts::traceSort());
     }
-    return logic::Signature::fetchOrAdd("n" + statement->location, argumentSorts, logic::Sorts::intSort());
+    logic::Symbol::SymbolType typ = logic::Symbol::SymbolType::FinalLoopCount;    
+    return logic::Signature::fetchOrAdd("n" + statement->location, argumentSorts, logic::Sorts::intSort(), false, false, typ);
 }
 
 std::shared_ptr<const logic::Symbol> intIteratorSymbol(const program::WhileStatement* whileStatement)
@@ -153,7 +157,12 @@ void declareSymbolForProgramVar(const program::Variable* var)
         argSorts.push_back(logic::Sorts::traceSort());
     }
     
-    logic::Signature::add(var->name, argSorts, logic::Sorts::intSort(), false, var->isConstant);
+    logic::Symbol::SymbolType typ = logic::Symbol::SymbolType::ProgramVar;
+    if(var->isConstant){
+        typ = logic::Symbol::SymbolType::ConstProgramVar;
+    }
+
+    logic::Signature::add(var->name, argSorts, logic::Sorts::intSort(), false, typ);
 }
 
 

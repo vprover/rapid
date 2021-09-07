@@ -22,31 +22,39 @@ namespace logic {
         // we need each symbol to be either declared in the signature or to be a variable (which will be declared by the quantifier)
         // We use the Signature-class below as a manager-class for symbols of the first kind
         friend class Signature;
+
+    public:
+        enum class SymbolType
+        {
+            ProgramVar,
+            ConstProgramVar,
+            FinalLoopCount,
+            TimePoint,
+            Other
+        };
         
     private:
-        Symbol(std::string name, const Sort* rngSort, bool isLemmaPredicate, bool noDeclaration, bool variable) :
+        Symbol(std::string name, const Sort* rngSort, bool isLemmaPredicate, bool noDeclaration, SymbolType typ) :
         name(name),
         argSorts(),
         rngSort(rngSort),
         isLemmaPredicate(isLemmaPredicate),
         noDeclaration(noDeclaration),
         isColorSymbol(false),
-        variable(variable),
-        constProgramVar(false)       
+        symbolType(typ)
         {
             assert(!name.empty());
             assert(!isLemmaPredicate || isPredicateSymbol());
         }
 
-        Symbol(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool isLemmaPredicate, bool noDeclaration, bool variable, bool pvar) :
+        Symbol(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool isLemmaPredicate, bool noDeclaration, SymbolType typ) :
         name(name),
         argSorts(std::move(argSorts)),
         rngSort(rngSort),
         isLemmaPredicate(isLemmaPredicate),
         isColorSymbol(false),
         noDeclaration(noDeclaration),
-        variable(variable),
-        constProgramVar(pvar) 
+        symbolType(typ)
         {
             assert(!name.empty());
             assert(!isLemmaPredicate || isPredicateSymbol());
@@ -58,10 +66,9 @@ namespace logic {
         rngSort(),
         isLemmaPredicate(false),
         noDeclaration(false),
-        variable(false),
         orientation(orientation),
         isColorSymbol(isColorSymbol),
-        constProgramVar(false) 
+        symbolType(SymbolType::Other) 
         {
             assert(!name.empty());
             assert(!orientation.empty());
@@ -71,17 +78,17 @@ namespace logic {
         std::string replaceString(std::string, std::string, std::string) const;
      
     public:
+
         const std::string name;
         const std::vector<const Sort*> argSorts;
         const Sort* rngSort;
         const bool isLemmaPredicate; // lemma predicates will be annotated in the smtlib-output, so that Vampire can treat them differently
         const bool noDeclaration; // true iff the symbol needs no declaration in smtlib (i.e. true only for interpreted symbols and variables)
-        const bool variable; //true if represents variable
+        const SymbolType symbolType; //true if represents variable
 
         // used for symbol elimination, values are either "left" or "right", can be empty for non-color symbols     
         const std::string orientation; 
         const bool isColorSymbol; 
-        const bool constProgramVar;
          
         bool isPredicateSymbol() const { return rngSort == Sorts::boolSort(); }
          
@@ -133,12 +140,15 @@ namespace logic {
     class Signature
     {
     public:
+
+        typedef Symbol::SymbolType SyS;
+
         static bool isDeclared(std::string name);
 
         // construct new symbols
-        static std::shared_ptr<const Symbol> add(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool noDeclaration=false, bool constProgramVar=false);
+        static std::shared_ptr<const Symbol> add(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool noDeclaration=false, Symbol::SymbolType sym = Symbol::SymbolType::Other);
         static std::shared_ptr<const Symbol> fetch(std::string name);
-        static std::shared_ptr<const Symbol> fetchOrAdd(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool isLemmaPredicate=false, bool noDeclaration=false, bool constProgramVar=false);
+        static std::shared_ptr<const Symbol> fetchOrAdd(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool isLemmaPredicate=false, bool noDeclaration=false, SyS sym = SyS::Other);
 
         // check that variable doesn't use name which already occurs in Signature
         // return Symbol without adding it to Signature

@@ -194,7 +194,7 @@ namespace analysis {
 
                                 //TODO don't understand all this implicit explicit business
                                 items.push_back(std::make_shared<logic::Lemma>(lemma, 
-                                    "Equality-at-end-of-loop-axiom", 
+                                    var1->var->name + "-" + var2->var->name + "-" + "equality-axiom", 
                                     logic::ProblemItem::Visibility::Implicit));
                             }
                         }

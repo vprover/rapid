@@ -34,21 +34,19 @@ namespace logic {
             if (argSorts.size() == 0 && !(isLemmaPredicate && util::Configuration::instance().lemmaPredicates()))
             {
 
-                if (name.rfind("l", 0) == 0){
-                    //TODO shouldn't output this based on string analysis. Will do for now
-                    return"(declare-const-time-point " + toSMTLIB() + " " + rngSort->toSMTLIB() + ")\n";
+                if (symbolType == SymbolType::TimePoint){
+                    return"(declare-time-point " + toSMTLIB() + " " + rngSort->toSMTLIB() + ")\n";
                 } 
 
-                if (name.rfind("nl", 0) == 0){
-                    //TODO shouldn't output this based on string analysis. Will do for now
+                if (symbolType == SymbolType::FinalLoopCount){
                     return "(declare-final-loop-count " + toSMTLIB() + " " + rngSort->toSMTLIB() + ")\n";
                 }
 
-                if(name == "main_end"){
+                /*if(name == "main_end"){
                     return "(declare-main-end " + toSMTLIB() + " " + rngSort->toSMTLIB() + ")\n";                    
-                }
+                }*/
 
-                if(constProgramVar){
+                if(symbolType == SymbolType::ConstProgramVar){
                     return "(declare-const-var " + toSMTLIB() + " " + rngSort->toSMTLIB() + ")\n";                     
                 }
 
@@ -58,10 +56,13 @@ namespace logic {
             {
                 std::string res = (isLemmaPredicate && util::Configuration::instance().lemmaPredicates()) ? "(declare-lemma-predicate " : "(declare-fun "; 
                 
-                if (name.rfind("l", 0) == 0){
-                    //TODO shouldn't output this based on string analysis. Will do for now
+                if (symbolType == SymbolType::TimePoint){
                     res = "(declare-time-point ";
                 }                
+
+                if (symbolType == SymbolType::FinalLoopCount){
+                    res = "(declare-final-loop-count ";
+                }
                 
                 res += toSMTLIB() + " (";
                 for (int i=0; i < argSorts.size(); ++i)
@@ -145,7 +146,7 @@ namespace logic {
     {
         const std::string toFind = "main_end";
         // if non-negative integer constant
-        if(variable){
+        if(symbolType == SymbolType::ProgramVar){
             std::string nameTPTP = name;
             nameTPTP[0] = std::toupper(name[0]);
             return nameTPTP;
@@ -192,12 +193,12 @@ namespace logic {
         return (it != _signature.end());
     }
     
-    std::shared_ptr<const Symbol> Signature::add(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool noDeclaration, bool constProgramVar)
+    std::shared_ptr<const Symbol> Signature::add(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool noDeclaration, SyS typ)
     {
         // there must be no symbol with name name already added
         assert(_signature.count(name) == 0);
         
-        auto pair = _signature.insert(std::make_pair(name,std::unique_ptr<Symbol>(new Symbol(name, argSorts, rngSort, false, noDeclaration, false, constProgramVar))));
+        auto pair = _signature.insert(std::make_pair(name,std::unique_ptr<Symbol>(new Symbol(name, argSorts, rngSort, false, noDeclaration, typ))));
         assert(pair.second); // must succeed since we checked that no such symbols existed before the insertion
 
         auto symbol = pair.first->second;
@@ -213,9 +214,9 @@ namespace logic {
         return it->second;
     }
     
-    std::shared_ptr<const Symbol> Signature::fetchOrAdd(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool isLemmaPredicate, bool noDeclaration, bool constProgramVar)
+    std::shared_ptr<const Symbol> Signature::fetchOrAdd(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool isLemmaPredicate, bool noDeclaration, SyS typ)
     {
-        auto pair = _signature.insert(std::make_pair(name, std::shared_ptr<Symbol>(new Symbol(name, argSorts, rngSort, isLemmaPredicate, noDeclaration, false, constProgramVar))));
+        auto pair = _signature.insert(std::make_pair(name, std::shared_ptr<Symbol>(new Symbol(name, argSorts, rngSort, isLemmaPredicate, noDeclaration, typ))));
         auto symbol = pair.first->second;
 
         if (pair.second)
@@ -246,7 +247,7 @@ namespace logic {
         // there must be no symbol with name name already added
         assert(_signature.count(name) == 0);
         
-        return std::shared_ptr<Symbol>(new Symbol(name, rngSort, false, true, true));
+        return std::shared_ptr<Symbol>(new Symbol(name, rngSort, false, true, SyS::ProgramVar));
     }
 
     void Signature::addColorSymbol(std::string name, std::string orientation)

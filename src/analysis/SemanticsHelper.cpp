@@ -368,7 +368,12 @@ namespace analysis {
             arguments.push_back(trace);
         }
 
-        return logic::Terms::func(var->name, arguments, logic::Sorts::intSort(), false, var->isConstant);
+        logic::Symbol::SymbolType typ = logic::Symbol::SymbolType::ProgramVar;
+        if(var->isConstant){
+            typ = logic::Symbol::SymbolType::ConstProgramVar;
+        }
+
+        return logic::Terms::func(var->name, arguments, logic::Sorts::intSort(), false, typ);
     }
 
     std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::Variable> var, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> position, std::shared_ptr<const logic::Term> trace)
@@ -394,7 +399,12 @@ namespace analysis {
             arguments.push_back(trace);
         }
 
-        return logic::Terms::func(var->name, arguments, logic::Sorts::intSort(), false, var->isConstant);
+        logic::Symbol::SymbolType typ = logic::Symbol::SymbolType::ProgramVar;
+        if(var->isConstant){
+            typ = logic::Symbol::SymbolType::ConstProgramVar;
+        }
+
+        return logic::Terms::func(var->name, arguments, logic::Sorts::intSort(), false, typ);
     }
 
     std::shared_ptr<const logic::Term> toTerm(std::shared_ptr<const program::IntExpression> expr, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> trace)
