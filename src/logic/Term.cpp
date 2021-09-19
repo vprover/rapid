@@ -33,7 +33,7 @@ bool operator==(const Term &t1, const Term &t2) {
     return *t1.symbol == *t2.symbol;
   } else {
     assert(t1.type() == Term::Type::FuncTerm ||
-           t1.type() == Term::Type::Predicate);
+        t1.type() == Term::Type::Predicate);
     auto f1 = static_cast<const FuncTerm &>(t1);
     auto f2 = static_cast<const FuncTerm &>(t2);
     if (*f1.symbol != *f2.symbol || f1.subterms.size() != f2.subterms.size()) {
@@ -79,14 +79,29 @@ std::string LVariable::prettyString(unsigned indentation) const {
 std::string FuncTerm::toSMTLIB(unsigned indentation) const {
   std::string str = stringForLabel(indentation);
   str += std::string(indentation, ' ');
-  if (subterms.size() == 0) {
+  int indexIndex = -1;
+  if (symbol->isImplicitArray && util::Configuration::instance().nativeArrays()) {
+    str += "(select ";
+  }
+  if (subterms.size() == 0 ||
+      (symbol->isImplicitArray && util::Configuration::instance().nativeArrays() && subterms.size() == 1)) {
     str += symbol->toSMTLIB();
+    indexIndex = subterms.size() - 1;
   } else {
-    str += "(" + symbol->toSMTLIB() + " ";
-    for (unsigned i = 0; i < subterms.size(); i++) {
-      str += subterms[i]->toSMTLIB(0);
-      str += (i == subterms.size() - 1) ? ")" : " ";
+    str += "(" + symbol->toSMTLIB();
+    for (int i = 0; i < subterms.size(); i++) {
+      if (symbol->isImplicitArray && util::Configuration::instance().nativeArrays()
+          && subterms[i]->symbol->rngSort == Sorts::intSort()) {
+        indexIndex = i;
+      } else {
+        str += " ";
+        str += subterms[i]->toSMTLIB(0);
+      }
     }
+    str += ")";
+  }
+  if (indexIndex >= 0) {
+    str += " " + subterms[indexIndex]->toSMTLIB(0) + ")";
   }
   return str;
 }
@@ -146,13 +161,13 @@ std::shared_ptr<const LVariable> Terms::var(
 
 std::shared_ptr<const FuncTerm> Terms::func(
     std::string name, std::vector<std::shared_ptr<const Term>> subterms,
-    const Sort *sort, bool noDeclaration) {
+    const Sort *sort, bool returnArray, bool noDeclaration) {
   std::vector<const Sort *> subtermSorts;
   for (const auto &subterm : subterms) {
     subtermSorts.push_back(subterm->symbol->rngSort);
   }
   auto symbol =
-      Signature::fetchOrAdd(name, subtermSorts, sort, false, noDeclaration);
+      Signature::fetchOrAdd(name, subtermSorts, sort, returnArray, false, noDeclaration);
   return std::shared_ptr<const FuncTerm>(new FuncTerm(symbol, subterms));
 }
 

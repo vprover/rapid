@@ -58,7 +58,12 @@ std::shared_ptr<const logic::Term> defineTargetSymbol(
     arguments.push_back(tp);
   }
 
-  if (origin->isArray) {
+  if (!origin->isArray || util::Configuration::instance().nativeArrays()) {
+    formula = logic::Formulas::equality(
+        logic::Terms::func(target->symbol->name, {}, logic::Sorts::intSort(), false),
+        logic::Terms::func(origin->name, arguments, logic::Sorts::intSort(), false));
+  }
+  else {
     auto posSymbol = posVarSymbol();
     auto pos = posVar();
     arguments.push_back(pos);
@@ -69,12 +74,8 @@ std::shared_ptr<const logic::Term> defineTargetSymbol(
         {posSymbol},
         logic::Formulas::equality(
             logic::Terms::func(target->symbol->name, targetArguments,
-                               logic::Sorts::intSort()),
+                               logic::Sorts::intSort(), false),
             toTerm(origin, tp, pos, trace)));
-  } else {
-    formula = logic::Formulas::equality(
-        logic::Terms::func(target->symbol->name, {}, logic::Sorts::intSort()),
-        logic::Terms::func(origin->name, arguments, logic::Sorts::intSort()));
   }
   return formula;
 }
@@ -277,7 +278,7 @@ std::shared_ptr<const logic::Term> toTerm(
   assert(var != nullptr);
   assert(trace != nullptr);
 
-  assert(!var->isArray);
+  assert(!var->isArray || util::Configuration::instance().nativeArrays());
 
   std::vector<std::shared_ptr<const logic::Term>> arguments;
 
@@ -289,10 +290,20 @@ std::shared_ptr<const logic::Term> toTerm(
     arguments.push_back(trace);
   }
 
+  if (var->isArray) {
+    // Return the whole array
+    return logic::Terms::func(var->name,
+                              arguments,
+                              var->type() == program::ValueType::Bool
+                              ? logic::Sorts::boolArraySort()
+                              : logic::Sorts::intArraySort(),
+                              true);
+  }
+
   if (var->type() == program::ValueType::Bool) {
     return logic::Formulas::predicate(var->name, arguments);
   }
-  return logic::Terms::func(var->name, arguments, logic::Sorts::intSort());
+  return logic::Terms::func(var->name, arguments, logic::Sorts::intSort(), false);
 }
 
 std::shared_ptr<const logic::Term> toTerm(
@@ -322,7 +333,7 @@ std::shared_ptr<const logic::Term> toTerm(
   if (var->type() == program::ValueType::Bool) {
     return logic::Formulas::predicate(var->name, arguments);
   }
-  return logic::Terms::func(var->name, arguments, logic::Sorts::intSort());
+  return logic::Terms::func(var->name, arguments, logic::Sorts::intSort(), false);
 }
 
 std::shared_ptr<const logic::Term> toTerm(
@@ -416,7 +427,7 @@ std::shared_ptr<const logic::Term> varEqual(
     std::shared_ptr<const logic::Term> timePoint1,
     std::shared_ptr<const logic::Term> timePoint2,
     std::shared_ptr<const logic::Term> trace) {
-  if (!v->isArray) {
+  if (!v->isArray || util::Configuration::instance().nativeArrays()) {
     return logic::Formulas::equality(toTerm(v, timePoint1, trace),
                                      toTerm(v, timePoint2, trace));
   } else {

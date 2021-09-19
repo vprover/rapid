@@ -17,7 +17,7 @@ std::shared_ptr<const logic::Symbol> locationSymbol(std::string location,
     }
   }
   return logic::Signature::fetchOrAdd(location, enclosingIteratorTypes,
-                                      logic::Sorts::timeSort());
+                                      logic::Sorts::timeSort(), false);
 }
 
 std::shared_ptr<const logic::Symbol> locationSymbolForStatement(
@@ -49,7 +49,7 @@ std::shared_ptr<const logic::Symbol> lastIterationSymbol(
     argumentSorts.push_back(logic::Sorts::traceSort());
   }
   return logic::Signature::fetchOrAdd("n" + statement->location, argumentSorts,
-                                      logic::Sorts::natSort());
+                                      logic::Sorts::natSort(), false);
 }
 
 std::shared_ptr<const logic::Symbol> iteratorSymbol(
@@ -71,7 +71,7 @@ std::shared_ptr<const logic::Symbol> intLastIterationSymbol(
     argumentSorts.push_back(logic::Sorts::traceSort());
   }
   return logic::Signature::fetchOrAdd("n" + statement->location, argumentSorts,
-                                      logic::Sorts::intSort());
+                                      logic::Sorts::intSort(), false);
 }
 
 std::shared_ptr<const logic::Symbol> intIteratorSymbol(
@@ -86,7 +86,7 @@ std::shared_ptr<const logic::Symbol> posVarSymbol() {
 
 std::shared_ptr<const logic::Symbol> traceSymbol(unsigned traceNumber) {
   std::string traceName = "t" + std::to_string(traceNumber);
-  return logic::Signature::fetchOrAdd(traceName, {}, logic::Sorts::traceSort());
+  return logic::Signature::fetchOrAdd(traceName, {}, logic::Sorts::traceSort(), false);
 }
 
 std::shared_ptr<const logic::Symbol> declareInitTargetSymbol(
@@ -103,7 +103,7 @@ std::shared_ptr<const logic::Symbol> declareInitTargetSymbol(
   }
 
   return logic::Signature::add(var->name + "_init", argSorts,
-                               logic::Sorts::intSort());
+                               logic::Sorts::intSort(), false);
 }
 
 std::shared_ptr<const logic::Symbol> declareFinalTargetSymbol(
@@ -120,7 +120,7 @@ std::shared_ptr<const logic::Symbol> declareFinalTargetSymbol(
   }
 
   return logic::Signature::add(var->name + "_final", argSorts,
-                               logic::Sorts::intSort());
+                               logic::Sorts::intSort(), false);
 }
 
 void declareColorSymbolLeft(const program::Variable* var) {
@@ -143,9 +143,9 @@ void declareSymbolForProgramVar(program::Variable* var) {
   }
 
   if (var->type() == program::ValueType::Bool) {
-    logic::Signature::add(var->name, argSorts, logic::Sorts::boolSort());
+    logic::Signature::add(var->name, argSorts, logic::Sorts::boolSort(), var->isArray);
   } else {
-    logic::Signature::add(var->name, argSorts, logic::Sorts::intSort());
+    logic::Signature::add(var->name, argSorts, logic::Sorts::intSort(), var->isArray);
   }
 }
 

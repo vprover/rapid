@@ -49,9 +49,9 @@ void EqualityPreservationTracesLemmas::generateOutputFor(
                   auto lStartArg = timepointForLoopStatement(statement, arg);
                   return logic::Formulas::equality(
                       v->isArray ? toTerm(v, lStartArg, pos, t1)
-                                 : toTerm(v, lStartArg, t1),
+                                         : toTerm(v, lStartArg, t1),
                       v->isArray ? toTerm(v, lStartArg, pos, t2)
-                                 : toTerm(v, lStartArg, t2));
+                                         : toTerm(v, lStartArg, t2));
                 };
 
             std::vector<std::shared_ptr<const logic::Symbol>> freeVars =
@@ -111,9 +111,9 @@ void EqualityPreservationTracesLemmas::generateOutputForInteger(
                 auto lStartArg = timepointForLoopStatement(statement, arg);
                 return logic::Formulas::equality(
                     v->isArray ? toTerm(v, lStartArg, pos, t1)
-                               : toTerm(v, lStartArg, t1),
+                                       : toTerm(v, lStartArg, t1),
                     v->isArray ? toTerm(v, lStartArg, pos, t2)
-                               : toTerm(v, lStartArg, t2));
+                                       : toTerm(v, lStartArg, t2));
               };
 
           std::vector<std::shared_ptr<const logic::Symbol>> freeVars =

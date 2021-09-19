@@ -350,7 +350,7 @@ class Terms {
 
   static std::shared_ptr<const FuncTerm> func(
       std::string name, std::vector<std::shared_ptr<const Term> > subterms,
-      const Sort *sort, bool noDeclaration = false);
+      const Sort *sort, bool returnArray, bool noDeclaration = false);
   static std::shared_ptr<const FuncTerm> func(
       std::shared_ptr<const Symbol> symbol,
       std::vector<std::shared_ptr<const Term> > subterms);

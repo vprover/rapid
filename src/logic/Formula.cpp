@@ -379,7 +379,7 @@ std::shared_ptr<const Term> Formulas::predicate(
     subtermSorts.push_back(subterm->symbol->rngSort);
   }
   auto symbol = Signature::fetchOrAdd(name, subtermSorts, Sorts::boolSort(),
-                                      false, noDeclaration);
+                                      false, false, noDeclaration);
   return std::make_shared<const PredicateFormula>(symbol, subterms, label);
 }
 
@@ -398,7 +398,7 @@ std::shared_ptr<const Term> Formulas::lemmaPredicate(
     subtermSorts.push_back(subterm->symbol->rngSort);
   }
   auto symbol =
-      Signature::fetchOrAdd(name, subtermSorts, Sorts::boolSort(), true, false);
+      Signature::fetchOrAdd(name, subtermSorts, Sorts::boolSort(), false, true, false);
   return std::make_shared<const PredicateFormula>(symbol, subterms, label);
 }
 

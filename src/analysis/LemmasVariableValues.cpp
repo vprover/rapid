@@ -76,9 +76,9 @@ void ValueEvolutionLemmas::generateOutputFor(
                       timepointForLoopStatement(whileStatement, arg);
                   return predicateFunctor(
                       v->isArray ? toTerm(v, lStartBoundL, pos, trace)
-                                 : toTerm(v, lStartBoundL, trace),
+                                         : toTerm(v, lStartBoundL, trace),
                       v->isArray ? toTerm(v, lStartArg, pos, trace)
-                                 : toTerm(v, lStartArg, trace),
+                                         : toTerm(v, lStartArg, trace),
                       "");
                 };
 
@@ -119,15 +119,15 @@ void ValueEvolutionLemmas::generateOutputFor(
                          logic::Theory::natSub(it, boundR),
                          predicateFunctor(
                              v->isArray ? toTerm(v, lStartBoundL, pos, trace)
-                                        : toTerm(v, lStartBoundL, trace),
+                                                : toTerm(v, lStartBoundL, trace),
                              v->isArray ? toTerm(v, lStartIt, pos, trace)
-                                        : toTerm(v, lStartIt, trace),
+                                                : toTerm(v, lStartIt, trace),
                              "")}),
                     predicateFunctor(
                         v->isArray ? toTerm(v, lStartBoundL, pos, trace)
-                                   : toTerm(v, lStartBoundL, trace),
+                                           : toTerm(v, lStartBoundL, trace),
                         v->isArray ? toTerm(v, lStartSuccOfIt, pos, trace)
-                                   : toTerm(v, lStartSuccOfIt, trace),
+                                           : toTerm(v, lStartSuccOfIt, trace),
                         "")));
             auto premiseDef = std::make_shared<logic::Definition>(
                 logic::Formulas::universal(
@@ -237,9 +237,9 @@ void ValueEvolutionLemmas::generateOutputForInteger(
                 auto lStartArg = timepointForLoopStatement(whileStatement, arg);
                 return predicateFunctor(
                     v->isArray ? toTerm(v, lStartBoundL, pos, trace)
-                               : toTerm(v, lStartBoundL, trace),
+                                       : toTerm(v, lStartBoundL, trace),
                     v->isArray ? toTerm(v, lStartArg, pos, trace)
-                               : toTerm(v, lStartArg, trace),
+                                       : toTerm(v, lStartArg, trace),
                     "");
               };
 
@@ -282,15 +282,15 @@ void ValueEvolutionLemmas::generateOutputForInteger(
                        logic::Theory::intLess(it, boundR),
                        predicateFunctor(
                            v->isArray ? toTerm(v, lStartBoundL, pos, trace)
-                                      : toTerm(v, lStartBoundL, trace),
+                                              : toTerm(v, lStartBoundL, trace),
                            v->isArray ? toTerm(v, lStartIt, pos, trace)
-                                      : toTerm(v, lStartIt, trace),
+                                              : toTerm(v, lStartIt, trace),
                            "")}),
                   predicateFunctor(
                       v->isArray ? toTerm(v, lStartBoundL, pos, trace)
-                                 : toTerm(v, lStartBoundL, trace),
+                                         : toTerm(v, lStartBoundL, trace),
                       v->isArray ? toTerm(v, lStartSuccOfIt, pos, trace)
-                                 : toTerm(v, lStartSuccOfIt, trace),
+                                         : toTerm(v, lStartSuccOfIt, trace),
                       "")));
           auto premiseDef = std::make_shared<logic::Definition>(
               logic::Formulas::universal(
@@ -385,9 +385,9 @@ void StaticAnalysisLemmas::generateOutputFor(
                 auto lStartArg = timepointForLoopStatement(statement, arg);
                 return logic::Formulas::equality(
                     v->isArray ? toTerm(v, lStartZero, pos, trace)
-                               : toTerm(v, lStartZero, trace),
+                                       : toTerm(v, lStartZero, trace),
                     v->isArray ? toTerm(v, lStartArg, pos, trace)
-                               : toTerm(v, lStartArg, trace));
+                                       : toTerm(v, lStartArg, trace));
               };
 
           // PART 1: Add induction-axiom
@@ -475,9 +475,9 @@ void StaticAnalysisLemmas::generateOutputForInteger(
           auto lStartArg = timepointForLoopStatement(statement, arg);
           return logic::Formulas::equality(
               v->isArray ? toTerm(v, lStartZero, pos, trace)
-                         : toTerm(v, lStartZero, trace),
+                                 : toTerm(v, lStartZero, trace),
               v->isArray ? toTerm(v, lStartArg, pos, trace)
-                         : toTerm(v, lStartArg, trace));
+                                 : toTerm(v, lStartArg, trace));
         };
 
         // PART 1: Add induction-axiom

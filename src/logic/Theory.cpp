@@ -30,7 +30,7 @@ void Theory::declareTheories() {
 }
 
 std::shared_ptr<const FuncTerm> Theory::intConstant(int i) {
-  return Terms::func(std::to_string(i), {}, Sorts::intSort(), true);
+  return Terms::func(std::to_string(i), {}, Sorts::intSort(), false, true);
 }
 
 std::shared_ptr<const FuncTerm> Theory::intZero() {
@@ -39,27 +39,27 @@ std::shared_ptr<const FuncTerm> Theory::intZero() {
 
 std::shared_ptr<const FuncTerm> Theory::intAddition(
     std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2) {
-  return Terms::func("+", {t1, t2}, Sorts::intSort(), true);
+  return Terms::func("+", {t1, t2}, Sorts::intSort(), false, true);
 }
 
 std::shared_ptr<const FuncTerm> Theory::intSubtraction(
     std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2) {
-  return Terms::func("-", {t1, t2}, Sorts::intSort(), true);
+  return Terms::func("-", {t1, t2}, Sorts::intSort(), false, true);
 }
 
 std::shared_ptr<const FuncTerm> Theory::intModulo(
     std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2) {
-  return Terms::func("mod", {t1, t2}, Sorts::intSort(), true);
+  return Terms::func("mod", {t1, t2}, Sorts::intSort(), false, true);
 }
 
 std::shared_ptr<const FuncTerm> Theory::intMultiplication(
     std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2) {
-  return Terms::func("*", {t1, t2}, Sorts::intSort(), true);
+  return Terms::func("*", {t1, t2}, Sorts::intSort(), false, true);
 }
 
 std::shared_ptr<const FuncTerm> Theory::intAbsolute(
     std::shared_ptr<const Term> t) {
-  return Terms::func("abs", {t}, Sorts::intSort(), true);
+  return Terms::func("abs", {t}, Sorts::intSort(), false, true);
 }
 
 std::shared_ptr<const FuncTerm> Theory::intSucc(std::shared_ptr<const Term> t) {
@@ -99,17 +99,17 @@ std::shared_ptr<const Term> Theory::boolFalse(std::string label) {
 }
 
 std::shared_ptr<const FuncTerm> Theory::natZero() {
-  return Terms::func("zero", {}, Sorts::natSort(), true);
+  return Terms::func("zero", {}, Sorts::natSort(), false, true);
 }
 
 std::shared_ptr<const FuncTerm> Theory::natSucc(
     std::shared_ptr<const Term> term) {
-  return Terms::func("s", {term}, Sorts::natSort(), true);
+  return Terms::func("s", {term}, Sorts::natSort(), false, true);
 }
 
 std::shared_ptr<const FuncTerm> Theory::natPre(
     std::shared_ptr<const Term> term) {
-  return Terms::func("p", {term}, Sorts::natSort(), true);
+  return Terms::func("p", {term}, Sorts::natSort(), false, true);
 }
 
 std::shared_ptr<const Term> Theory::natSub(std::shared_ptr<const Term> t1,

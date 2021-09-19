@@ -76,6 +76,7 @@ class Configuration {
         _integerIterations("-integerIterations", false),
         _inlineLemmas("-inlineLemmas", false),
         _postcondition("-postcondition", false),
+        _nativeArrays("-nativeArrays", false),
         _overwriteExisting("-overwriteExisting", false),
         _allOptions() {
 
@@ -94,6 +95,8 @@ class Configuration {
     registerOption(&_inlineLemmas);
     // postcondition mode prints color and target symbols
     registerOption(&_postcondition);
+    // arrays are represented by array-theory arrays instead of functions with an additional index argument
+    registerOption(&_nativeArrays);
     // overwrite existing smt-files
     registerOption(&_overwriteExisting);
   }
@@ -118,6 +121,8 @@ class Configuration {
 
   bool postcondition() { return _postcondition.getValue(); }
 
+  bool nativeArrays() { return _nativeArrays.getValue(); }
+
   bool overwriteExisting() { return _overwriteExisting.getValue(); }
 
   static Configuration instance() { return _instance; }
@@ -131,6 +136,7 @@ class Configuration {
   BooleanOption _integerIterations;
   BooleanOption _inlineLemmas;
   BooleanOption _postcondition;
+  BooleanOption _nativeArrays;
   BooleanOption _overwriteExisting;
 
   std::map<std::string, Option*> _allOptions;

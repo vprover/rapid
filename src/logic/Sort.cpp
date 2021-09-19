@@ -23,6 +23,7 @@ std::string Sort::toSMTLIB() const {
 }
 
 std::string Sort::toTPTP() const {
+  // TODO: Array encoding
   if (name == "Int") {
     return "$int";
   } else if (name == "Bool") {
@@ -33,8 +34,8 @@ std::string Sort::toTPTP() const {
 }
 
 std::string declareSortSMTLIB(const Sort& s) {
-  if (s.toSMTLIB() == "Int" || s.toSMTLIB() == "Bool") {
-    // SMTLIB already knows Int and Bool.
+  if (s.toSMTLIB() == "Int" || s.toSMTLIB() == "Bool" || s.toSMTLIB().rfind("(Array ") == 0) {
+    // SMTLIB already knows Int, Bool, and several array types.
     return "";
   } else if (s.toSMTLIB() == "Nat") {
     if (util::Configuration::instance().nativeNat()) {

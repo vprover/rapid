@@ -32,7 +32,7 @@ void Semantics::applyTransformations(
     std::vector<std::shared_ptr<program::Function>> &functions,
     std::unordered_map<std::string,
                        std::vector<std::shared_ptr<program::Variable>>>
-        &locationToActiveVars,
+    &locationToActiveVars,
     unsigned traces) {
   for (auto &function : functions) {
     program::Statement::transformBlock(function->statements,
@@ -168,7 +168,7 @@ std::shared_ptr<const logic::Term> Semantics::generateSemantics(
 
       return logic::Formulas::conjunctionSimp(
           conjuncts, "Update variable " + castedLhs->var->name +
-                         " at location " + assignment->location);
+              " at location " + assignment->location);
     } else {
       // lhs(l2) = rhs(l1)
       auto eq = logic::Formulas::equality(toTerm(castedLhs, l2, trace),
@@ -177,15 +177,15 @@ std::shared_ptr<const logic::Term> Semantics::generateSemantics(
 
       for (const auto &var : activeVars) {
         if (!var->isConstant) {
-          if (!var->isArray) {
-            // forall other active non-const int-variables: v(l2) = v(l1)
+          if (!var->isArray || util::Configuration::instance().nativeArrays()) {
+            // forall other active non-const variables: v(l2) = v(l1)
             if (*var != *castedLhs->var) {
               auto eq = logic::Formulas::equality(toTerm(var, l2, trace),
                                                   toTerm(var, l1, trace));
               conjuncts.push_back(eq);
             }
           } else {
-            // forall active non-const int-array-variables: forall p. v(l2,p) =
+            // forall active non-const array-variables: forall p. v(l2,p) =
             // v(l1,p)
             auto posSymbol = posVarSymbol();
             auto pos = posVar();
@@ -200,10 +200,10 @@ std::shared_ptr<const logic::Term> Semantics::generateSemantics(
 
       return logic::Formulas::conjunction(
           conjuncts, "Update variable " + castedLhs->var->name +
-                         " at location " + assignment->location);
+              " at location " + assignment->location);
     }
   }
-  // case 2: assignment to int-array var
+    // case 2: assignment to array var
   else {
     assert(typeid(*assignment->lhs) == typeid(program::ArrayApplication));
     auto application =
@@ -219,77 +219,107 @@ std::shared_ptr<const logic::Term> Semantics::generateSemantics(
       conjuncts.push_back(f1);
 
       // a(l2, cached(e)) = cached(rhs)
-      auto eq1Lhs = toTerm(application->array, l2,
-                           inliner.toCachedTerm(application->index), trace);
-      auto eq1Rhs = inliner.toCachedTerm(assignment->rhs);
-      auto eq1 = logic::Formulas::equality(eq1Lhs, eq1Rhs);
-      conjuncts.push_back(eq1);
+      if (util::Configuration::instance().nativeArrays()) {
+        auto eq1Lhs = toTerm(application->array, l2, trace);
+        std::vector<std::shared_ptr<const logic::Term>> subterms;
+        subterms.push_back(toTerm(application->array, l1, trace));
+        subterms.push_back(inliner.toCachedTerm(application->index));
+        subterms.push_back(toTerm(assignment->rhs, l1, trace));
+        auto eq1Rhs =
+            logic::Terms::func("store", subterms,
+                               application->type() == program::ValueType::Bool
+                               ? logic::Sorts::boolArraySort()
+                               : logic::Sorts::intArraySort(),
+                               false, true);
+        auto eq1 = logic::Formulas::equality(eq1Lhs, eq1Rhs);
+        conjuncts.push_back(eq1);
+      } else {
+        auto eq1Lhs = toTerm(application->array, l2,
+                             inliner.toCachedTerm(application->index), trace);
+        auto eq1Rhs = inliner.toCachedTerm(assignment->rhs);
+        auto eq1 = logic::Formulas::equality(eq1Lhs, eq1Rhs);
+        conjuncts.push_back(eq1);
 
-      // forall positions pos. (pos!=cached(e) => a(l2,pos) = cached(a,pos))
-      auto posSymbol = posVarSymbol();
-      auto pos = posVar();
+        // forall positions pos. (pos!=cached(e) => a(l2,pos) = cached(a,pos))
+        auto posSymbol = posVarSymbol();
+        auto pos = posVar();
 
-      auto premise = logic::Formulas::disequality(
-          pos, inliner.toCachedTerm(application->index));
-      auto eq2 = logic::Formulas::equality(
-          toTerm(application->array, l2, pos, trace),
-          inliner.toCachedTermFull(application->array, pos));
-      auto conjunct = logic::Formulas::universal(
-          {posSymbol}, logic::Formulas::implication(premise, eq2));
-      conjuncts.push_back(conjunct);
-
+        auto premise = logic::Formulas::disequality(
+            pos, inliner.toCachedTerm(application->index));
+        auto eq2 = logic::Formulas::equality(
+            toTerm(application->array, l2, pos, trace),
+            inliner.toCachedTermFull(application->array, pos));
+        auto conjunct = logic::Formulas::universal(
+            {posSymbol}, logic::Formulas::implication(premise, eq2));
+        conjuncts.push_back(conjunct);
+      }
       // set last assignment of a to l2
       inliner.setArrayVarTimepoint(application->array, l2);
 
       return logic::Formulas::conjunctionSimp(
           conjuncts, "Update array variable " + application->array->name +
-                         " at location " + assignment->location);
+              " at location " + assignment->location);
     } else {
       // a(l2, e(l1)) = rhs(l1)
-      auto eq1Lhs = toTerm(application->array, l2,
-                           toTerm(application->index, l1, trace), trace);
-      auto eq1Rhs = toTerm(assignment->rhs, l1, trace);
-      auto eq1 = logic::Formulas::equality(eq1Lhs, eq1Rhs);
-      conjuncts.push_back(eq1);
+      if (util::Configuration::instance().nativeArrays()) {
+        auto eq1Lhs = toTerm(application->array, l2, trace);
+        std::vector<std::shared_ptr<const logic::Term>> subterms;
+        subterms.push_back(toTerm(application->array, l1, trace));
+        subterms.push_back(toTerm(application->index, l1, trace));
+        subterms.push_back(toTerm(assignment->rhs, l1, trace));
+        auto eq1Rhs = logic::Terms::func("store", subterms,
+                                         application->type() == program::ValueType::Bool
+                                         ? logic::Sorts::boolArraySort()
+                                         : logic::Sorts::intArraySort(),
+                                         false, true);
+        auto eq1 = logic::Formulas::equality(eq1Lhs, eq1Rhs);
+        conjuncts.push_back(eq1);
+      } else {
+        auto eq1Lhs = toTerm(application->array, l2,
+                             toTerm(application->index, l1, trace), trace);
+        auto eq1Rhs = toTerm(assignment->rhs, l1, trace);
+        auto eq1 = logic::Formulas::equality(eq1Lhs, eq1Rhs);
+        conjuncts.push_back(eq1);
 
-      // forall positions pos. (pos!=e(l1) => a(l2,pos) = a(l1,pos))
-      auto posSymbol = posVarSymbol();
-      auto pos = posVar();
+        // forall positions pos. (pos!=e(l1) => a(l2,pos) = a(l1,pos))
+        auto posSymbol = posVarSymbol();
+        auto pos = posVar();
 
-      auto premise = logic::Formulas::disequality(
-          pos, toTerm(application->index, l1, trace));
-      auto eq2 =
-          logic::Formulas::equality(toTerm(application->array, l2, pos, trace),
-                                    toTerm(application->array, l1, pos, trace));
-      auto conjunct = logic::Formulas::universal(
-          {posSymbol}, logic::Formulas::implication(premise, eq2));
-      conjuncts.push_back(conjunct);
+        auto premise = logic::Formulas::disequality(
+            pos, toTerm(application->index, l1, trace));
+        auto eq2 =
+            logic::Formulas::equality(toTerm(application->array, l2, pos, trace),
+                                      toTerm(application->array, l1, pos, trace));
+        auto conjunct = logic::Formulas::universal(
+            {posSymbol}, logic::Formulas::implication(premise, eq2));
+        conjuncts.push_back(conjunct);
 
-      for (const auto &var : activeVars) {
-        if (!var->isConstant) {
-          if (!var->isArray) {
-            // forall active non-const int-variables: v(l2) = v(l1)
-            auto eq = logic::Formulas::equality(toTerm(var, l2, trace),
-                                                toTerm(var, l1, trace));
-            conjuncts.push_back(eq);
-          } else {
-            // forall other active non-const int-array-variables: forall pos.
-            // v(l2,pos) = v(l1,pos)
-            if (*var != *application->array) {
-              auto posSymbol = posVarSymbol();
-              auto pos = posVar();
-              auto conjunct = logic::Formulas::universal(
-                  {posSymbol},
-                  logic::Formulas::equality(toTerm(var, l2, pos, trace),
-                                            toTerm(var, l1, pos, trace)));
-              conjuncts.push_back(conjunct);
+        for (const auto &var : activeVars) {
+          if (!var->isConstant) {
+            if (!var->isArray || util::Configuration::instance().nativeArrays()) {
+              // forall active non-const variables: v(l2) = v(l1)
+              auto eq = logic::Formulas::equality(toTerm(var, l2, trace),
+                                                  toTerm(var, l1, trace));
+              conjuncts.push_back(eq);
+            } else {
+              // forall other active non-const array-variables: forall pos.
+              // v(l2,pos) = v(l1,pos)
+              if (*var != *application->array) {
+                auto posSymbol = posVarSymbol();
+                auto pos = posVar();
+                auto conjunct = logic::Formulas::universal(
+                    {posSymbol},
+                    logic::Formulas::equality(toTerm(var, l2, pos, trace),
+                                              toTerm(var, l1, pos, trace)));
+                conjuncts.push_back(conjunct);
+              }
             }
           }
         }
       }
       return logic::Formulas::conjunction(
           conjuncts, "Update array variable " + application->array->name +
-                         " at location " + assignment->location);
+              " at location " + assignment->location);
     }
   }
 }
@@ -370,7 +400,7 @@ std::shared_ptr<const logic::Term> Semantics::generateSemantics(
     for (const auto &pair : cachedArrayVarTimepointsLeft) {
       auto var = pair.first;
       if (cachedArrayVarTimepoints.find(var) ==
-              cachedArrayVarTimepoints.end() ||
+          cachedArrayVarTimepoints.end() ||
           *cachedArrayVarTimepoints[var] != *pair.second) {
         if (!var->isConstant) {
           mergeVars.insert(var);
@@ -380,7 +410,7 @@ std::shared_ptr<const logic::Term> Semantics::generateSemantics(
     for (const auto &pair : cachedArrayVarTimepointsRight) {
       auto var = pair.first;
       if (cachedArrayVarTimepoints.find(var) ==
-              cachedArrayVarTimepoints.end() ||
+          cachedArrayVarTimepoints.end() ||
           *cachedArrayVarTimepoints[var] != *pair.second) {
         if (!var->isConstant) {
           mergeVars.insert(var);
@@ -389,7 +419,7 @@ std::shared_ptr<const logic::Term> Semantics::generateSemantics(
     }
 
     for (const auto &var : mergeVars) {
-      if (!var->isArray) {
+      if (!var->isArray || util::Configuration::instance().nativeArrays()) {
         auto varLEnd = toTerm(var, lEnd, trace);
 
         // define the value of var at lEnd as the merge of values at the end of
@@ -404,9 +434,9 @@ std::shared_ptr<const logic::Term> Semantics::generateSemantics(
         auto result = inliner.setVarValue(var, varLEnd);
       } else {
         assert(cachedArrayVarTimepointsLeft.find(var) !=
-               cachedArrayVarTimepointsLeft.end());
+            cachedArrayVarTimepointsLeft.end());
         assert(cachedArrayVarTimepointsRight.find(var) !=
-               cachedArrayVarTimepointsRight.end());
+            cachedArrayVarTimepointsRight.end());
 
         auto posSymbol = posVarSymbol();
         auto pos = posVar();
@@ -416,7 +446,7 @@ std::shared_ptr<const logic::Term> Semantics::generateSemantics(
         // the two branches
         conjunctsLeft.push_back(logic::Formulas::universalSimp(
             {posSymbol}, logic::Formulas::equalitySimp(
-                             varLEnd, inlinerLeft.toCachedTermFull(var, pos))));
+                varLEnd, inlinerLeft.toCachedTermFull(var, pos))));
         conjunctsRight.push_back(logic::Formulas::universalSimp(
             {posSymbol},
             logic::Formulas::equalitySimp(
@@ -533,7 +563,7 @@ std::shared_ptr<const logic::Term> Semantics::generateSemantics(
 
     inliner.currTimepoint = lStart0;
     for (const auto &var : assignedVars) {
-      if (!var->isArray) {
+      if (!var->isArray || util::Configuration::instance().nativeArrays()) {
         conjPart1.push_back(logic::Formulas::equalitySimp(
             toTerm(var, lStart0, trace), inliner.toCachedTermFull(var)));
       } else {
@@ -557,7 +587,7 @@ std::shared_ptr<const logic::Term> Semantics::generateSemantics(
         auto tps = inliner.getCachedArrayVarTimepoints();
         auto cachedTimepoint = tps[var];
         if (cachedTimepoint.get()->prettyString(0).find("nl") ==
-                std::string::npos &&
+            std::string::npos &&
             cachedTimepoint.get()->prettyString(0).find("Itl") !=
                 std::string::npos) {
           auto cachedTimepointTerm =
@@ -582,7 +612,7 @@ std::shared_ptr<const logic::Term> Semantics::generateSemantics(
     // before n
     inliner.currTimepoint = lStartIt;
     for (const auto &var : assignedVars) {
-      if (!var->isArray) {
+      if (!var->isArray || util::Configuration::instance().nativeArrays()) {
         assert(!var->isConstant);
         auto result = inliner.setVarValue(var, toTerm(var, lStartIt, trace));
       } else {
@@ -679,7 +709,7 @@ std::shared_ptr<const logic::Term> Semantics::generateSemantics(
     // Part 4: define values of assignedVars after the execution of the loop
     inliner.currTimepoint = lStartN;
     for (const auto &var : assignedVars) {
-      if (!var->isArray) {
+      if (!var->isArray || util::Configuration::instance().nativeArrays()) {
         assert(!var->isConstant);
         auto result = inliner.setVarValue(var, toTerm(var, lStartN, trace));
       } else {

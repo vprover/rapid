@@ -15,9 +15,9 @@ namespace logic {
 
 #pragma mark - Symbol
 
-std::ostream& operator<<(
-    std::ostream& ostr,
-    const std::vector<std::shared_ptr<const logic::Symbol>>& f) {
+std::ostream &operator<<(
+    std::ostream &ostr,
+    const std::vector<std::shared_ptr<const logic::Symbol>> &f) {
   ostr << "not implemented";
   return ostr;
 }
@@ -35,20 +35,31 @@ std::string Symbol::declareSymbolSMTLIB() const {
       return "(color-symbol " + name + " :" + orientation + ")\n";
     }
 
-    if (argSorts.size() == 0 &&
+    std::string rngString;
+    std::vector<const Sort *> args;
+    if (isImplicitArray && util::Configuration::instance().nativeArrays()) {
+      auto arraySymbol = toArraySymbol();
+      rngString = arraySymbol->rngSort->toSMTLIB();
+      args = arraySymbol->argSorts;
+    } else {
+      rngString = rngSort->toSMTLIB();
+      args = argSorts;
+    }
+
+    if (args.size() == 0 &&
         !(isLemmaPredicate &&
-          util::Configuration::instance().lemmaPredicates())) {
-      return "(declare-const " + toSMTLIB() + " " + rngSort->toSMTLIB() + ")\n";
+            util::Configuration::instance().lemmaPredicates())) {
+      return "(declare-const " + toSMTLIB() + " " + rngString + ")\n";
     } else {
       std::string res = (isLemmaPredicate &&
-                         util::Configuration::instance().lemmaPredicates())
-                            ? "(declare-lemma-predicate "
-                            : "(declare-fun ";
+          util::Configuration::instance().lemmaPredicates())
+                        ? "(declare-lemma-predicate "
+                        : "(declare-fun ";
       res += toSMTLIB() + " (";
-      for (int i = 0; i < argSorts.size(); ++i) {
-        res += argSorts[i]->toSMTLIB() + (i + 1 == argSorts.size() ? "" : " ");
+      for (int i = 0; i < args.size(); ++i) {
+        res += args[i]->toSMTLIB() + (i + 1 == args.size() ? "" : " ");
       }
-      res += ") " + rngSort->toSMTLIB() + ")\n";
+      res += ") " + rngString + ")\n";
       return res;
     }
   } else {
@@ -57,11 +68,12 @@ std::string Symbol::declareSymbolSMTLIB() const {
 }
 
 std::string Symbol::declareSymbolTPTP() const {
+  // TODO: Native Arrays
   if (noDeclaration || isLemmaPredicate) {
     return "";  // don't need to declare symbols, which are already known to
-                // TPTP-solvers.
-                // TODO: vampire doesn't parse tptp for lemma-predicates, so
-                // neglected for now
+    // TPTP-solvers.
+    // TODO: vampire doesn't parse tptp for lemma-predicates, so
+    // neglected for now
   }
 
   std::string s = "tff(symb_" + name + ", type, " + name + " : ";
@@ -75,7 +87,7 @@ std::string Symbol::declareSymbolTPTP() const {
       s += argSorts[i]->toTPTP() + " * ";
     }
     s += argSorts[argSorts.size() - 1]->toTPTP() + ") > " + rngSort->toTPTP() +
-         ").\n";
+        ").\n";
   }
   return s;
 }
@@ -85,9 +97,9 @@ std::string Symbol::toSMTLIB() const {
   if (std::all_of(name.begin(), name.end(), ::isdigit)) {
     return name;
   }
-  // if negative integer constant
+    // if negative integer constant
   else if (name[0] == '-' && name.size() > 1 &&
-           std::all_of(name.begin() + 1, name.end(), ::isdigit)) {
+      std::all_of(name.begin() + 1, name.end(), ::isdigit)) {
     // need to encode negative integer as unary minus of positive integer
     return "(- " + name.substr(1, name.size() - 1) + ")";
   } else {
@@ -101,22 +113,35 @@ std::string Symbol::toTPTP() const {
   if (std::all_of(name.begin(), name.end(), ::isdigit)) {
     return name;
   }
-  // if negative integer constant
+    // if negative integer constant
   else if (name[0] == '-' && name.size() > 1 &&
-           std::all_of(name.begin() + 1, name.end(), ::isdigit)) {
+      std::all_of(name.begin() + 1, name.end(), ::isdigit)) {
     // need to encode negative integer as unary minus of positive integer
     return "($uminus " + name.substr(1, name.size() - 1) + ")";
   } else {
     return name;
   }
 }
+std::shared_ptr<const Symbol> Symbol::toArraySymbol() const {
+  auto args = argSorts; // Copy argument list
+  // Remove index argument from vector
+  args.erase(
+      std::remove(args.begin(), args.end(), Sorts::intSort()),
+      args.end()
+  );
+  return std::shared_ptr<const Symbol>(
+      new Symbol(name,
+                 args,
+                 Sorts::toActualSort(rngSort, true),
+                 false, /*now it is an explicit array!*/
+                 isLemmaPredicate,
+                 noDeclaration));
+}
 
 #pragma mark - Signature
 
-std::unordered_map<std::string, std::shared_ptr<const Symbol>>
-    Signature::_signature;
-std::vector<std::shared_ptr<const Symbol>>
-    Signature::_signatureOrderedByInsertion;
+std::unordered_map<std::string, std::shared_ptr<const Symbol>> Signature::_signature;
+std::vector<std::shared_ptr<const Symbol>> Signature::_signatureOrderedByInsertion;
 
 bool Signature::isDeclared(std::string name) {
   auto it = _signature.find(name);
@@ -124,17 +149,18 @@ bool Signature::isDeclared(std::string name) {
 }
 
 std::shared_ptr<const Symbol> Signature::add(std::string name,
-                                             std::vector<const Sort*> argSorts,
-                                             const Sort* rngSort,
+                                             std::vector<const Sort *> argSorts,
+                                             const Sort *rngSort,
+                                             bool isImplicitArray,
                                              bool noDeclaration) {
   // there must be no symbol with name name already added
   assert(_signature.count(name) == 0);
 
   auto pair = _signature.insert(std::make_pair(
       name, std::unique_ptr<Symbol>(
-                new Symbol(name, argSorts, rngSort, false, noDeclaration))));
+          new Symbol(name, argSorts, rngSort, isImplicitArray, false, noDeclaration))));
   assert(pair.second);  // must succeed since we checked that no such symbols
-                        // existed before the insertion
+  // existed before the insertion
 
   auto symbol = pair.first->second;
   _signatureOrderedByInsertion.push_back(symbol);
@@ -149,26 +175,34 @@ std::shared_ptr<const Symbol> Signature::fetch(std::string name) {
 }
 
 std::shared_ptr<const Symbol> Signature::fetchOrAdd(
-    std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort,
-    bool isLemmaPredicate, bool noDeclaration) {
+    std::string name,
+    std::vector<const Sort *> argSorts,
+    const Sort *rngSort,
+    bool returnArray,
+    bool isLemmaPredicate,
+    bool noDeclaration) {
+
   auto pair = _signature.insert(std::make_pair(
       name, std::shared_ptr<Symbol>(new Symbol(
-                name, argSorts, rngSort, isLemmaPredicate, noDeclaration))));
+          name, argSorts, rngSort, returnArray, isLemmaPredicate, noDeclaration))));
   auto symbol = pair.first->second;
 
   if (pair.second) {
     _signatureOrderedByInsertion.push_back(symbol);
   }
-  // if a symbol with the name already exist, make sure it has the same sorts
-  // and attributes
+    // if a symbol with the name already exist, make sure it has the same sorts
+    // and attributes
   else {
+    if (returnArray) { // Get symbol for array
+      symbol = symbol->toArraySymbol();
+    }
     if (argSorts.size() != symbol->argSorts.size()) {
       std::cout << "User error: symbol " << symbol->name << " requires "
                 << symbol->argSorts.size() << " arguments, but "
                 << argSorts.size() << " arguments where given" << std::endl;
       assert(false);
     }
-    for (int i = 0; i < argSorts.size(); ++i) {
+    for (int i = 0; i < argSorts.size(); i++) {
       assert(argSorts[i] == symbol->argSorts[i]);
     }
     assert(rngSort == symbol->rngSort);
@@ -179,7 +213,7 @@ std::shared_ptr<const Symbol> Signature::fetchOrAdd(
 }
 
 std::shared_ptr<const Symbol> Signature::varSymbol(std::string name,
-                                                   const Sort* rngSort) {
+                                                   const Sort *rngSort) {
   // there must be no symbol with name name already added
   assert(_signature.count(name) == 0);
 
@@ -195,7 +229,7 @@ void Signature::addColorSymbol(std::string name, std::string orientation) {
       name + "_color",
       std::unique_ptr<Symbol>(new Symbol(name, orientation, isColorSymbol))));
   assert(pair.second);  // must succeed since we checked that no such symbols
-                        // existed before the insertion
+  // existed before the insertion
 
   auto symbol = pair.first->second;
   _signatureOrderedByInsertion.push_back(symbol);
