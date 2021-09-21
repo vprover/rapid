@@ -8,6 +8,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <unordered_map>
 
 #include "Expression.hpp"
 #include "Variable.hpp"
