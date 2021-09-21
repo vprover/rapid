@@ -22,7 +22,8 @@ There are two steps involved in building RAPID.
 
 First, we generate the source-code files for the RAPID-parser using Flex and Bison:
 Make sure you have these two tools installed and that the paths are properly set in parser_generator/Makefile.
-Then, while being in parser_generator, run make (which produces the necessary files in src/parser/).
+Then, while being in parser_generator, run make (which produces the necessary files in src/parser/). You might have to change
+the paths to flex and bison. (For Windows you can use win_flex/win_bison or Cygwin.)
 
 Secondly, we use CMake to generate the necessary files which are needed while building RAPID. Make sure you have CMake installed.
 

@@ -12,7 +12,7 @@ std::string ArithmeticConstant::toString() const {
   return std::to_string(value);
 }
 std::string Addition::toString() const {
-  return "(" + summand1->toString() + ") + (" + summand2->toString() + ")";
+  return "(" + child1->toString() + ") + (" + child2->toString() + ")";
 }
 std::string Subtraction::toString() const {
   return "(" + child1->toString() + ") - (" + child2->toString() + ")";
@@ -21,7 +21,7 @@ std::string Modulo::toString() const {
   return "(" + child1->toString() + ") mod (" + child2->toString() + ")";
 }
 std::string Multiplication::toString() const {
-  return "(" + factor1->toString() + ") * (" + factor2->toString() + ")";
+  return "(" + child1->toString() + ") * (" + child2->toString() + ")";
 }
 std::string BooleanConstant::toString() const {
   return value ? "true" : "false";
@@ -50,13 +50,8 @@ std::string ArithmeticComparison::toString() const {
   }
 }
 
-std::ostream& operator<<(std::ostream& ostr, const IntExpression& e) {
+std::ostream& operator<<(std::ostream& ostr, Expression& e) {
   ostr << e.toString();
   return ostr;
 }
-std::ostream& operator<<(std::ostream& ostr, const BoolExpression& e) {
-  ostr << e.toString();
-  return ostr;
-}
-
 }  // namespace program

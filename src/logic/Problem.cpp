@@ -9,9 +9,9 @@
 
 namespace logic {
 
-std::ostream& operator<<(
-    std::ostream& ostr,
-    const std::vector<std::shared_ptr<const ProblemItem>>& f) {
+std::ostream &operator<<(
+    std::ostream &ostr,
+    const std::vector<std::shared_ptr<const ProblemItem>> &f) {
   ostr << "not implemented";
   return ostr;
 }
@@ -20,9 +20,16 @@ void ReasoningTask::outputSMTLIBToDir(std::string dirPath,
                                       std::string preamble) const {
   auto outfileName = dirPath + conjecture->name + ".smt2";
   if (std::ifstream(outfileName)) {
-    std::cout << "Error: The output-file " << outfileName << " already exists!"
-              << std::endl;
-    exit(1);
+    if (!util::Configuration::instance().overwriteExisting()) {
+      std::cout << "Error: The output-file " << outfileName
+                << " already exists!" << std::endl;
+      exit(1);
+    }
+    if (remove(outfileName.c_str())) {
+      std::cout << "Could not delete existing file " << outfileName
+                << std::endl;
+    }
+    std::cout << "Overwriting file " << outfileName << std::endl;
   }
 
   std::cout << "Generating reasoning task in " << outfileName << "\n";
@@ -36,7 +43,7 @@ void ReasoningTask::outputSMTLIBToDir(std::string dirPath,
   outputSMTLIB(outfile);
 }
 
-void ReasoningTask::outputSMTLIB(std::ostream& ostr) const {
+void ReasoningTask::outputSMTLIB(std::ostream &ostr) const {
   auto smtlibLogic = "UFDTLIA";  // uninterpreted functions, datatypes and
                                  // linear integer arithmetic
 
@@ -46,7 +53,7 @@ void ReasoningTask::outputSMTLIB(std::ostream& ostr) const {
     ostr << "(set-logic " << smtlibLogic << ")\n";
 
     std::time_t t = std::time(0);
-    std::tm* now = std::localtime(&t);
+    std::tm *now = std::localtime(&t);
 
     ostr << "(set-info :source |\n"
          << "Generated on: " << (now->tm_year + 1900) << "-"
@@ -64,17 +71,17 @@ void ReasoningTask::outputSMTLIB(std::ostream& ostr) const {
   }
 
   // output sort declarations
-  for (const auto& pair : Sorts::nameToSort()) {
+  for (const auto &pair : Sorts::nameToSort()) {
     ostr << declareSortSMTLIB(*pair.second);
   }
 
   // output symbol definitions
-  for (const auto& symbol : Signature::signatureOrderedByInsertion()) {
+  for (const auto &symbol : Signature::signatureOrderedByInsertion()) {
     ostr << symbol->declareSymbolSMTLIB();
   }
 
   // output each axiom
-  for (const auto& axiom : axioms) {
+  for (const auto &axiom : axioms) {
     assert(axiom->type == ProblemItem::Type::Axiom ||
            axiom->type == ProblemItem::Type::Definition);
     if (axiom->name != "") {
@@ -144,8 +151,8 @@ void ReasoningTask::outputTPTP(std::ostream& ostr) const {
   // output conjecture
   assert(conjecture != nullptr);
 
-  ostr << "\n\% negated conjecture\n"
-       << "tff(postcondition, conjecture, " << conjecture->formula->toTPTP()
+  ostr << "\n% negated conjecture\n"
+       << "tff(postcondition, conjecture, " << conjecture->formula->toTPTP(0)
        << ").\n";
 }
 

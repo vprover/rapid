@@ -1,37 +1,11 @@
 #include "Formula.hpp"
 
-#include <iostream>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
 namespace logic {
-
-// hack needed for bison: std::vector has no overload for ostream, but these
-// overloads are needed for bison
-std::ostream& operator<<(
-    std::ostream& ostr,
-    const std::vector<std::shared_ptr<const logic::Formula>>& f) {
-  ostr << "not implemented";
-  return ostr;
-}
-
-std::string Formula::stringForLabel(unsigned indentation) const {
-  std::string str = "";
-  if (!label.empty()) {
-    str += std::string(indentation, ' ') + ";" + label + "\n";
-  }
-  return str;
-}
-
-std::string Formula::stringForLabelTPTP(unsigned indentation) const {
-  std::string str = "";
-  if (!label.empty()) {
-    str += std::string(indentation, ' ') + "%" + label + "\n";
-  }
-  return str;
-}
 
 #pragma - Methods to generate SMTLIB output
 
@@ -43,7 +17,7 @@ std::string PredicateFormula::toSMTLIB(unsigned indentation) const {
   } else {
     str += "(" + symbol->toSMTLIB() + " ";
     for (unsigned i = 0; i < subterms.size(); i++) {
-      str += subterms[i]->toSMTLIB();
+      str += subterms[i]->toSMTLIB(0);
       str += (i == subterms.size() - 1) ? ")" : " ";
     }
   }
@@ -54,9 +28,9 @@ std::string EqualityFormula::toSMTLIB(unsigned indentation) const {
   std::string str = stringForLabel(indentation);
   str += std::string(indentation, ' ');
   if (polarity) {
-    str += "(= " + left->toSMTLIB() + " " + right->toSMTLIB() + ")";
+    str += "(= " + left->toSMTLIB(0) + " " + right->toSMTLIB(0) + ")";
   } else {
-    str += "(not (= " + left->toSMTLIB() + " " + right->toSMTLIB() + "))";
+    str += "(not (= " + left->toSMTLIB(0) + " " + right->toSMTLIB(0) + "))";
   }
   return str;
 }
@@ -101,7 +75,7 @@ std::string ExistentialFormula::toSMTLIB(unsigned indentation) const {
 
   // list of quantified variables
   str += "(";
-  for (const auto& var : vars) {
+  for (const auto &var : vars) {
     str += "(" + var->name + " " + var->rngSort->toSMTLIB() + ")";
   }
   str += ")\n";
@@ -119,7 +93,7 @@ std::string UniversalFormula::toSMTLIB(unsigned indentation) const {
 
   // list of quantified variables
   str += "(";
-  for (const auto& var : vars) {
+  for (const auto &var : vars) {
     str += "(" + var->name + " " + var->rngSort->toSMTLIB() + ")";
   }
   str += ")\n";
@@ -162,6 +136,7 @@ std::string FalseFormula::toSMTLIB(unsigned indentation) const {
 }
 
 #pragma - Methods to generate TPTP output
+
 std::string PredicateFormula::toTPTP(unsigned indentation) const {
   std::string sym = "";
 
@@ -198,7 +173,7 @@ std::string PredicateFormula::toTPTP(unsigned indentation) const {
       str += " " + symbol->toTPTP() + " ";
     }
     for (unsigned i = 0; i < subterms.size(); i++) {
-      str += subterms[i]->toTPTP();
+      str += subterms[i]->toTPTP(0);
       str += (i == subterms.size() - 1) ? ") " : ", ";
     }
   }
@@ -210,9 +185,9 @@ std::string EqualityFormula::toTPTP(unsigned indentation) const {
   std::string str = stringForLabelTPTP(indentation);
   str += std::string(indentation, ' ');
   if (polarity) {
-    str += " " + left->toTPTP() + "=" + right->toTPTP() + " ";
+    str += " " + left->toTPTP(0) + "=" + right->toTPTP(0) + " ";
   } else {
-    str += " " + left->toTPTP() + "!=" + right->toTPTP() + " ";
+    str += " " + left->toTPTP(0) + "!=" + right->toTPTP(0) + " ";
   }
   return str;
 }
@@ -220,10 +195,10 @@ std::string EqualityFormula::toTPTP(unsigned indentation) const {
 std::string ConjunctionFormula::toTPTP(unsigned indentation) const {
   std::string str = stringForLabelTPTP(indentation);
   if (conj.size() == 0) return "$true";
-  if (conj.size() == 1) return conj[0]->toTPTP();
+  if (conj.size() == 1) return conj[0]->toTPTP(0);
 
   for (unsigned i = 0; i < conj.size(); i++) {
-    str += "" + conj[i]->toTPTP() + "";
+    str += "" + conj[i]->toTPTP(0) + "";
     str += (i == conj.size() - 1) ? "" : "&";
   }
   return str;
@@ -232,9 +207,9 @@ std::string ConjunctionFormula::toTPTP(unsigned indentation) const {
 std::string DisjunctionFormula::toTPTP(unsigned indentation) const {
   std::string str = stringForLabelTPTP(indentation);
   if (disj.size() == 0) return "$false";
-  if (disj.size() == 1) return disj[0]->toTPTP();
+  if (disj.size() == 1) return disj[0]->toTPTP(0);
   for (unsigned i = 0; i < disj.size(); i++) {
-    str += "(" + disj[i]->toTPTP() + ")";
+    str += "(" + disj[i]->toTPTP(0) + ")";
 
     str += (i == disj.size() - 1) ? "" : " | ";
   }
@@ -242,7 +217,7 @@ std::string DisjunctionFormula::toTPTP(unsigned indentation) const {
 }
 
 std::string NegationFormula::toTPTP(unsigned indentation) const {
-  return "~(" + f->toTPTP() + ")";
+  return "~(" + f->toTPTP(0) + ")";
 }
 
 std::string ExistentialFormula::toTPTP(unsigned indentation) const {
@@ -253,7 +228,7 @@ std::string ExistentialFormula::toTPTP(unsigned indentation) const {
       str += ", ";
     }
   }
-  str += "] : (" + f->toTPTP() + ")";
+  str += "] : (" + f->toTPTP(0) + ")";
   return str;
 }
 
@@ -265,17 +240,17 @@ std::string UniversalFormula::toTPTP(unsigned indentation) const {
       str += ", ";
     }
   }
-  str += "] : (" + f->toTPTP() + ")";
+  str += "] : (" + f->toTPTP(0) + ")";
   return str;
 }
 
 std::string ImplicationFormula::toTPTP(unsigned indentation) const {
-  return "(" + f1->toTPTP() + ")" + " => (" + f2->toTPTP() + ")";
+  return "(" + f1->toTPTP(0) + ")" + " => (" + f2->toTPTP(0) + ")";
 }
 
 std::string EquivalenceFormula::toTPTP(unsigned indentation) const {
   std::string str = stringForLabelTPTP(indentation);
-  str += f1->toTPTP() + " = " + f2->toTPTP() + "\n";
+  str += f1->toTPTP(0) + " = " + f2->toTPTP(0) + "\n";
   return str;
 }
 
@@ -298,7 +273,7 @@ std::string PredicateFormula::prettyString(unsigned indentation) const {
   } else {
     str += symbol->toSMTLIB() + "(";
     for (unsigned i = 0; i < subterms.size(); i++) {
-      str += subterms[i]->toSMTLIB();
+      str += subterms[i]->toSMTLIB(0);
       str += (i == subterms.size() - 1) ? ")" : ",";
     }
   }
@@ -307,11 +282,11 @@ std::string PredicateFormula::prettyString(unsigned indentation) const {
 
 std::string EqualityFormula::prettyString(unsigned indentation) const {
   if (polarity)
-    return std::string(indentation, ' ') + left->prettyString() + " = " +
-           right->prettyString();
+    return std::string(indentation, ' ') + left->prettyString(0) + " = " +
+           right->prettyString(0);
   else
-    return std::string(indentation, ' ') + left->prettyString() +
-           " != " + right->prettyString();
+    return std::string(indentation, ' ') + left->prettyString(0) +
+           " != " + right->prettyString(0);
 }
 
 std::string ConjunctionFormula::prettyString(unsigned indentation) const {
@@ -395,22 +370,31 @@ std::string FalseFormula::prettyString(unsigned indentation) const {
 }
 
 #pragma mark - Formulas
-std::shared_ptr<const Formula> Formulas::predicate(
+
+std::shared_ptr<const Term> Formulas::predicate(
     std::string name, std::vector<std::shared_ptr<const Term>> subterms,
     std::string label, bool noDeclaration) {
-  std::vector<const Sort*> subtermSorts;
-  for (const auto& subterm : subterms) {
+  std::vector<const Sort *> subtermSorts;
+  for (const auto &subterm : subterms) {
     subtermSorts.push_back(subterm->symbol->rngSort);
   }
   auto symbol = Signature::fetchOrAdd(name, subtermSorts, Sorts::boolSort(),
                                       false, noDeclaration);
   return std::make_shared<const PredicateFormula>(symbol, subterms, label);
 }
-std::shared_ptr<const Formula> Formulas::lemmaPredicate(
+
+std::shared_ptr<const Term> Formulas::predicate(
+    std::shared_ptr<const Symbol> symbol,
+    std::vector<std::shared_ptr<const Term>> subterms) {
+  return std::shared_ptr<const PredicateFormula>(
+      new PredicateFormula(symbol, subterms));
+}
+
+std::shared_ptr<const Term> Formulas::lemmaPredicate(
     std::string name, std::vector<std::shared_ptr<const Term>> subterms,
     std::string label) {
-  std::vector<const Sort*> subtermSorts;
-  for (const auto& subterm : subterms) {
+  std::vector<const Sort *> subtermSorts;
+  for (const auto &subterm : subterms) {
     subtermSorts.push_back(subterm->symbol->rngSort);
   }
   auto symbol =
@@ -418,47 +402,50 @@ std::shared_ptr<const Formula> Formulas::lemmaPredicate(
   return std::make_shared<const PredicateFormula>(symbol, subterms, label);
 }
 
-std::shared_ptr<const Formula> Formulas::equality(
+std::shared_ptr<const Term> Formulas::equality(
     std::shared_ptr<const Term> left, std::shared_ptr<const Term> right,
     std::string label) {
-  return std::make_shared<const EqualityFormula>(true, left, right, label);
+  return std::make_shared<EqualityFormula>(true, std::move(left),
+                                           std::move(right), label);
 }
 
-std::shared_ptr<const Formula> Formulas::disequality(
+std::shared_ptr<const Term> Formulas::disequality(
     std::shared_ptr<const Term> left, std::shared_ptr<const Term> right,
     std::string label) {
   auto eq = std::make_shared<const EqualityFormula>(true, left, right);
   return std::make_shared<const NegationFormula>(eq, label);
 }
 
-std::shared_ptr<const Formula> Formulas::negation(
-    std::shared_ptr<const Formula> f, std::string label) {
+std::shared_ptr<const Term> Formulas::negation(std::shared_ptr<const Term> f,
+                                               std::string label) {
   return std::make_shared<const NegationFormula>(f, label);
 }
 
-std::shared_ptr<const Formula> Formulas::conjunction(
-    std::vector<std::shared_ptr<const Formula>> conj, std::string label) {
+std::shared_ptr<const Term> Formulas::conjunction(
+    std::vector<std::shared_ptr<const Term>> conj, std::string label) {
   return std::make_shared<const ConjunctionFormula>(conj, label);
 }
-std::shared_ptr<const Formula> Formulas::disjunction(
-    std::vector<std::shared_ptr<const Formula>> disj, std::string label) {
+
+std::shared_ptr<const Term> Formulas::disjunction(
+    std::vector<std::shared_ptr<const Term>> disj, std::string label) {
   return std::make_shared<const DisjunctionFormula>(disj, label);
 }
 
-std::shared_ptr<const Formula> Formulas::implication(
-    std::shared_ptr<const Formula> f1, std::shared_ptr<const Formula> f2,
+std::shared_ptr<const Term> Formulas::implication(
+    std::shared_ptr<const Term> f1, std::shared_ptr<const Term> f2,
     std::string label) {
   return std::make_shared<const ImplicationFormula>(f1, f2, label);
 }
-std::shared_ptr<const Formula> Formulas::equivalence(
-    std::shared_ptr<const Formula> f1, std::shared_ptr<const Formula> f2,
+
+std::shared_ptr<const Term> Formulas::equivalence(
+    std::shared_ptr<const Term> f1, std::shared_ptr<const Term> f2,
     std::string label) {
   return std::make_shared<const EquivalenceFormula>(f1, f2, label);
 }
 
-std::shared_ptr<const Formula> Formulas::existential(
+std::shared_ptr<const Term> Formulas::existential(
     std::vector<std::shared_ptr<const Symbol>> vars,
-    std::shared_ptr<const Formula> f, std::string label) {
+    std::shared_ptr<const Term> f, std::string label) {
   if (vars.empty()) {
     return copyWithLabel(f, label);
   } else {
@@ -466,9 +453,10 @@ std::shared_ptr<const Formula> Formulas::existential(
                                                       label);
   }
 }
-std::shared_ptr<const Formula> Formulas::universal(
+
+std::shared_ptr<const Term> Formulas::universal(
     std::vector<std::shared_ptr<const Symbol>> vars,
-    std::shared_ptr<const Formula> f, std::string label) {
+    std::shared_ptr<const Term> f, std::string label) {
   if (vars.empty()) {
     return copyWithLabel(f, label);
   } else {
@@ -476,14 +464,15 @@ std::shared_ptr<const Formula> Formulas::universal(
   }
 }
 
-std::shared_ptr<const Formula> Formulas::trueFormula(std::string label) {
+std::shared_ptr<const Term> Formulas::trueFormula(std::string label) {
   return std::make_shared<const TrueFormula>(label);
 }
-std::shared_ptr<const Formula> Formulas::falseFormula(std::string label) {
+
+std::shared_ptr<const Term> Formulas::falseFormula(std::string label) {
   return std::make_shared<const FalseFormula>(label);
 }
 
-std::shared_ptr<const Formula> Formulas::equalitySimp(
+std::shared_ptr<const Term> Formulas::equalitySimp(
     std::shared_ptr<const Term> left, std::shared_ptr<const Term> right,
     std::string label) {
   if (*left == *right) {
@@ -492,7 +481,7 @@ std::shared_ptr<const Formula> Formulas::equalitySimp(
   return equality(left, right, label);
 }
 
-std::shared_ptr<const Formula> Formulas::disequalitySimp(
+std::shared_ptr<const Term> Formulas::disequalitySimp(
     std::shared_ptr<const Term> left, std::shared_ptr<const Term> right,
     std::string label) {
   if (*left == *right) {
@@ -501,27 +490,27 @@ std::shared_ptr<const Formula> Formulas::disequalitySimp(
   return disequality(left, right, label);
 }
 
-std::shared_ptr<const Formula> Formulas::negationSimp(
-    std::shared_ptr<const Formula> f, std::string label) {
-  if (f->type() == Formula::Type::True) {
+std::shared_ptr<const Term> Formulas::negationSimp(
+    std::shared_ptr<const Term> f, std::string label) {
+  if (f->type() == Term::Type::True) {
     return falseFormula(label);
-  } else if (f->type() == Formula::Type::False) {
+  } else if (f->type() == Term::Type::False) {
     return trueFormula(label);
   }
 
   return negation(f, label);
 }
 
-std::shared_ptr<const Formula> Formulas::conjunctionSimp(
-    std::vector<std::shared_ptr<const Formula>> conj, std::string label) {
-  for (const auto& conjunct : conj) {
-    if (conjunct->type() == Formula::Type::False) {
+std::shared_ptr<const Term> Formulas::conjunctionSimp(
+    std::vector<std::shared_ptr<const Term>> conj, std::string label) {
+  for (const auto &conjunct : conj) {
+    if (conjunct->type() == Term::Type::False) {
       return falseFormula(label);
     }
   }
 
-  auto isTrueFormula = [](std::shared_ptr<const logic::Formula> f) -> bool {
-    return f->type() == Formula::Type::True;
+  auto isTrueFormula = [](std::shared_ptr<const logic::Term> f) -> bool {
+    return f->type() == Term::Type::True;
   };
   conj.erase(std::remove_if(conj.begin(), conj.end(), isTrueFormula),
              conj.end());
@@ -534,16 +523,17 @@ std::shared_ptr<const Formula> Formulas::conjunctionSimp(
 
   return conjunction(conj, label);
 }
-std::shared_ptr<const Formula> Formulas::disjunctionSimp(
-    std::vector<std::shared_ptr<const Formula>> disj, std::string label) {
-  for (const auto& disjunct : disj) {
-    if (disjunct->type() == Formula::Type::True) {
+
+std::shared_ptr<const Term> Formulas::disjunctionSimp(
+    std::vector<std::shared_ptr<const Term>> disj, std::string label) {
+  for (const auto &disjunct : disj) {
+    if (disjunct->type() == Term::Type::True) {
       return trueFormula(label);
     }
   }
 
-  auto isFalseFormula = [](std::shared_ptr<const logic::Formula> f) -> bool {
-    return f->type() == Formula::Type::False;
+  auto isFalseFormula = [](std::shared_ptr<const logic::Term> f) -> bool {
+    return f->type() == Term::Type::False;
   };
   disj.erase(std::remove_if(disj.begin(), disj.end(), isFalseFormula),
              disj.end());
@@ -557,108 +547,109 @@ std::shared_ptr<const Formula> Formulas::disjunctionSimp(
   return disjunction(disj, label);
 }
 
-std::shared_ptr<const Formula> Formulas::implicationSimp(
-    std::shared_ptr<const Formula> f1, std::shared_ptr<const Formula> f2,
+std::shared_ptr<const Term> Formulas::implicationSimp(
+    std::shared_ptr<const Term> f1, std::shared_ptr<const Term> f2,
     std::string label) {
-  if (f1->type() == Formula::Type::False || f2->type() == Formula::Type::True) {
+  if (f1->type() == Term::Type::False || f2->type() == Term::Type::True) {
     return trueFormula(label);
-  } else if (f1->type() == Formula::Type::True) {
+  } else if (f1->type() == Term::Type::True) {
     return (label == "") ? f2 : copyWithLabel(f2, label);
-  } else if (f2->type() == Formula::Type::False) {
+  } else if (f2->type() == Term::Type::False) {
     return negation(f1, label);
   }
 
   return implication(f1, f2, label);
 }
 
-std::shared_ptr<const Formula> Formulas::equivalenceSimp(
-    std::shared_ptr<const Formula> f1, std::shared_ptr<const Formula> f2,
+std::shared_ptr<const Term> Formulas::equivalenceSimp(
+    std::shared_ptr<const Term> f1, std::shared_ptr<const Term> f2,
     std::string label) {
-  if (f1->type() == Formula::Type::True) {
+  if (f1->type() == Term::Type::True) {
     return (label == "") ? f2 : copyWithLabel(f2, label);
-  } else if (f1->type() == Formula::Type::False) {
+  } else if (f1->type() == Term::Type::False) {
     return negation(f2, label);
-  } else if (f2->type() == Formula::Type::True) {
+  } else if (f2->type() == Term::Type::True) {
     return (label == "") ? f1 : copyWithLabel(f1, label);
-  } else if (f2->type() == Formula::Type::False) {
+  } else if (f2->type() == Term::Type::False) {
     return negation(f1, label);
   }
 
   return equivalence(f1, f2, label);
 }
 
-std::shared_ptr<const Formula> Formulas::existentialSimp(
+std::shared_ptr<const Term> Formulas::existentialSimp(
     std::vector<std::shared_ptr<const Symbol>> vars,
-    std::shared_ptr<const Formula> f, std::string label) {
-  if (f->type() == Formula::Type::True || f->type() == Formula::Type::False) {
+    std::shared_ptr<const Term> f, std::string label) {
+  if (f->type() == Term::Type::True || f->type() == Term::Type::False) {
     return copyWithLabel(f, label);
   }
 
   return existential(vars, f, label);
 }
-std::shared_ptr<const Formula> Formulas::universalSimp(
+
+std::shared_ptr<const Term> Formulas::universalSimp(
     std::vector<std::shared_ptr<const Symbol>> vars,
-    std::shared_ptr<const Formula> f, std::string label) {
-  if (f->type() == Formula::Type::True || f->type() == Formula::Type::False) {
+    std::shared_ptr<const Term> f, std::string label) {
+  if (f->type() == Term::Type::True || f->type() == Term::Type::False) {
     return copyWithLabel(f, label);
   }
 
   return universal(vars, f, label);
 }
 
-std::shared_ptr<const Formula> Formulas::copyWithLabel(
-    std::shared_ptr<const Formula> f, std::string label) {
+std::shared_ptr<const Term> Formulas::copyWithLabel(
+    std::shared_ptr<const Term> f, std::string label) {
   switch (f->type()) {
-    case logic::Formula::Type::Predicate: {
+    case logic::Term::Type::Predicate: {
       auto castedFormula =
           std::static_pointer_cast<const logic::PredicateFormula>(f);
       return std::make_shared<const PredicateFormula>(
           castedFormula->symbol, castedFormula->subterms, label);
     }
-    case logic::Formula::Type::Equality: {
+    case logic::Term::Type::Equality: {
       auto castedFormula =
           std::static_pointer_cast<const logic::EqualityFormula>(f);
       return equality(castedFormula->left, castedFormula->right, label);
     }
-    case logic::Formula::Type::Conjunction: {
+    case logic::Term::Type::Conjunction: {
       auto castedFormula =
           std::static_pointer_cast<const logic::ConjunctionFormula>(f);
       return conjunction(castedFormula->conj, label);
     }
-    case logic::Formula::Type::Disjunction: {
+    case logic::Term::Type::Disjunction: {
       auto castedFormula =
           std::static_pointer_cast<const logic::DisjunctionFormula>(f);
       return disjunction(castedFormula->disj, label);
     }
-    case logic::Formula::Type::Negation: {
+    case logic::Term::Type::Negation: {
       auto castedFormula =
           std::static_pointer_cast<const logic::NegationFormula>(f);
       return negation(castedFormula->f, label);
     }
-    case logic::Formula::Type::Existential: {
+    case logic::Term::Type::Existential: {
       auto castedFormula =
           std::static_pointer_cast<const logic::ExistentialFormula>(f);
       return existential(castedFormula->vars, castedFormula->f, label);
     }
-    case logic::Formula::Type::Universal: {
+    case logic::Term::Type::Universal: {
       auto castedFormula =
           std::static_pointer_cast<const logic::UniversalFormula>(f);
       return universal(castedFormula->vars, castedFormula->f, label);
     }
-    case logic::Formula::Type::Implication: {
+    case logic::Term::Type::Implication: {
       auto castedFormula =
           std::static_pointer_cast<const logic::ImplicationFormula>(f);
       return implication(castedFormula->f1, castedFormula->f2, label);
     }
-    case logic::Formula::Type::Equivalence: {
+    case logic::Term::Type::Equivalence: {
       auto castedFormula =
           std::static_pointer_cast<const logic::EquivalenceFormula>(f);
       return equivalence(castedFormula->f1, castedFormula->f2, label);
     }
-    case logic::Formula::Type::True: {
+    case logic::Term::Type::True: {
       return trueFormula(label);
     }
-    case logic::Formula::Type::False: {
+    case logic::Term::Type::False: {
       return falseFormula(label);
     }
     default: {

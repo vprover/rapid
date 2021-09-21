@@ -60,10 +60,10 @@ class EqualityPreservationTracesLemmas
 
  private:
   virtual void generateOutputFor(
-      const program::WhileStatement* statement,
+      program::WhileStatement* statement,
       std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
   virtual void generateOutputForInteger(
-      const program::WhileStatement* statement,
+      program::WhileStatement* statement,
       std::vector<std::shared_ptr<const logic::ProblemItem>>& items);
 };
 
@@ -115,7 +115,7 @@ class NEqualLemmas
   NEqualLemmas(
       const program::Program& program,
       std::unordered_map<std::string,
-                         std::vector<std::shared_ptr<const program::Variable>>>
+                         std::vector<std::shared_ptr<program::Variable>>>
           locationToActiveVars,
       unsigned numberOfTraces,
       std::vector<std::shared_ptr<const logic::Axiom>> programSemantics,
@@ -131,10 +131,10 @@ class NEqualLemmas
   InlinedVariableValues& inlinedVarValues;
 
   virtual void generateOutputFor(
-      const program::WhileStatement* statement,
+      program::WhileStatement* statement,
       std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
       virtual void generateOutputForInteger(
-      const program::WhileStatement* statement,
+      program::WhileStatement* statement,
       std::vector<std::shared_ptr<const logic::ProblemItem>>& items);
   
 };

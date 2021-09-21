@@ -16,10 +16,20 @@
 #include "util/Output.hpp"
 
 void outputUsage() {
-  std::cout << "Usage: rapid -dir <outputDir> <filename>" << std::endl;
+  std::cout
+      << "Usage: rapid "
+      << "-dir <outputDir> "
+      << "[-inlineSemantics on|off] "
+      << "[-lemmaPredicates on|off] "
+      << "[-nat on|off] "
+      << "-integerIterations"
+      << "-inlineLemmas"
+      << "-postcondition"
+      << "[-overwriteExisting on|off] "
+      << "<filename>" << std::endl;
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
   if (argc <= 1) {
     outputUsage();
   } else {
@@ -54,18 +64,23 @@ int main(int argc, char* argv[]) {
           problemItems.push_back(axiom);
         }
 
-        analysis::Semantics s(
-            *parserResult.program, parserResult.locationToActiveVars,
-            parserResult.problemItems, parserResult.numberOfTraces);
-        auto [semantics, inlinedVarValues] = s.generateSemantics();
-        problemItems.insert(problemItems.end(), semantics.begin(),
-                            semantics.end());
+        analysis::Semantics::applyTransformations(parserResult.program->functions,
+                                                  parserResult.locationToActiveVars,
+                                                  parserResult.numberOfTraces);
 
-        auto traceLemmas = analysis::generateTraceLemmas(
-            *parserResult.program, parserResult.locationToActiveVars,
-            parserResult.numberOfTraces, semantics, inlinedVarValues);
-        problemItems.insert(problemItems.end(), traceLemmas.begin(),
-                            traceLemmas.end());
+        analysis::Semantics s(*parserResult.program,
+                              parserResult.locationToActiveVars,
+                              parserResult.problemItems,
+                              parserResult.numberOfTraces);
+        auto[semantics, inlinedVarValues] = s.generateSemantics();
+        problemItems.insert(problemItems.end(), semantics.begin(), semantics.end());
+
+        auto traceLemmas = analysis::generateTraceLemmas(*parserResult.program,
+                                                         parserResult.locationToActiveVars,
+                                                         parserResult.numberOfTraces,
+                                                         semantics,
+                                                         inlinedVarValues);
+        problemItems.insert(problemItems.end(), traceLemmas.begin(), traceLemmas.end());
 
         problemItems.insert(problemItems.end(),
                             parserResult.problemItems.begin(),
@@ -77,8 +92,7 @@ int main(int argc, char* argv[]) {
         auto tasks = problem.generateReasoningTasks();
         for (const auto& task : tasks) {
           std::stringstream preamble;
-          preamble << util::Output::comment << *parserResult.program
-                   << util::Output::nocomment;
+          preamble << util::Output::comment << *parserResult.program << util::Output::nocomment;
           task.outputSMTLIBToDir(outputDir, preamble.str());
         }
 

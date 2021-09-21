@@ -3,7 +3,6 @@
 #include <cassert>
 #include <iostream>
 
-#include "AnalysisPreComputation.hpp"
 #include "Formula.hpp"
 #include "Options.hpp"
 #include "SemanticsHelper.hpp"
@@ -13,7 +12,7 @@
 namespace analysis {
 
 void EqualityPreservationTracesLemmas::generateOutputFor(
-    const program::WhileStatement* statement,
+    program::WhileStatement* statement,
     std::vector<std::shared_ptr<const logic::ProblemItem>>& items) {
   auto posSymbol = posVarSymbol();
   auto pos = posVar();
@@ -27,7 +26,7 @@ void EqualityPreservationTracesLemmas::generateOutputFor(
     // add lemma for each intVar and each intArrayVar
     for (const auto& v :
          locationToActiveVars.at(locationSymbolForStatement(statement)->name)) {
-      if (!v->isConstant && assignedVars.find(v) != assignedVars.end()) {
+      if (!v->isConstant && v->type() != program::ValueType::Bool&& assignedVars.find(v) != assignedVars.end()) {
         for (unsigned traceNumber1 = 1; traceNumber1 < numberOfTraces + 1;
              traceNumber1++) {
           for (unsigned traceNumber2 = traceNumber1 + 1;
@@ -78,7 +77,7 @@ void EqualityPreservationTracesLemmas::generateOutputFor(
 }
 
 void EqualityPreservationTracesLemmas::generateOutputForInteger(
-    const program::WhileStatement* statement,
+    program::WhileStatement* statement,
     std::vector<std::shared_ptr<const logic::ProblemItem>>& items) {
   auto posSymbol = posVarSymbol();
   auto pos = posVar();
@@ -88,7 +87,8 @@ void EqualityPreservationTracesLemmas::generateOutputForInteger(
   // add lemma for each intVar and each intArrayVar
   for (const auto& v :
        locationToActiveVars.at(locationSymbolForStatement(statement)->name)) {
-    if (!v->isConstant && assignedVars.find(v) != assignedVars.end()) {
+    if (!v->isConstant && v->type() != program::ValueType::Bool &&
+        assignedVars.find(v) != assignedVars.end()) {
       for (unsigned traceNumber1 = 1; traceNumber1 < numberOfTraces + 1;
            traceNumber1++) {
         for (unsigned traceNumber2 = traceNumber1 + 1;
@@ -138,7 +138,7 @@ void EqualityPreservationTracesLemmas::generateOutputForInteger(
 }
 
 void NEqualLemmas::generateOutputFor(
-    const program::WhileStatement* statement,
+    program::WhileStatement* statement,
     std::vector<std::shared_ptr<const logic::ProblemItem>>& items) {
   assert(numberOfTraces > 1);
 
@@ -150,8 +150,7 @@ void NEqualLemmas::generateOutputFor(
     auto lStartIt = timepointForLoopStatement(statement, it);
 
     auto assignedVars = AnalysisPreComputation::computeAssignedVars(statement);
-    std::unordered_set<std::shared_ptr<const program::Variable>>
-        loopConditionVars;
+    std::unordered_set<std::shared_ptr<program::Variable>> loopConditionVars;
     AnalysisPreComputation::computeVariablesContainedInLoopCondition(
         statement->condition, loopConditionVars);
 
@@ -183,7 +182,7 @@ void NEqualLemmas::generateOutputFor(
         auto inductionHypothesis = [&](std::shared_ptr<const logic::Term> arg) {
           auto lStartArg = timepointForLoopStatement(statement, arg);
 
-          std::vector<std::shared_ptr<const logic::Formula>> conjuncts;
+          std::vector<std::shared_ptr<const logic::Term>> conjuncts;
           for (const auto& v : loopConditionVars) {
             // note: Inlining variable values removes the need for induction for
             // non-const non-assigned vars
@@ -220,7 +219,7 @@ void NEqualLemmas::generateOutputFor(
         items.push_back(inductionAxiom);
 
         // PART 2: Add trace lemma
-        std::vector<std::shared_ptr<const logic::Formula>> premiseConjuncts;
+        std::vector<std::shared_ptr<const logic::Term>> premiseConjuncts;
 
         // PART 2A: Add EqVC to premise, for (i) constant vars and (ii)
         // non-constant but non-assigned vars
@@ -316,7 +315,7 @@ void NEqualLemmas::generateOutputFor(
 }
 
 void NEqualLemmas::generateOutputForInteger(
-    const program::WhileStatement* statement,
+    program::WhileStatement* statement,
     std::vector<std::shared_ptr<const logic::ProblemItem>>& items) {
   assert(numberOfTraces > 1);
 
@@ -325,8 +324,7 @@ void NEqualLemmas::generateOutputForInteger(
   auto lStartIt = timepointForLoopStatement(statement, it);
 
   auto assignedVars = AnalysisPreComputation::computeAssignedVars(statement);
-  std::unordered_set<std::shared_ptr<const program::Variable>>
-      loopConditionVars;
+  std::unordered_set<std::shared_ptr<program::Variable>> loopConditionVars;
   AnalysisPreComputation::computeVariablesContainedInLoopCondition(
       statement->condition, loopConditionVars);
 
@@ -358,7 +356,7 @@ void NEqualLemmas::generateOutputForInteger(
       auto inductionHypothesis = [&](std::shared_ptr<const logic::Term> arg) {
         auto lStartArg = timepointForLoopStatement(statement, arg);
 
-        std::vector<std::shared_ptr<const logic::Formula>> conjuncts;
+        std::vector<std::shared_ptr<const logic::Term>> conjuncts;
         for (const auto& v : loopConditionVars) {
           // note: Inlining variable values removes the need for induction for
           // non-const non-assigned vars
@@ -393,7 +391,7 @@ void NEqualLemmas::generateOutputForInteger(
       items.push_back(inductionAxiom);
 
       // PART 2: Add trace lemma
-      std::vector<std::shared_ptr<const logic::Formula>> premiseConjuncts;
+      std::vector<std::shared_ptr<const logic::Term>> premiseConjuncts;
 
       // PART 2A: Add EqVC to premise, for (i) constant vars and (ii)
       // non-constant but non-assigned vars

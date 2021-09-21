@@ -171,7 +171,7 @@ std::shared_ptr<const Symbol> Signature::fetchOrAdd(
     for (int i = 0; i < argSorts.size(); ++i) {
       assert(argSorts[i] == symbol->argSorts[i]);
     }
-    assert(rngSort = symbol->rngSort);
+    assert(rngSort == symbol->rngSort);
     assert(isLemmaPredicate == symbol->isLemmaPredicate);
     assert(noDeclaration == symbol->noDeclaration);
   }

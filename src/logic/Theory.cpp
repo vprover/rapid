@@ -66,35 +66,35 @@ std::shared_ptr<const FuncTerm> Theory::intSucc(std::shared_ptr<const Term> t) {
   return intAddition(t, Theory::intConstant(1));
 }
 
-std::shared_ptr<const Formula> Theory::intLess(std::shared_ptr<const Term> t1,
+std::shared_ptr<const Term> Theory::intLess(std::shared_ptr<const Term> t1,
                                                std::shared_ptr<const Term> t2,
                                                std::string label) {
   return Formulas::predicate("<", {t1, t2}, label, true);
 }
 
-std::shared_ptr<const Formula> Theory::intLessEqual(
+std::shared_ptr<const Term> Theory::intLessEqual(
     std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2,
     std::string label) {
   return Formulas::predicate("<=", {t1, t2}, label, true);
 }
 
-std::shared_ptr<const Formula> Theory::intGreater(
+std::shared_ptr<const Term> Theory::intGreater(
     std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2,
     std::string label) {
   return Formulas::predicate(">", {t1, t2}, label, true);
 }
 
-std::shared_ptr<const Formula> Theory::intGreaterEqual(
+std::shared_ptr<const Term> Theory::intGreaterEqual(
     std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2,
     std::string label) {
   return Formulas::predicate(">=", {t1, t2}, label, true);
 }
 
-std::shared_ptr<const Formula> Theory::boolTrue(std::string label) {
+std::shared_ptr<const Term> Theory::boolTrue(std::string label) {
   return Formulas::predicate("true", {}, label, true);
 }
 
-std::shared_ptr<const Formula> Theory::boolFalse(std::string label) {
+std::shared_ptr<const Term> Theory::boolFalse(std::string label) {
   return Formulas::predicate("false", {}, label, true);
 }
 
@@ -112,14 +112,14 @@ std::shared_ptr<const FuncTerm> Theory::natPre(
   return Terms::func("p", {term}, Sorts::natSort(), true);
 }
 
-std::shared_ptr<const Formula> Theory::natSub(std::shared_ptr<const Term> t1,
+std::shared_ptr<const Term> Theory::natSub(std::shared_ptr<const Term> t1,
                                               std::shared_ptr<const Term> t2,
                                               std::string label) {
   bool alreadyDeclared = util::Configuration::instance().nativeNat();
   return Formulas::predicate("Sub", {t1, t2}, label, alreadyDeclared);
 }
 
-std::shared_ptr<const Formula> Theory::natSubEq(std::shared_ptr<const Term> t1,
+std::shared_ptr<const Term> Theory::natSubEq(std::shared_ptr<const Term> t1,
                                                 std::shared_ptr<const Term> t2,
                                                 std::string label) {
   // encode t1<=t2 as t1 < s(t2).
@@ -133,7 +133,7 @@ std::shared_ptr<const FuncTerm> Theory::succ(std::shared_ptr<const Term> t) {
   return Theory::natSucc(t);
 }
 
-std::shared_ptr<const Formula> Theory::less(std::shared_ptr<const Term> t1,
+std::shared_ptr<const Term> Theory::less(std::shared_ptr<const Term> t1,
                                             std::shared_ptr<const Term> t2,
                                             std::string label) {
   if (util::Configuration::instance().integerIterations()) {
@@ -142,7 +142,7 @@ std::shared_ptr<const Formula> Theory::less(std::shared_ptr<const Term> t1,
   return Theory::natSub(t1, t2, label);
 }
 
-std::shared_ptr<const Formula> Theory::lessEq(std::shared_ptr<const Term> t1,
+std::shared_ptr<const Term> Theory::lessEq(std::shared_ptr<const Term> t1,
                                               std::shared_ptr<const Term> t2,
                                               std::string label) {
   if (util::Configuration::instance().integerIterations()) {
@@ -163,7 +163,7 @@ std::tuple<std::shared_ptr<logic::Definition>,
            std::shared_ptr<logic::Definition>, std::shared_ptr<logic::Axiom>>
 inductionAxiom1(
     std::string name, std::string shortName,
-    std::function<std::shared_ptr<const Formula>(std::shared_ptr<const Term>)>
+    std::function<std::shared_ptr<const Term>(std::shared_ptr<const Term>)>
         inductionHypothesis,
     std::vector<std::shared_ptr<const Symbol>> freeVarSymbols,
     ProblemItem::Visibility visibility) {
@@ -247,7 +247,7 @@ std::tuple<std::shared_ptr<logic::Definition>,
            std::shared_ptr<logic::Definition>, std::shared_ptr<logic::Axiom>>
 inductionAxiom2(
     std::string name, std::string shortName,
-    std::function<std::shared_ptr<const Formula>(std::shared_ptr<const Term>)>
+    std::function<std::shared_ptr<const Term>(std::shared_ptr<const Term>)>
         inductionHypothesis,
     std::shared_ptr<const logic::Term> nt1,
     std::shared_ptr<const logic::Term> nt2,

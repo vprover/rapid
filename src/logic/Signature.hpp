@@ -152,6 +152,11 @@ class Signature {
     return _signatureOrderedByInsertion;
   }
 
+  static void reset() {
+    _signature.clear();
+    _signatureOrderedByInsertion.clear();
+  }
+
  private:
   // _signature collects all symbols used so far.
   static std::unordered_map<std::string, std::shared_ptr<const Symbol>>

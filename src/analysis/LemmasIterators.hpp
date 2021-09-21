@@ -115,10 +115,10 @@ class IntermediateValueLemmas
 
  private:
   virtual void generateOutputFor(
-      const program::WhileStatement* statement,
+      program::WhileStatement* statement,
       std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
   virtual void generateOutputForInteger(
-      const program::WhileStatement* statement,
+      program::WhileStatement* statement,
       std::vector<std::shared_ptr<const logic::ProblemItem>>& items);
 };
 
@@ -176,10 +176,10 @@ class IterationInjectivityLemmas
 
  private:
   virtual void generateOutputFor(
-      const program::WhileStatement* statement,
+      program::WhileStatement* statement,
       std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
   virtual void generateOutputForInteger(
-      const program::WhileStatement* statement,
+      program::WhileStatement* statement,
       std::vector<std::shared_ptr<const logic::ProblemItem>>& items);
 };
 }  // namespace analysis

@@ -8,98 +8,81 @@
 
 namespace analysis {
 void SemanticsInliner::computePersistentTerms(
-    std::vector<std::shared_ptr<const logic::ProblemItem>>& problemItems) {
+    std::vector<std::shared_ptr<const logic::ProblemItem>> &problemItems) {
   for (auto item : problemItems) {
     computePersistentTermsRec(item->formula);
   }
 }
 
 void SemanticsInliner::computePersistentTermsRec(
-    std::shared_ptr<const logic::Formula> f) {
-  switch (f->type()) {
-    case logic::Formula::Type::Predicate: {
+    std::shared_ptr<const logic::Term> t) {
+  switch (t->type()) {
+    case logic::Term::Type::Equality: {
       auto castedFormula =
-          std::static_pointer_cast<const logic::PredicateFormula>(f);
-      for (const auto& subterm : castedFormula->subterms) {
-        computePersistentTermsRec(subterm);
-      }
-      break;
-    }
-    case logic::Formula::Type::Equality: {
-      auto castedFormula =
-          std::static_pointer_cast<const logic::EqualityFormula>(f);
+          std::static_pointer_cast<const logic::EqualityFormula>(t);
       computePersistentTermsRec(castedFormula->left);
       computePersistentTermsRec(castedFormula->right);
       break;
     }
-    case logic::Formula::Type::Conjunction: {
+    case logic::Term::Type::Conjunction: {
       auto castedFormula =
-          std::static_pointer_cast<const logic::ConjunctionFormula>(f);
-      for (const auto& subterm : castedFormula->conj) {
+          std::static_pointer_cast<const logic::ConjunctionFormula>(t);
+      for (const auto &subterm : castedFormula->conj) {
         computePersistentTermsRec(subterm);
       }
       break;
     }
-    case logic::Formula::Type::Disjunction: {
+    case logic::Term::Type::Disjunction: {
       auto castedFormula =
-          std::static_pointer_cast<const logic::DisjunctionFormula>(f);
-      for (const auto& subterm : castedFormula->disj) {
+          std::static_pointer_cast<const logic::DisjunctionFormula>(t);
+      for (const auto &subterm : castedFormula->disj) {
         computePersistentTermsRec(subterm);
       }
       break;
     }
-    case logic::Formula::Type::Negation: {
+    case logic::Term::Type::Negation: {
       auto castedFormula =
-          std::static_pointer_cast<const logic::NegationFormula>(f);
+          std::static_pointer_cast<const logic::NegationFormula>(t);
       computePersistentTermsRec(castedFormula->f);
       break;
     }
-    case logic::Formula::Type::Existential: {
+    case logic::Term::Type::Existential: {
       auto castedFormula =
-          std::static_pointer_cast<const logic::ExistentialFormula>(f);
+          std::static_pointer_cast<const logic::ExistentialFormula>(t);
       computePersistentTermsRec(castedFormula->f);
       break;
     }
-    case logic::Formula::Type::Universal: {
+    case logic::Term::Type::Universal: {
       auto castedFormula =
-          std::static_pointer_cast<const logic::UniversalFormula>(f);
+          std::static_pointer_cast<const logic::UniversalFormula>(t);
       computePersistentTermsRec(castedFormula->f);
       break;
     }
-    case logic::Formula::Type::Implication: {
+    case logic::Term::Type::Implication: {
       auto castedFormula =
-          std::static_pointer_cast<const logic::ImplicationFormula>(f);
+          std::static_pointer_cast<const logic::ImplicationFormula>(t);
       computePersistentTermsRec(castedFormula->f1);
       computePersistentTermsRec(castedFormula->f2);
       break;
     }
-    case logic::Formula::Type::Equivalence: {
+    case logic::Term::Type::Equivalence: {
       auto castedFormula =
-          std::static_pointer_cast<const logic::EquivalenceFormula>(f);
+          std::static_pointer_cast<const logic::EquivalenceFormula>(t);
       computePersistentTermsRec(castedFormula->f1);
       computePersistentTermsRec(castedFormula->f2);
       break;
     }
-    case logic::Formula::Type::True: {
+    case logic::Term::Type::True: {
       break;
     }
-    case logic::Formula::Type::False: {
+    case logic::Term::Type::False: {
       break;
     }
-    default: {
-      assert(false);
-      break;
-    }
-  }
-}
-
-void SemanticsInliner::computePersistentTermsRec(
-    std::shared_ptr<const logic::Term> t) {
-  switch (t->type()) {
     case logic::Term::Type::Variable: {
       // do nothing
       break;
     }
+    case logic::Term::Type::Predicate:
     case logic::Term::Type::FuncTerm: {
       auto castedTerm = std::static_pointer_cast<const logic::FuncTerm>(t);
 
@@ -108,7 +91,8 @@ void SemanticsInliner::computePersistentTermsRec(
       // TODO: could make this check more precise, so that it always only
       // detects terms v(l(...)), where v is a variable occuring in the program
       // and l is a location of the program
-      if (castedTerm->symbol->rngSort == logic::Sorts::intSort()) {
+      if (castedTerm->symbol->rngSort == logic::Sorts::intSort() ||
+          castedTerm->symbol->rngSort == logic::Sorts::boolSort()) {
         // check whether castedTerm could denote mutable program variable
         if (castedTerm->subterms.size() >= 1 &&
             castedTerm->subterms[0]->symbol->rngSort ==
@@ -127,7 +111,7 @@ void SemanticsInliner::computePersistentTermsRec(
           // TODO: could make this check more precise, currently just ensure
           // that no subterm is of sort time.
           bool noTimepointSubterms = true;
-          for (const auto& subterm : castedTerm->subterms) {
+          for (const auto &subterm : castedTerm->subterms) {
             if (subterm->symbol->rngSort == logic::Sorts::timeSort()) {
               noTimepointSubterms = false;
               break;
@@ -144,7 +128,7 @@ void SemanticsInliner::computePersistentTermsRec(
       }
 
       // recurse on subterms
-      for (const auto& subterm : castedTerm->subterms) {
+      for (const auto &subterm : castedTerm->subterms) {
         computePersistentTermsRec(subterm);
       }
       break;
@@ -155,24 +139,23 @@ void SemanticsInliner::computePersistentTermsRec(
     }
   }
 }
-
 std::shared_ptr<const logic::Term> SemanticsInliner::toCachedTermFull(
-    std::shared_ptr<const program::Variable> var) {
+    std::shared_ptr<program::Variable> var) {
   assert(var != nullptr);
   assert(!var->isArray);
   assert(currTimepoint != nullptr);
 
   // if no value is cached yet, initialize cache (note that we use a free
   // variable as trace (which has to be universally quantified later))
-  if (cachedIntVarValues.find(var) == cachedIntVarValues.end()) {
-    cachedIntVarValues[var] = toTerm(var, currTimepoint, trace);
+  if (cachedVarValues.find(var) == cachedVarValues.end()) {
+    cachedVarValues[var] = toTerm(var, currTimepoint, trace);
   }
   // return cached value
-  return cachedIntVarValues.at(var);
+  return cachedVarValues.at(var);
 }
 
 std::shared_ptr<const logic::Term> SemanticsInliner::toCachedTermFull(
-    std::shared_ptr<const program::Variable> arrayVar,
+    std::shared_ptr<program::Variable> arrayVar,
     std::shared_ptr<const logic::Term> position) {
   assert(arrayVar != nullptr);
   assert(position != nullptr);
@@ -188,118 +171,86 @@ std::shared_ptr<const logic::Term> SemanticsInliner::toCachedTermFull(
 }
 
 std::shared_ptr<const logic::Term> SemanticsInliner::toCachedTerm(
-    std::shared_ptr<const program::IntExpression> expr) {
+    std::shared_ptr<program::Expression> expr) {
   assert(expr != nullptr);
 
-  switch (expr->type()) {
-    case program::IntExpression::Type::ArithmeticConstant: {
-      auto castedExpr =
-          std::static_pointer_cast<const program::ArithmeticConstant>(expr);
-      return logic::Theory::intConstant(castedExpr->value);
-    }
-    case program::IntExpression::Type::Addition: {
-      auto castedExpr = std::static_pointer_cast<const program::Addition>(expr);
-      return logic::Theory::intAddition(toCachedTerm(castedExpr->summand1),
-                                        toCachedTerm(castedExpr->summand2));
-    }
-    case program::IntExpression::Type::Subtraction: {
-      auto castedExpr =
-          std::static_pointer_cast<const program::Subtraction>(expr);
-      return logic::Theory::intSubtraction(toCachedTerm(castedExpr->child1),
-                                           toCachedTerm(castedExpr->child2));
-    }
-    case program::IntExpression::Type::Modulo: {
-      auto castedExpr = std::static_pointer_cast<const program::Modulo>(expr);
-      return logic::Theory::intModulo(toCachedTerm(castedExpr->child1),
+  if (typeid(*expr) == typeid(program::ArithmeticConstant)) {
+    auto castedExpr =
+        std::static_pointer_cast<const program::ArithmeticConstant>(expr);
+    return logic::Theory::intConstant(castedExpr->value);
+  } else if (typeid(*expr) == typeid(program::Addition)) {
+    auto castedExpr = std::static_pointer_cast<program::Addition>(expr);
+    return logic::Theory::intAddition(toCachedTerm(castedExpr->child1),
                                       toCachedTerm(castedExpr->child2));
-    }
-    case program::IntExpression::Type::Multiplication: {
-      auto castedExpr =
-          std::static_pointer_cast<const program::Multiplication>(expr);
-      return logic::Theory::intMultiplication(
-          toCachedTerm(castedExpr->factor1), toCachedTerm(castedExpr->factor2));
-    }
-    case program::IntExpression::Type::IntVariableAccess: {
-      auto castedExpr =
-          std::static_pointer_cast<const program::IntVariableAccess>(expr);
-      return toCachedTermFull(castedExpr->var);
-    }
-    case program::IntExpression::Type::IntArrayApplication: {
-      auto castedExpr =
-          std::static_pointer_cast<const program::IntArrayApplication>(expr);
-      return toCachedTermFull(castedExpr->array,
-                              toCachedTerm(castedExpr->index));
+  } else if (typeid(*expr) == typeid(program::Subtraction)) {
+    auto castedExpr = std::static_pointer_cast<program::Subtraction>(expr);
+    return logic::Theory::intSubtraction(toCachedTerm(castedExpr->child1),
+                                         toCachedTerm(castedExpr->child2));
+  } else if (typeid(*expr) == typeid(program::Modulo)) {
+    auto castedExpr = std::static_pointer_cast<program::Modulo>(expr);
+    return logic::Theory::intModulo(toCachedTerm(castedExpr->child1),
+                                    toCachedTerm(castedExpr->child2));
+  } else if (typeid(*expr) == typeid(program::Multiplication)) {
+    auto castedExpr = std::static_pointer_cast<program::Multiplication>(expr);
+    return logic::Theory::intMultiplication(toCachedTerm(castedExpr->child1),
+                                            toCachedTerm(castedExpr->child2));
+  } else if (typeid(*expr) == typeid(program::VariableAccess)) {
+    auto castedExpr = std::static_pointer_cast<program::VariableAccess>(expr);
+    return toCachedTermFull(castedExpr->var);
+  } else if (typeid(*expr) == typeid(program::ArrayApplication)) {
+    auto castedExpr = std::static_pointer_cast<program::ArrayApplication>(expr);
+    return toCachedTermFull(castedExpr->array, toCachedTerm(castedExpr->index));
+  } else if (typeid(*expr) == typeid(program::BooleanConstant)) {
+    auto castedExpr =
+        std::static_pointer_cast<const program::BooleanConstant>(expr);
+    return castedExpr->value ? logic::Theory::boolTrue()
+                             : logic::Theory::boolFalse();
+  } else if (typeid(*expr) == typeid(program::BooleanAnd)) {
+    auto castedExpr = std::static_pointer_cast<program::BooleanAnd>(expr);
+    return logic::Formulas::conjunction(
+        {toCachedTerm(castedExpr->child1), toCachedTerm(castedExpr->child2)});
+  } else if (typeid(*expr) == typeid(program::BooleanOr)) {
+    auto castedExpr = std::static_pointer_cast<const program::BooleanOr>(expr);
+    return logic::Formulas::disjunction(
+        {toCachedTerm(castedExpr->child1), toCachedTerm(castedExpr->child2)});
+  } else if (typeid(*expr) == typeid(program::BooleanNot)) {
+    auto castedExpr = std::static_pointer_cast<const program::BooleanNot>(expr);
+    return logic::Formulas::negation(toCachedTerm(castedExpr->child));
+  } else if (typeid(*expr) == typeid(program::ArithmeticComparison)) {
+    auto castedExpr =
+        std::static_pointer_cast<const program::ArithmeticComparison>(expr);
+    switch (castedExpr->kind) {
+      case program::ArithmeticComparison::Kind::GT:
+        return logic::Theory::intGreater(toCachedTerm(castedExpr->child1),
+                                         toCachedTerm(castedExpr->child2));
+      case program::ArithmeticComparison::Kind::GE:
+        return logic::Theory::intGreaterEqual(toCachedTerm(castedExpr->child1),
+                                              toCachedTerm(castedExpr->child2));
+      case program::ArithmeticComparison::Kind::LT:
+        return logic::Theory::intLess(toCachedTerm(castedExpr->child1),
+                                      toCachedTerm(castedExpr->child2));
+      case program::ArithmeticComparison::Kind::LE:
+        return logic::Theory::intLessEqual(toCachedTerm(castedExpr->child1),
+                                           toCachedTerm(castedExpr->child2));
+      case program::ArithmeticComparison::Kind::EQ:
+        return logic::Formulas::equality(toCachedTerm(castedExpr->child1),
+                                         toCachedTerm(castedExpr->child2));
     }
   }
 }
 
-std::shared_ptr<const logic::Formula> SemanticsInliner::toCachedFormula(
-    std::shared_ptr<const program::BoolExpression> expr) {
-  assert(expr != nullptr);
-
-  switch (expr->type()) {
-    case program::BoolExpression::Type::BooleanConstant: {
-      auto castedExpr =
-          std::static_pointer_cast<const program::BooleanConstant>(expr);
-      return castedExpr->value ? logic::Theory::boolTrue()
-                               : logic::Theory::boolFalse();
-    }
-    case program::BoolExpression::Type::BooleanAnd: {
-      auto castedExpr =
-          std::static_pointer_cast<const program::BooleanAnd>(expr);
-      return logic::Formulas::conjunction(
-          {toCachedFormula(castedExpr->child1),
-           toCachedFormula(castedExpr->child2)});
-    }
-    case program::BoolExpression::Type::BooleanOr: {
-      auto castedExpr =
-          std::static_pointer_cast<const program::BooleanOr>(expr);
-      return logic::Formulas::disjunction(
-          {toCachedFormula(castedExpr->child1),
-           toCachedFormula(castedExpr->child2)});
-    }
-    case program::BoolExpression::Type::BooleanNot: {
-      auto castedExpr =
-          std::static_pointer_cast<const program::BooleanNot>(expr);
-      return logic::Formulas::negation(toCachedFormula(castedExpr->child));
-    }
-    case program::BoolExpression::Type::ArithmeticComparison: {
-      auto castedExpr =
-          std::static_pointer_cast<const program::ArithmeticComparison>(expr);
-      switch (castedExpr->kind) {
-        case program::ArithmeticComparison::Kind::GT:
-          return logic::Theory::intGreater(toCachedTerm(castedExpr->child1),
-                                           toCachedTerm(castedExpr->child2));
-        case program::ArithmeticComparison::Kind::GE:
-          return logic::Theory::intGreaterEqual(
-              toCachedTerm(castedExpr->child1),
-              toCachedTerm(castedExpr->child2));
-        case program::ArithmeticComparison::Kind::LT:
-          return logic::Theory::intLess(toCachedTerm(castedExpr->child1),
-                                        toCachedTerm(castedExpr->child2));
-        case program::ArithmeticComparison::Kind::LE:
-          return logic::Theory::intLessEqual(toCachedTerm(castedExpr->child1),
-                                             toCachedTerm(castedExpr->child2));
-        case program::ArithmeticComparison::Kind::EQ:
-          return logic::Formulas::equality(toCachedTerm(castedExpr->child1),
-                                           toCachedTerm(castedExpr->child2));
-      }
-    }
-  }
-}
-
-std::shared_ptr<const logic::Formula> SemanticsInliner::handlePersistence(
+std::shared_ptr<const logic::Term> SemanticsInliner::handlePersistence(
     std::shared_ptr<const logic::Term> timepoint,
-    const std::vector<std::shared_ptr<const program::Variable>>& activeVars,
+    const std::vector<std::shared_ptr<program::Variable>> &activeVars,
     std::string label) {
   // define persistent terms for non-const variables
-  std::vector<std::shared_ptr<const logic::Formula>> conjuncts;
-  for (const auto& var : activeVars) {
+  std::vector<std::shared_ptr<const logic::Term>> conjuncts;
+  for (const auto &var : activeVars) {
     if (!var->isConstant) {
       // check whether value of variable term should be defined
       bool varTermShouldBeDefined = false;
       if (persistentVarTerms.find(var->name) != persistentVarTerms.end()) {
-        for (const auto& locationName : persistentVarTerms[var->name]) {
+        for (const auto &locationName : persistentVarTerms[var->name]) {
           if (locationName == timepoint->symbol->name) {
             // we have now established that var(timepoint,...) is referenced, so
             // we need to define it
@@ -314,8 +265,8 @@ std::shared_ptr<const logic::Formula> SemanticsInliner::handlePersistence(
           auto currValue = toTerm(var, timepoint, trace);
 
           // if we already know a value for the variable
-          if (cachedIntVarValues.find(var) != cachedIntVarValues.end()) {
-            auto cachedValue = cachedIntVarValues[var];
+          if (cachedVarValues.find(var) != cachedVarValues.end()) {
+            auto cachedValue = cachedVarValues[var];
 
             // add formula
             auto f = logic::Formulas::equalitySimp(currValue, cachedValue);
@@ -331,7 +282,7 @@ std::shared_ptr<const logic::Formula> SemanticsInliner::handlePersistence(
             // semantics, which enables us to prove the property. we can
             // interpret this edge case as covering the fact that uninitialized
             // memory stays the same if no assigment occurs.
-            cachedIntVarValues[var] = currValue;
+            cachedVarValues[var] = currValue;
           }
         } else {
           if (cachedArrayVarTimepoints.find(var) !=
@@ -353,10 +304,10 @@ std::shared_ptr<const logic::Formula> SemanticsInliner::handlePersistence(
             // propagated throughout all timepoints with inline semantics. This
             // variable will only have cached timepoints from where its values
             // were used, but not from the end of the loop.
-            if (cachedTimepoint.get()->prettyString().find("nl") ==
-                std::string::npos  &&
-            cachedTimepoint.get()->prettyString().find("Itl") !=
-                std::string::npos) {
+            if (cachedTimepoint.get()->prettyString(0).find("nl") ==
+                    std::string::npos &&
+                cachedTimepoint.get()->prettyString(0).find("Itl") !=
+                    std::string::npos) {
               auto cachedTimepointTerm =
                   std::static_pointer_cast<const logic::FuncTerm>(
                       cachedTimepoint);
@@ -384,18 +335,18 @@ std::shared_ptr<const logic::Formula> SemanticsInliner::handlePersistence(
 }
 
 // note: this method is independent from currTimepoint.
-std::shared_ptr<const logic::Formula> SemanticsInliner::handlePersistenceOfLoop(
+std::shared_ptr<const logic::Term> SemanticsInliner::handlePersistenceOfLoop(
     std::shared_ptr<const logic::Term> startTimepoint,
     std::shared_ptr<const logic::Term> iterationTimepoint,
-    const std::vector<std::shared_ptr<const program::Variable>>& vars) {
-  std::vector<std::shared_ptr<const logic::Formula>> conjuncts;
-  for (const auto& var : vars) {
+    const std::vector<std::shared_ptr<program::Variable>> &vars) {
+  std::vector<std::shared_ptr<const logic::Term>> conjuncts;
+  for (const auto &var : vars) {
     assert(!var->isConstant);
 
     // check whether value of variable term should be defined
     bool varTermShouldBeDefined = false;
     if (persistentVarTerms.find(var->name) != persistentVarTerms.end()) {
-      for (const auto& locationName : persistentVarTerms[var->name]) {
+      for (const auto &locationName : persistentVarTerms[var->name]) {
         if (locationName == startTimepoint->symbol->name) {
           // we have now established that var(timepoint,...) is referenced
           // (where timepoint is equal to startTimepoint up to the
@@ -408,7 +359,7 @@ std::shared_ptr<const logic::Formula> SemanticsInliner::handlePersistenceOfLoop(
 
     if (varTermShouldBeDefined) {
       if (!var->isArray) {
-        if (cachedIntVarValues.find(var) == cachedIntVarValues.end()) {
+        if (cachedVarValues.find(var) == cachedVarValues.end()) {
           // set x(l(zero)) as cachedValue, so that other references share the
           // same cachedValue this edge case does matter e.g. in the following
           // edge case: a variable x exists at loop locations l1 and l2 but the
@@ -420,11 +371,11 @@ std::shared_ptr<const logic::Formula> SemanticsInliner::handlePersistenceOfLoop(
           // will then be used to prove the conjecture. we can interpret this
           // edge case as covering the fact that uninitialized memory stays the
           // same in each iteration, if no assigment occurs.
-          cachedIntVarValues[var] = toTerm(var, startTimepoint, trace);
+          cachedVarValues[var] = toTerm(var, startTimepoint, trace);
         }
 
         auto f = logic::Formulas::equality(
-            toTerm(var, iterationTimepoint, trace), cachedIntVarValues[var]);
+            toTerm(var, iterationTimepoint, trace), cachedVarValues[var]);
         conjuncts.push_back(f);
       } else {
         if (cachedArrayVarTimepoints.find(var) ==
@@ -455,15 +406,15 @@ std::shared_ptr<const logic::Formula> SemanticsInliner::handlePersistenceOfLoop(
   return logic::Formulas::conjunctionSimp(conjuncts);
 }
 
-std::shared_ptr<const logic::Formula> SemanticsInliner::setIntVarValue(
-    std::shared_ptr<const program::Variable> var,
+std::shared_ptr<const logic::Term> SemanticsInliner::setVarValue(
+    std::shared_ptr<program::Variable> var,
     std::shared_ptr<const logic::Term> value) {
   assert(var != nullptr);
   assert(value != nullptr);
   assert(!var->isArray);
   assert(currTimepoint != nullptr);
 
-  cachedIntVarValues[var] = value;
+  cachedVarValues[var] = value;
 
   // handle persistance for const-vars
   if (var->isConstant) {
@@ -472,14 +423,14 @@ std::shared_ptr<const logic::Formula> SemanticsInliner::setIntVarValue(
         persistentConstVarTerms.end()) {
       // add formula
       return logic::Formulas::equality(toTerm(var, currTimepoint, trace),
-                                       cachedIntVarValues[var]);
+                                       cachedVarValues[var]);
     }
   }
   return logic::Formulas::trueFormula();
 }
 
 void SemanticsInliner::setArrayVarTimepoint(
-    std::shared_ptr<const program::Variable> arrayVar,
+    std::shared_ptr<program::Variable> arrayVar,
     std::shared_ptr<const logic::Term> timepoint) {
   assert(arrayVar != nullptr);
   assert(timepoint != nullptr);
@@ -495,7 +446,7 @@ void SemanticsInliner::setArrayVarTimepoint(
 InlinedVariableValues::InlinedVariableValues(
     std::vector<std::shared_ptr<const logic::Term>> traces)
     : values() {
-  for (const auto& trace : traces) {
+  for (const auto &trace : traces) {
     // initialize an empty dictionary for each trace
     values[trace] = {};
     arrayValues[trace] = {};
@@ -503,24 +454,23 @@ InlinedVariableValues::InlinedVariableValues(
 }
 
 void InlinedVariableValues::initializeWhileStatement(
-    const program::WhileStatement* whileStatement) {
-  for (auto& m : values) {
+    program::WhileStatement *whileStatement) {
+  for (auto &m : values) {
     if (m.second.find(whileStatement) == m.second.end()) {
       m.second[whileStatement] = {};
     }
   }
-  for (auto& m : arrayValues) {
+  for (auto &m : arrayValues) {
     if (m.second.find(whileStatement) == m.second.end()) {
       m.second[whileStatement] = {};
     }
   }
 }
 
-void InlinedVariableValues::setValue(
-    const program::WhileStatement* whileStatement,
-    std::shared_ptr<const program::Variable> var,
-    std::shared_ptr<const logic::Term> trace,
-    std::shared_ptr<const logic::Term> value) {
+void InlinedVariableValues::setValue(program::WhileStatement *whileStatement,
+                                     std::shared_ptr<program::Variable> var,
+                                     std::shared_ptr<const logic::Term> trace,
+                                     std::shared_ptr<const logic::Term> value) {
   assert(whileStatement != nullptr);
   assert(var != nullptr);
   assert(value != nullptr);
@@ -536,8 +486,8 @@ void InlinedVariableValues::setValue(
 }
 
 void InlinedVariableValues::setArrayTimepoint(
-    const program::WhileStatement* whileStatement,
-    std::shared_ptr<const program::Variable> arrayVar,
+    program::WhileStatement *whileStatement,
+    std::shared_ptr<program::Variable> arrayVar,
     std::shared_ptr<const logic::Term> trace,
     std::shared_ptr<const logic::Term> timepoint) {
   assert(whileStatement != nullptr);
@@ -552,8 +502,8 @@ void InlinedVariableValues::setArrayTimepoint(
 }
 
 std::shared_ptr<const logic::Term> InlinedVariableValues::toInlinedTerm(
-    const program::WhileStatement* whileStatement,
-    std::shared_ptr<const program::Variable> var,
+    program::WhileStatement *whileStatement,
+    std::shared_ptr<program::Variable> var,
     std::shared_ptr<const logic::Term> trace) {
   assert(whileStatement != nullptr);
   assert(var != nullptr);
@@ -564,8 +514,8 @@ std::shared_ptr<const logic::Term> InlinedVariableValues::toInlinedTerm(
 }
 
 std::shared_ptr<const logic::Term> InlinedVariableValues::toInlinedTerm(
-    const program::WhileStatement* whileStatement,
-    std::shared_ptr<const program::Variable> arrayVar,
+    program::WhileStatement *whileStatement,
+    std::shared_ptr<program::Variable> arrayVar,
     std::shared_ptr<const logic::Term> position,
     std::shared_ptr<const logic::Term> trace) {
   assert(whileStatement != nullptr);
@@ -578,153 +528,111 @@ std::shared_ptr<const logic::Term> InlinedVariableValues::toInlinedTerm(
 }
 
 std::shared_ptr<const logic::Term> InlinedVariableValues::toInlinedTerm(
-    const program::WhileStatement* whileStatement,
-    std::shared_ptr<const program::IntExpression> expr,
+    program::WhileStatement *whileStatement,
+    std::shared_ptr<program::Expression> expr,
     std::shared_ptr<const logic::Term> timepoint,
     std::shared_ptr<const logic::Term> trace) {
   assert(expr != nullptr);
   assert(whileStatement != nullptr);
 
-  switch (expr->type()) {
-    case program::IntExpression::Type::ArithmeticConstant: {
-      auto castedExpr =
-          std::static_pointer_cast<const program::ArithmeticConstant>(expr);
-      return logic::Theory::intConstant(castedExpr->value);
+  if (typeid(*expr) == typeid(program::ArithmeticConstant)) {
+    auto castedExpr =
+        std::static_pointer_cast<const program::ArithmeticConstant>(expr);
+    return logic::Theory::intConstant(castedExpr->value);
+  } else if (typeid(*expr) == typeid(program::Addition)) {
+    auto castedExpr = std::static_pointer_cast<program::Addition>(expr);
+    return logic::Theory::intAddition(
+        toInlinedTerm(whileStatement, castedExpr->child1, timepoint, trace),
+        toInlinedTerm(whileStatement, castedExpr->child2, timepoint, trace));
+  } else if (typeid(*expr) == typeid(program::Subtraction)) {
+    auto castedExpr = std::static_pointer_cast<program::Subtraction>(expr);
+    return logic::Theory::intSubtraction(
+        toInlinedTerm(whileStatement, castedExpr->child1, timepoint, trace),
+        toInlinedTerm(whileStatement, castedExpr->child2, timepoint, trace));
+  } else if (typeid(*expr) == typeid(program::Modulo)) {
+    auto castedExpr = std::static_pointer_cast<program::Modulo>(expr);
+    return logic::Theory::intModulo(
+        toInlinedTerm(whileStatement, castedExpr->child1, timepoint, trace),
+        toInlinedTerm(whileStatement, castedExpr->child2, timepoint, trace));
+  } else if (typeid(*expr) == typeid(program::Multiplication)) {
+    auto castedExpr = std::static_pointer_cast<program::Multiplication>(expr);
+    return logic::Theory::intMultiplication(
+        toInlinedTerm(whileStatement, castedExpr->child1, timepoint, trace),
+        toInlinedTerm(whileStatement, castedExpr->child2, timepoint, trace));
+  } else if (typeid(*expr) == typeid(program::VariableAccess)) {
+    auto var = std::static_pointer_cast<program::VariableAccess>(expr)->var;
+    if (AnalysisPreComputation::computeAssignedVars(whileStatement)
+            .count(var) == 0) {
+      // 'var' was not assigned to in 'whileStatement', so use inlined value
+      // (which must exist)
+      return toInlinedTerm(whileStatement, var, trace);
+    } else {
+      // 'var' was assigned to in 'whileStatement', so use original value
+      return toTerm(var, timepoint, trace);
     }
-    case program::IntExpression::Type::Addition: {
-      auto castedExpr = std::static_pointer_cast<const program::Addition>(expr);
-      return logic::Theory::intAddition(
-          toInlinedTerm(whileStatement, castedExpr->summand1, timepoint, trace),
-          toInlinedTerm(whileStatement, castedExpr->summand2, timepoint,
-                        trace));
-    }
-    case program::IntExpression::Type::Subtraction: {
-      auto castedExpr =
-          std::static_pointer_cast<const program::Subtraction>(expr);
-      return logic::Theory::intSubtraction(
-          toInlinedTerm(whileStatement, castedExpr->child1, timepoint, trace),
-          toInlinedTerm(whileStatement, castedExpr->child2, timepoint, trace));
-    }
-    case program::IntExpression::Type::Modulo: {
-      auto castedExpr = std::static_pointer_cast<const program::Modulo>(expr);
-      return logic::Theory::intModulo(
-          toInlinedTerm(whileStatement, castedExpr->child1, timepoint, trace),
-          toInlinedTerm(whileStatement, castedExpr->child2, timepoint, trace));
-    }
-    case program::IntExpression::Type::Multiplication: {
-      auto castedExpr =
-          std::static_pointer_cast<const program::Multiplication>(expr);
-      return logic::Theory::intMultiplication(
-          toInlinedTerm(whileStatement, castedExpr->factor1, timepoint, trace),
-          toInlinedTerm(whileStatement, castedExpr->factor2, timepoint, trace));
-    }
-    case program::IntExpression::Type::IntVariableAccess: {
-      auto var =
-          std::static_pointer_cast<const program::IntVariableAccess>(expr)->var;
-      if (AnalysisPreComputation::computeAssignedVars(whileStatement)
-              .count(var) == 0) {
-        // 'var' was not assigned to in 'whileStatement', so use inlined value
-        // (which must exist)
-        return toInlinedTerm(whileStatement, var, trace);
-      } else {
-        // 'var' was assigned to in 'whileStatement', so use original value
-        return toTerm(var, timepoint, trace);
-      }
-    }
-    case program::IntExpression::Type::IntArrayApplication: {
-      auto castedExpr =
-          std::static_pointer_cast<const program::IntArrayApplication>(expr);
-      auto arrayVar = castedExpr->array;
-      auto arrayIndex = castedExpr->index;
+  } else if (typeid(*expr) == typeid(program::ArrayApplication)) {
+    auto castedExpr = std::static_pointer_cast<program::ArrayApplication>(expr);
+    auto arrayVar = castedExpr->array;
+    auto arrayIndex = castedExpr->index;
 
-      auto position =
-          toInlinedTerm(whileStatement, arrayIndex, timepoint, trace);
-      if (AnalysisPreComputation::computeAssignedVars(whileStatement)
-              .count(arrayVar) == 0) {
-        // 'arrayVar' was not assigned to in 'whileStatement', so use inlined
-        // value (which must exist)
-        return toInlinedTerm(whileStatement, arrayVar, position, trace);
-      } else {
-        // 'arrayVar' was assigned to in 'whileStatement', so use original value
-        return toTerm(arrayVar, timepoint, position, trace);
-      }
+    auto position = toInlinedTerm(whileStatement, arrayIndex, timepoint, trace);
+    if (AnalysisPreComputation::computeAssignedVars(whileStatement)
+            .count(arrayVar) == 0) {
+      // 'arrayVar' was not assigned to in 'whileStatement', so use inlined
+      // value (which must exist)
+      return toInlinedTerm(whileStatement, arrayVar, position, trace);
+    } else {
+      // 'arrayVar' was assigned to in 'whileStatement', so use original value
+      return toTerm(arrayVar, timepoint, position, trace);
     }
-  }
-}
-
-std::shared_ptr<const logic::Formula> InlinedVariableValues::toInlinedFormula(
-    const program::WhileStatement* whileStatement,
-    std::shared_ptr<const program::BoolExpression> expr,
-    std::shared_ptr<const logic::Term> timepoint,
-    std::shared_ptr<const logic::Term> trace) {
-  assert(expr != nullptr);
-
-  switch (expr->type()) {
-    case program::BoolExpression::Type::BooleanConstant: {
-      auto castedExpr =
-          std::static_pointer_cast<const program::BooleanConstant>(expr);
-      return castedExpr->value ? logic::Theory::boolTrue()
-                               : logic::Theory::boolFalse();
-    }
-    case program::BoolExpression::Type::BooleanAnd: {
-      auto castedExpr =
-          std::static_pointer_cast<const program::BooleanAnd>(expr);
-      return logic::Formulas::conjunction(
-          {toInlinedFormula(whileStatement, castedExpr->child1, timepoint,
-                            trace),
-           toInlinedFormula(whileStatement, castedExpr->child2, timepoint,
-                            trace)});
-    }
-    case program::BoolExpression::Type::BooleanOr: {
-      auto castedExpr =
-          std::static_pointer_cast<const program::BooleanOr>(expr);
-      return logic::Formulas::disjunction(
-          {toInlinedFormula(whileStatement, castedExpr->child1, timepoint,
-                            trace),
-           toInlinedFormula(whileStatement, castedExpr->child2, timepoint,
-                            trace)});
-    }
-    case program::BoolExpression::Type::BooleanNot: {
-      auto castedExpr =
-          std::static_pointer_cast<const program::BooleanNot>(expr);
-      return logic::Formulas::negation(toInlinedFormula(
-          whileStatement, castedExpr->child, timepoint, trace));
-    }
-    case program::BoolExpression::Type::ArithmeticComparison: {
-      auto castedExpr =
-          std::static_pointer_cast<const program::ArithmeticComparison>(expr);
-      switch (castedExpr->kind) {
-        case program::ArithmeticComparison::Kind::GT:
-          return logic::Theory::intGreater(
-              toInlinedTerm(whileStatement, castedExpr->child1, timepoint,
-                            trace),
-              toInlinedTerm(whileStatement, castedExpr->child2, timepoint,
-                            trace));
-        case program::ArithmeticComparison::Kind::GE:
-          return logic::Theory::intGreaterEqual(
-              toInlinedTerm(whileStatement, castedExpr->child1, timepoint,
-                            trace),
-              toInlinedTerm(whileStatement, castedExpr->child2, timepoint,
-                            trace));
-        case program::ArithmeticComparison::Kind::LT:
-          return logic::Theory::intLess(
-              toInlinedTerm(whileStatement, castedExpr->child1, timepoint,
-                            trace),
-              toInlinedTerm(whileStatement, castedExpr->child2, timepoint,
-                            trace));
-        case program::ArithmeticComparison::Kind::LE:
-          return logic::Theory::intLessEqual(
-              toInlinedTerm(whileStatement, castedExpr->child1, timepoint,
-                            trace),
-              toInlinedTerm(whileStatement, castedExpr->child2, timepoint,
-                            trace));
-        case program::ArithmeticComparison::Kind::EQ:
-          return logic::Formulas::equality(
-              toInlinedTerm(whileStatement, castedExpr->child1, timepoint,
-                            trace),
-              toInlinedTerm(whileStatement, castedExpr->child2, timepoint,
-                            trace));
-      }
+  } else if (typeid(*expr) == typeid(program::BooleanConstant)) {
+    auto castedExpr =
+        std::static_pointer_cast<const program::BooleanConstant>(expr);
+    return castedExpr->value ? logic::Theory::boolTrue()
+                             : logic::Theory::boolFalse();
+  } else if (typeid(*expr) == typeid(program::BooleanAnd)) {
+    auto castedExpr = std::static_pointer_cast<program::BooleanAnd>(expr);
+    return logic::Formulas::conjunction(
+        {toInlinedTerm(whileStatement, castedExpr->child1, timepoint, trace),
+         toInlinedTerm(whileStatement, castedExpr->child2, timepoint, trace)});
+  } else if (typeid(*expr) == typeid(program::BooleanOr)) {
+    auto castedExpr = std::static_pointer_cast<const program::BooleanOr>(expr);
+    return logic::Formulas::disjunction(
+        {toInlinedTerm(whileStatement, castedExpr->child1, timepoint, trace),
+         toInlinedTerm(whileStatement, castedExpr->child2, timepoint, trace)});
+  } else if (typeid(*expr) == typeid(program::BooleanNot)) {
+    auto castedExpr = std::static_pointer_cast<const program::BooleanNot>(expr);
+    return logic::Formulas::negation(
+        toInlinedTerm(whileStatement, castedExpr->child, timepoint, trace));
+  } else if (typeid(*expr) == typeid(program::ArithmeticComparison)) {
+    auto castedExpr =
+        std::static_pointer_cast<const program::ArithmeticComparison>(expr);
+    switch (castedExpr->kind) {
+      case program::ArithmeticComparison::Kind::GT:
+        return logic::Theory::intGreater(
+            toInlinedTerm(whileStatement, castedExpr->child1, timepoint, trace),
+            toInlinedTerm(whileStatement, castedExpr->child2, timepoint,
+                          trace));
+      case program::ArithmeticComparison::Kind::GE:
+        return logic::Theory::intGreaterEqual(
+            toInlinedTerm(whileStatement, castedExpr->child1, timepoint, trace),
+            toInlinedTerm(whileStatement, castedExpr->child2, timepoint,
+                          trace));
+      case program::ArithmeticComparison::Kind::LT:
+        return logic::Theory::intLess(
+            toInlinedTerm(whileStatement, castedExpr->child1, timepoint, trace),
+            toInlinedTerm(whileStatement, castedExpr->child2, timepoint,
+                          trace));
+      case program::ArithmeticComparison::Kind::LE:
+        return logic::Theory::intLessEqual(
+            toInlinedTerm(whileStatement, castedExpr->child1, timepoint, trace),
+            toInlinedTerm(whileStatement, castedExpr->child2, timepoint,
+                          trace));
+      case program::ArithmeticComparison::Kind::EQ:
+        return logic::Formulas::equality(
+            toInlinedTerm(whileStatement, castedExpr->child1, timepoint, trace),
+            toInlinedTerm(whileStatement, castedExpr->child2, timepoint,
+                          trace));
     }
   }
 }

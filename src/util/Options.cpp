@@ -29,7 +29,7 @@ bool MultiChoiceOption::setValue(std::string v) {
   return false;
 }
 
-bool Configuration::setAllValues(int argc, char* argv[]) {
+bool Configuration::setAllValues(int argc, char *argv[]) {
   int i = 1;
   bool b = true;
 
@@ -51,8 +51,8 @@ bool Configuration::setAllValues(int argc, char* argv[]) {
   return b;
 }
 
-void Configuration::registerOption(Option* o) {
-  _allOptions.insert(std::pair<std::string, Option*>(o->name(), o));
+void Configuration::registerOption(Option *o) {
+  _allOptions.insert(std::pair<std::string, Option *>(o->name(), o));
 }
 
 Configuration Configuration::_instance;

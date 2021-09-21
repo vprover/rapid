@@ -11,7 +11,7 @@
 namespace analysis {
 
 void AtLeastOneIterationLemmas::generateOutputFor(
-    const program::WhileStatement* statement,
+    program::WhileStatement* statement,
     std::vector<std::shared_ptr<const logic::ProblemItem>>& items) {
   if (util::Configuration::instance().integerIterations()) {
     AtLeastOneIterationLemmas::generateOutputForInteger(statement, items);
@@ -35,9 +35,9 @@ void AtLeastOneIterationLemmas::generateOutputFor(
           enclosingIteratorsSymbols(statement),
           logic::Formulas::implication(
               util::Configuration::instance().inlineSemantics()
-                  ? inlinedVarValues.toInlinedFormula(
+                  ? inlinedVarValues.toInlinedTerm(
                         statement, statement->condition, lStartZero, trace)
-                  : toFormula(statement->condition, lStartZero, trace),
+                  : toTerm(statement->condition, lStartZero, trace),
               logic::Formulas::existential(
                   {itSymbol},
                   logic::Formulas::equality(logic::Theory::natSucc(it), n))));
@@ -54,7 +54,7 @@ void AtLeastOneIterationLemmas::generateOutputFor(
 }
 
 void AtLeastOneIterationLemmas::generateOutputForInteger(
-    const program::WhileStatement* statement,
+    program::WhileStatement* statement,
     std::vector<std::shared_ptr<const logic::ProblemItem>>& items) {
   auto itSymbol = iteratorSymbol(statement);
   auto it = iteratorTermForLoop(statement);
@@ -75,9 +75,9 @@ void AtLeastOneIterationLemmas::generateOutputForInteger(
         enclosingIteratorsSymbols(statement),
         logic::Formulas::implication(
             util::Configuration::instance().inlineSemantics()
-                ? inlinedVarValues.toInlinedFormula(
+                ? inlinedVarValues.toInlinedTerm(
                       statement, statement->condition, lStartZero, trace)
-                : toFormula(statement->condition, lStartZero, trace),
+                : toTerm(statement->condition, lStartZero, trace),
             logic::Formulas::existential(
                 {itSymbol},
                 logic::Formulas::conjunction(
@@ -95,7 +95,7 @@ void AtLeastOneIterationLemmas::generateOutputForInteger(
 }
 
 void OrderingSynchronizationLemmas::generateOutputFor(
-    const program::WhileStatement* statement,
+    program::WhileStatement* statement,
     std::vector<std::shared_ptr<const logic::ProblemItem>>& items) {
   // assert(numberOfTraces > 1);
 

@@ -76,8 +76,9 @@ class Configuration {
         _integerIterations("-integerIterations", false),
         _inlineLemmas("-inlineLemmas", false),
         _postcondition("-postcondition", false),
+        _overwriteExisting("-overwriteExisting", false),
         _allOptions() {
-    
+
     registerOption(&_outputDir);
     // for testing purposes only
     registerOption(&_generateBenchmark);
@@ -93,6 +94,8 @@ class Configuration {
     registerOption(&_inlineLemmas);
     // postcondition mode prints color and target symbols
     registerOption(&_postcondition);
+    // overwrite existing smt-files
+    registerOption(&_overwriteExisting);
   }
 
   bool setAllValues(int argc, char* argv[]);
@@ -100,13 +103,22 @@ class Configuration {
   Option* getOption(std::string name);
 
   std::string outputDir() { return _outputDir.getValue(); }
+
   bool generateBenchmark() { return _generateBenchmark.getValue(); }
+
   bool nativeNat() { return _nativeNat.getValue(); }
+
   bool inlineSemantics() { return _inlineSemantics.getValue(); }
+
   bool lemmaPredicates() { return _lemmaPredicates.getValue(); }
+
   bool integerIterations() { return _integerIterations.getValue(); }
+
   bool inlineLemmas() { return _inlineLemmas.getValue(); }
+
   bool postcondition() { return _postcondition.getValue(); }
+
+  bool overwriteExisting() { return _overwriteExisting.getValue(); }
 
   static Configuration instance() { return _instance; }
 
@@ -119,6 +131,7 @@ class Configuration {
   BooleanOption _integerIterations;
   BooleanOption _inlineLemmas;
   BooleanOption _postcondition;
+  BooleanOption _overwriteExisting;
 
   std::map<std::string, Option*> _allOptions;
 

@@ -21,8 +21,8 @@ std::shared_ptr<const logic::Symbol> locationSymbol(std::string location,
 }
 
 std::shared_ptr<const logic::Symbol> locationSymbolForStatement(
-    const program::Statement* statement) {
-  if (statement->type() == program::Statement::Type::WhileStatement) {
+    program::Statement* statement) {
+  if (typeid(*statement) == typeid(program::WhileStatement)) {
     return locationSymbol(statement->location,
                           statement->enclosingLoops->size() + 1);
   } else {
@@ -37,7 +37,7 @@ std::shared_ptr<const logic::Symbol> locationSymbolEndLocation(
 }
 
 std::shared_ptr<const logic::Symbol> lastIterationSymbol(
-    const program::WhileStatement* statement, unsigned numberOfTraces) {
+    program::WhileStatement* statement, unsigned numberOfTraces) {
   if (util::Configuration::instance().integerIterations()) {
     return intLastIterationSymbol(statement, numberOfTraces);
   }
@@ -53,7 +53,7 @@ std::shared_ptr<const logic::Symbol> lastIterationSymbol(
 }
 
 std::shared_ptr<const logic::Symbol> iteratorSymbol(
-    const program::WhileStatement* whileStatement) {
+    program::WhileStatement* whileStatement) {
   if (util::Configuration::instance().integerIterations()) {
     return intIteratorSymbol(whileStatement);
   }
@@ -62,7 +62,7 @@ std::shared_ptr<const logic::Symbol> iteratorSymbol(
 }
 
 std::shared_ptr<const logic::Symbol> intLastIterationSymbol(
-    const program::WhileStatement* statement, unsigned numberOfTraces) {
+    program::WhileStatement* statement, unsigned numberOfTraces) {
   std::vector<const logic::Sort*> argumentSorts;
   for (unsigned i = 0; i < statement->enclosingLoops->size(); ++i) {
     argumentSorts.push_back(logic::Sorts::intSort());
@@ -75,7 +75,7 @@ std::shared_ptr<const logic::Symbol> intLastIterationSymbol(
 }
 
 std::shared_ptr<const logic::Symbol> intIteratorSymbol(
-    const program::WhileStatement* whileStatement) {
+    program::WhileStatement* whileStatement) {
   return logic::Signature::varSymbol("It" + whileStatement->location,
                                      logic::Sorts::intSort());
 }
@@ -130,7 +130,7 @@ void declareColorSymbolLeft(const program::Variable* var) {
   logic::Signature::addColorSymbol(var->name, orientation);
 }
 
-void declareSymbolForProgramVar(const program::Variable* var) {
+void declareSymbolForProgramVar(program::Variable* var) {
   std::vector<const logic::Sort*> argSorts;
   if (!var->isConstant) {
     argSorts.push_back(logic::Sorts::timeSort());
@@ -142,7 +142,11 @@ void declareSymbolForProgramVar(const program::Variable* var) {
     argSorts.push_back(logic::Sorts::traceSort());
   }
 
-  logic::Signature::add(var->name, argSorts, logic::Sorts::intSort());
+  if (var->type() == program::ValueType::Bool) {
+    logic::Signature::add(var->name, argSorts, logic::Sorts::boolSort());
+  } else {
+    logic::Signature::add(var->name, argSorts, logic::Sorts::intSort());
+  }
 }
 
 void declareSymbolsForTraces(unsigned numberOfTraces) {
@@ -165,13 +169,13 @@ void declareSymbolsForFunction(const program::Function* function,
   locationSymbolEndLocation(function);
 }
 
-void declareSymbolsForStatements(const program::Statement* statement,
+void declareSymbolsForStatements(program::Statement* statement,
                                  unsigned numberOfTraces) {
   // declare main location symbol
   locationSymbolForStatement(statement);
 
-  if (statement->type() == program::Statement::Type::IfElse) {
-    auto castedStatement = static_cast<const program::IfElse*>(statement);
+  if (typeid(*statement) == typeid(program::IfElseStatement)) {
+    auto castedStatement = static_cast<program::IfElseStatement*>(statement);
 
     // recurse
     for (const auto& statementInBranch : castedStatement->ifStatements) {
@@ -180,9 +184,8 @@ void declareSymbolsForStatements(const program::Statement* statement,
     for (const auto& statementInBranch : castedStatement->elseStatements) {
       declareSymbolsForStatements(statementInBranch.get(), numberOfTraces);
     }
-  } else if (statement->type() == program::Statement::Type::WhileStatement) {
-    auto castedStatement =
-        static_cast<const program::WhileStatement*>(statement);
+  } else if (typeid(*statement) == typeid(program::WhileStatement)) {
+    auto castedStatement = static_cast<program::WhileStatement*>(statement);
 
     // declare last iteration-symbol
     lastIterationSymbol(castedStatement, numberOfTraces);
