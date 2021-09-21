@@ -2,7 +2,7 @@
 %require "3.0"
 %defines
 %define api.namespace {parser}
-%define parser_class_name {WhileParser}
+%define api.parser.class {WhileParser}
 %define api.token.constructor
 %define api.value.type variant
 %define parse.assert
