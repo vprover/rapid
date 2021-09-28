@@ -15,7 +15,7 @@ func main()
 	{
 		if (a[i] < a[m])
 		{
-			b[i] = a[i];
+			b[blength] = a[i];
 			blength = blength + 1;
 			m = i;
 		}
