@@ -18,7 +18,7 @@ std::shared_ptr<const logic::Symbol> locationSymbol(std::string location, unsign
         }
     }
     logic::Symbol::SymbolType typ = logic::Symbol::SymbolType::TimePoint;
-    return logic::Signature::fetchOrAdd(location, enclosingIteratorTypes, logic::Sorts::timeSort(), false, false, typ);
+    return logic::Signature::fetchOrAdd(location, enclosingIteratorTypes, logic::Sorts::timeSort(), false, typ);
 
 }
 
@@ -54,7 +54,7 @@ std::shared_ptr<const logic::Symbol> lastIterationSymbol(const program::WhileSta
         argumentSorts.push_back(logic::Sorts::traceSort());
     }
     logic::Symbol::SymbolType typ = logic::Symbol::SymbolType::FinalLoopCount;    
-    return logic::Signature::fetchOrAdd("n" + statement->location, argumentSorts, logic::Sorts::natSort(),false, false, typ);
+    return logic::Signature::fetchOrAdd("n" + statement->location, argumentSorts, logic::Sorts::natSort(), false, typ);
 }
 
 std::shared_ptr<const logic::Symbol> iteratorSymbol(const program::WhileStatement* whileStatement)
@@ -78,7 +78,7 @@ std::shared_ptr<const logic::Symbol> intLastIterationSymbol(const program::While
         argumentSorts.push_back(logic::Sorts::traceSort());
     }
     logic::Symbol::SymbolType typ = logic::Symbol::SymbolType::FinalLoopCount;    
-    return logic::Signature::fetchOrAdd("n" + statement->location, argumentSorts, logic::Sorts::intSort(), false, false, typ);
+    return logic::Signature::fetchOrAdd("n" + statement->location, argumentSorts, logic::Sorts::intSort(), false, typ);
 }
 
 std::shared_ptr<const logic::Symbol> intIteratorSymbol(const program::WhileStatement* whileStatement)

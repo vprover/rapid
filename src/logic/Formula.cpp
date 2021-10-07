@@ -498,7 +498,7 @@ namespace logic {
         {
             subtermSorts.push_back(subterm->symbol->rngSort);
         }
-        auto symbol = Signature::fetchOrAdd(name, subtermSorts, Sorts::boolSort(), false, noDeclaration);
+        auto symbol = Signature::fetchOrAdd(name, subtermSorts, Sorts::boolSort(), noDeclaration);
         return std::make_shared<const PredicateFormula>(symbol, subterms, label);
     }
     std::shared_ptr<const Formula> Formulas::lemmaPredicate(std::string name, std::vector<std::shared_ptr<const Term>> subterms, std::string label)
@@ -508,7 +508,7 @@ namespace logic {
         {
             subtermSorts.push_back(subterm->symbol->rngSort);
         }
-        auto symbol = Signature::fetchOrAdd(name, subtermSorts, Sorts::boolSort(), true, false);
+        auto symbol = Signature::fetchOrAdd(name, subtermSorts, Sorts::boolSort(), false, logic::Symbol::SymbolType::LemmaPredicate);
         return std::make_shared<const PredicateFormula>(symbol, subterms, label);
     }
 

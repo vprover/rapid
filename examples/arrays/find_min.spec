@@ -44,7 +44,7 @@ func main()
 				(and
 					(<= 0 k)
 					(< k alength)
-					(<= (a k) 0)
+					(< (a k) 0)
 				)
 			)
 		)

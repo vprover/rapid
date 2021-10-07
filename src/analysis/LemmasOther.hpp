@@ -61,23 +61,6 @@ namespace analysis {
         //virtual void generateOutputForInteger(const program::WhileStatement* statement, std::vector<std::shared_ptr<const logic::ProblemItem>>& items);
     };
 
-    class VariableCompLemmas : public ProgramTraverser<std::vector<std::shared_ptr<const logic::ProblemItem>>>
-    {
-    public:
-        VariableCompLemmas(
-            const program::Program& program,
-            std::unordered_map<std::string, std::vector<std::shared_ptr<const program::Variable>>> locationToActiveVars,
-            unsigned numberOfTraces,
-            std::vector<std::shared_ptr<const logic::Axiom>> programSemantics) : 
-            ProgramTraverser<std::vector<std::shared_ptr<const logic::ProblemItem>>>(program, locationToActiveVars, numberOfTraces), programSemantics(programSemantics) {}
-
-    private:
-        std::vector<std::shared_ptr<const logic::Axiom>> programSemantics;
-
-        virtual void generateOutputFor(const program::WhileStatement* statement, std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
-        //virtual void generateOutputForInteger(const program::WhileStatement* statement, std::vector<std::shared_ptr<const logic::ProblemItem>>& items);
-    };
-
     /*
      * LEMMA 2
      * TODO: not used currently, since implementation unsound

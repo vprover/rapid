@@ -9,7 +9,7 @@ func main()
 	b[0] = a[0];
 	Int blength = 1;
 
-	Int i = 0;
+	Int i = 1;
 	Int m = 0;
 	while (i < alength)
 	{

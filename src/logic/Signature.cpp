@@ -31,6 +31,8 @@ namespace logic {
                 return "(color-symbol " + name + " :" + orientation + ")\n";
             }
 
+            bool isLemmaPredicate = symbolType == SymbolType::LemmaPredicate;
+
             if (argSorts.size() == 0 && !(isLemmaPredicate && util::Configuration::instance().lemmaPredicates()))
             {
 
@@ -41,10 +43,6 @@ namespace logic {
                 if (symbolType == SymbolType::FinalLoopCount){
                     return "(declare-final-loop-count " + toSMTLIB() + " " + rngSort->toSMTLIB() + ")\n";
                 }
-
-                /*if(name == "main_end"){
-                    return "(declare-main-end " + toSMTLIB() + " " + rngSort->toSMTLIB() + ")\n";                    
-                }*/
 
                 if(symbolType == SymbolType::ConstProgramVar){
                     return "(declare-const-var " + toSMTLIB() + " " + rngSort->toSMTLIB() + ")\n";                     
@@ -63,6 +61,10 @@ namespace logic {
                 if (symbolType == SymbolType::FinalLoopCount){
                     res = "(declare-final-loop-count ";
                 }
+
+                if(symbolType == SymbolType::ProgramVar){
+                    res = "(declare-program-var ";  
+                }
                 
                 res += toSMTLIB() + " (";
                 for (int i=0; i < argSorts.size(); ++i)
@@ -77,6 +79,12 @@ namespace logic {
         {
             return "";
         }
+    }
+ 
+    std::string DensitySymbol::declareSymbolSMTLIB() const
+    {
+
+        return "(declare-density-predicate " + var + " " + tp + ")\n";
     }
 
     std::string Symbol::declareSymbolTPTP() const
@@ -198,7 +206,7 @@ namespace logic {
         // there must be no symbol with name name already added
         assert(_signature.count(name) == 0);
         
-        auto pair = _signature.insert(std::make_pair(name,std::unique_ptr<Symbol>(new Symbol(name, argSorts, rngSort, false, noDeclaration, typ))));
+        auto pair = _signature.insert(std::make_pair(name,std::unique_ptr<Symbol>(new Symbol(name, argSorts, rngSort, noDeclaration, typ))));
         assert(pair.second); // must succeed since we checked that no such symbols existed before the insertion
 
         auto symbol = pair.first->second;
@@ -214,9 +222,9 @@ namespace logic {
         return it->second;
     }
     
-    std::shared_ptr<const Symbol> Signature::fetchOrAdd(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool isLemmaPredicate, bool noDeclaration, SyS typ)
+    std::shared_ptr<const Symbol> Signature::fetchOrAdd(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool noDeclaration, SyS typ)
     {
-        auto pair = _signature.insert(std::make_pair(name, std::shared_ptr<Symbol>(new Symbol(name, argSorts, rngSort, isLemmaPredicate, noDeclaration, typ))));
+        auto pair = _signature.insert(std::make_pair(name, std::shared_ptr<Symbol>(new Symbol(name, argSorts, rngSort, noDeclaration, typ))));
         auto symbol = pair.first->second;
 
         if (pair.second)
@@ -236,18 +244,29 @@ namespace logic {
                 assert(argSorts[i] == symbol->argSorts[i]);
             }
             assert(rngSort = symbol->rngSort);
-            assert(isLemmaPredicate == symbol->isLemmaPredicate);
             assert(noDeclaration == symbol->noDeclaration);
         }
         return symbol;
     }
     
+    std::shared_ptr<const Symbol> Signature::densityPredicate(std::string name, std::string var, std::string tp)
+    {
+        auto pair = _signature.insert(std::make_pair(name, std::shared_ptr<Symbol>(new DensitySymbol(name, var, tp))));
+        auto symbol = pair.first->second;
+
+        if (pair.second)
+        {
+            _signatureOrderedByInsertion.push_back(symbol);
+        }        
+        return symbol;
+    }
+
     std::shared_ptr<const Symbol> Signature::varSymbol(std::string name, const Sort* rngSort)
     {
         // there must be no symbol with name name already added
         assert(_signature.count(name) == 0);
         
-        return std::shared_ptr<Symbol>(new Symbol(name, rngSort, false, true, SyS::ProgramVar));
+        return std::shared_ptr<Symbol>(new Symbol(name, rngSort, true, SyS::ProgramVar));
     }
 
     void Signature::addColorSymbol(std::string name, std::string orientation)

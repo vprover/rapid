@@ -21,11 +21,12 @@ namespace logic {
     class Symbol {
         // we need each symbol to be either declared in the signature or to be a variable (which will be declared by the quantifier)
         // We use the Signature-class below as a manager-class for symbols of the first kind
-        friend class Signature;
 
     public:
         enum class SymbolType
         {
+            LemmaPredicate,
+            DensityPredicate,
             ProgramVar,
             ConstProgramVar,
             FinalLoopCount,
@@ -33,38 +34,37 @@ namespace logic {
             Other
         };
         
-    private:
-        Symbol(std::string name, const Sort* rngSort, bool isLemmaPredicate, bool noDeclaration, SymbolType typ) :
+    protected:
+        friend class Signature;
+
+        Symbol(std::string name, const Sort* rngSort, bool noDeclaration, SymbolType typ) :
         name(name),
         argSorts(),
         rngSort(rngSort),
-        isLemmaPredicate(isLemmaPredicate),
         noDeclaration(noDeclaration),
         isColorSymbol(false),
         symbolType(typ)
         {
             assert(!name.empty());
-            assert(!isLemmaPredicate || isPredicateSymbol());
+            assert(typ != SymbolType::LemmaPredicate || isPredicateSymbol());
         }
 
-        Symbol(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool isLemmaPredicate, bool noDeclaration, SymbolType typ) :
+        Symbol(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort,bool noDeclaration, SymbolType typ) :
         name(name),
         argSorts(std::move(argSorts)),
         rngSort(rngSort),
-        isLemmaPredicate(isLemmaPredicate),
         isColorSymbol(false),
         noDeclaration(noDeclaration),
         symbolType(typ)
         {
             assert(!name.empty());
-            assert(!isLemmaPredicate || isPredicateSymbol());
+            assert(typ != SymbolType::LemmaPredicate || isPredicateSymbol());
         }
 
         Symbol(std::string name, std::string orientation, bool isColorSymbol) :
         name(name),
         argSorts(),
         rngSort(),
-        isLemmaPredicate(false),
         noDeclaration(false),
         orientation(orientation),
         isColorSymbol(isColorSymbol),
@@ -82,7 +82,7 @@ namespace logic {
         const std::string name;
         const std::vector<const Sort*> argSorts;
         const Sort* rngSort;
-        const bool isLemmaPredicate; // lemma predicates will be annotated in the smtlib-output, so that Vampire can treat them differently
+
         const bool noDeclaration; // true iff the symbol needs no declaration in smtlib (i.e. true only for interpreted symbols and variables)
         const SymbolType symbolType; //true if represents variable
 
@@ -94,14 +94,32 @@ namespace logic {
          
         std::string toSMTLIB() const;
         std::string toTPTP() const ;
-        std::string declareSymbolSMTLIB() const;
+        virtual std::string declareSymbolSMTLIB() const;
         std::string declareSymbolTPTP() const;
         std::string declareSymbolColorSMTLIB() const;
         
         bool operator==(const Symbol &s) const {return name == s.name;}
         bool operator!=(const Symbol &s) const {return !(name == s.name);}
     };
-    
+
+
+    class DensitySymbol : public Symbol 
+    {
+        friend class Signature;
+
+        DensitySymbol(std::string name, std::string var, std::string tp) : 
+        Symbol(name, Sorts::boolSort(), false, SymbolType::DensityPredicate),
+        var(var),
+        tp(tp){}
+
+        const std::string var;
+        const std::string tp;
+
+    public:
+
+        std::string declareSymbolSMTLIB() const override;
+    };
+
     // hack needed for bison: std::vector has no overload for ostream, but these overloads are needed for bison
     std::ostream& operator<<(std::ostream& ostr, const std::vector<std::shared_ptr<const logic::Symbol>>& f);
     
@@ -148,7 +166,8 @@ namespace logic {
         // construct new symbols
         static std::shared_ptr<const Symbol> add(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool noDeclaration=false, Symbol::SymbolType sym = Symbol::SymbolType::Other);
         static std::shared_ptr<const Symbol> fetch(std::string name);
-        static std::shared_ptr<const Symbol> fetchOrAdd(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool isLemmaPredicate=false, bool noDeclaration=false, SyS sym = SyS::Other);
+        static std::shared_ptr<const Symbol> fetchOrAdd(std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort, bool noDeclaration=false, SyS sym = SyS::Other);
+        static std::shared_ptr<const Symbol> densityPredicate(std::string name, std::string var, std::string tp);
 
         // check that variable doesn't use name which already occurs in Signature
         // return Symbol without adding it to Signature
