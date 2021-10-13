@@ -89,8 +89,52 @@ namespace analysis {
         }
     }
 
+
+    bool LoopConditionAnalysisLemmas::doesNotChangeInLoop(std::unordered_set<std::shared_ptr<const program::Variable>>& assignedVars, std::shared_ptr<const program::IntExpression> expr)
+    {
+        switch(expr->type()){           
+        case program::IntExpression::Type::IntVariableAccess: {
+            auto var = std::static_pointer_cast<const program::IntVariableAccess>(expr);
+            return assignedVars.find(var->var) == assignedVars.end();
+        }
+        case program::IntExpression::Type::Addition: {
+            auto castedExpr = std::static_pointer_cast<const program::Addition>(expr);
+            return doesNotChangeInLoop(assignedVars, castedExpr->summand1) &&
+                   doesNotChangeInLoop(assignedVars, castedExpr->summand2);
+        }
+        case program::IntExpression::Type::Subtraction: {
+            auto castedExpr = std::static_pointer_cast<const program::Subtraction>(expr);
+            return doesNotChangeInLoop(assignedVars, castedExpr->child1) &&
+                   doesNotChangeInLoop(assignedVars, castedExpr->child2);
+        }
+        case program::IntExpression::Type::Modulo: {                  
+            auto castedExpr = std::static_pointer_cast<const program::Modulo>(expr);
+            return doesNotChangeInLoop(assignedVars, castedExpr->child1) &&
+                   doesNotChangeInLoop(assignedVars, castedExpr->child2);
+        }
+        case program::IntExpression::Type::Multiplication: {                   
+            auto castedExpr = std::static_pointer_cast<const program::Multiplication>(expr);
+            return doesNotChangeInLoop(assignedVars, castedExpr->factor1) &&
+                   doesNotChangeInLoop(assignedVars, castedExpr->factor2);                   
+        }
+        case program::IntExpression::Type::ArithmeticConstant: {                   
+            return true;          
+        }                
+        case program::IntExpression::Type::IntArrayApplication: {                   
+            auto var = std::static_pointer_cast<const program::IntArrayApplication>(expr);
+            return assignedVars.find(var->array) == assignedVars.end();           
+        }
+        default:
+            //should never happen
+            return false;
+        }
+    }
+
     void LoopConditionAnalysisLemmas::generateOutputFor(const program::WhileStatement *statement, std::vector<std::shared_ptr<const logic::ProblemItem>>& items)
     {
+
+        auto assignedVars = AnalysisPreComputation::computeAssignedVars(statement);
+        
         if(util::Configuration::instance().integerIterations()){
             //TODO add for integers
             //AtLeastOneIterationLemmas::generateOutputForInteger(statement, items);
@@ -101,8 +145,6 @@ namespace analysis {
             auto lStartIt = timepointForLoopStatement(statement, it);
             auto lStartSuccOfIt = timepointForLoopStatement(statement, logic::Theory::natSucc(it));
             auto lStartZero = timepointForLoopStatement(statement, logic::Theory::natZero());
-
-            auto assignedVars = AnalysisPreComputation::computeAssignedVars(statement);
 
             auto cond = statement->condition;
 
@@ -117,90 +159,93 @@ namespace analysis {
                     if(condCasted->kind != program::ArithmeticComparison::Kind::EQ){
                         auto left = condCasted->child1;
                         auto right = condCasted->child2;                    
-                        if(left->type() == program::IntExpression::Type::IntVariableAccess &&
-                           right->type() == program::IntExpression::Type::IntVariableAccess ){
-                            auto var1 = std::static_pointer_cast<const program::IntVariableAccess>(left);
-                            auto var2 = std::static_pointer_cast<const program::IntVariableAccess>(right);  
-                            if(assignedVars.find(var1->var) != assignedVars.end()  && 
-                               assignedVars.find(var2->var) == assignedVars.end()){
+                        if(doesNotChangeInLoop(assignedVars, right)){
+                            auto newLeft = toTerm(left, lStartZero, trace);
+                            auto newRight = toTerm(right, lStartZero, trace);
 
-                                auto newLeft = toTerm(var1, lStartZero, trace);
-                                auto newRight = toTerm(var2, lStartZero, trace);
+                            auto concLeft = toTerm(left, lStartN, trace);
+                            auto concRight = toTerm(right, lStartN, trace);
 
-                                auto concLeft = toTerm(var1, lStartN, trace);
-                                auto concRight = toTerm(var2, lStartN, trace);
+                            auto op = condCasted->kind;
+                            bool lessThan = false;
 
-                                auto op = condCasted->kind;
-                                bool lessThan = false;
-
-                                switch(op){
-                                    case program::ArithmeticComparison::Kind::LT:{
-                                        lessThan = true;
-                                        break;
-                                    }
-
-                                    case program::ArithmeticComparison::Kind::LE:{
-                                        lessThan = true;
-                                        auto one = logic::Theory::intConstant(1);
-                                        newRight = logic::Theory::intAddition(newRight, one);
-                                        break;
-                                    }
-
-                                    case program::ArithmeticComparison::Kind::GT:{
-                                        break;
-                                    }
-
-                                    default: {
-                                        //the equality case should never occur
-                                        auto one = logic::Theory::intConstant(1);
-                                        newRight = logic::Theory::intSubtraction(newRight,one);
-                                        break;
-                                    }
-
+                            switch(op){
+                                case program::ArithmeticComparison::Kind::LT:{
+                                    lessThan = true;
+                                    break;
                                 }
 
-                                auto freeVarSymbols = enclosingIteratorsSymbols(statement);
+                                case program::ArithmeticComparison::Kind::LE:{
+                                    lessThan = true;
+                                    auto one = logic::Theory::intConstant(1);
+                                    newRight = logic::Theory::intAddition(newRight, one);
+                                    break;
+                                }
 
-                                auto prem1 = lessThan ? 
-                                  logic::Theory::intLessEqual(newLeft, newRight) :
-                                  logic::Theory::intGreaterEqual(newLeft, newRight);
+                                case program::ArithmeticComparison::Kind::GT:{
+                                    break;
+                                }
 
-                                
+                                default: {
+                                    //the equality case should never occur
+                                    auto one = logic::Theory::intConstant(1);
+                                    newRight = logic::Theory::intSubtraction(newRight,one);
+                                    break;
+                                }
 
-                                auto nameSuffix = var1->var->name + "-" + statement->location;
-
-                                auto densityDef = 
-                                getDensityDefinition(freeVarSymbols, var1->var, nameSuffix, itSymbol, it, lStartIt, lStartSuccOfIt, n, trace, lessThan);
-
-                                std::string direction = lessThan ? "increasing" : "decreasing";
-                                auto denseDef =
-                                    std::make_shared<logic::Definition>(
-                                        densityDef,
-                                        "Dense-" + direction + " for " + nameSuffix,
-                                        logic::ProblemItem::Visibility::Implicit
-                                    );
-
-                                items.push_back(denseDef);
-
-                                auto dense = getDensityFormula(freeVarSymbols, nameSuffix, lessThan);
-                                auto prem = logic::Formulas::conjunction({dense, prem1});
-                                auto conc = logic::Formulas::equality(concLeft, concRight);
-                               
-
-                                auto lemma =
-                                    logic::Formulas::universal(freeVarSymbols,
-                                        logic::Formulas::implication(prem,conc)
-                                    );
-
-                                //TODO don't understand all this implicit explicit business
-                                items.push_back(std::make_shared<logic::Lemma>(lemma, 
-                                    var1->var->name + "-" + var2->var->name + "-" + "equality-axiom", 
-                                    logic::ProblemItem::Visibility::Implicit));
                             }
+
+                            auto freeVarSymbols = enclosingIteratorsSymbols(statement);
+
+                            auto prem1 = lessThan ? 
+                              logic::Theory::intLessEqual(newLeft, newRight) :
+                              logic::Theory::intGreaterEqual(newLeft, newRight);
+
+                            
+                            auto leftStr = left->toString();
+                            auto rightStr = right->toString();
+
+                            leftStr.erase(std::remove(leftStr.begin(), leftStr.end(), ' '), leftStr.end());
+                            leftStr.erase(std::remove(leftStr.begin(), leftStr.end(), ')'), leftStr.end());
+                            leftStr.erase(std::remove(leftStr.begin(), leftStr.end(), '('), leftStr.end());                                                        
+
+                            rightStr.erase(std::remove(rightStr.begin(), rightStr.end(), ' '), rightStr.end());
+                            rightStr.erase(std::remove(rightStr.begin(), rightStr.end(), ')'), rightStr.end());
+                            rightStr.erase(std::remove(rightStr.begin(), rightStr.end(), '('), rightStr.end());
+
+                            auto nameSuffix = leftStr + "-" + statement->location;
+
+                            auto densityDef = 
+                            getDensityDefinition(freeVarSymbols, left, nameSuffix, itSymbol, it, lStartIt, lStartSuccOfIt, n, trace, lessThan);
+
+                            std::string direction = lessThan ? "increasing" : "decreasing";
+                            auto denseDef =
+                                std::make_shared<logic::Definition>(
+                                    densityDef,
+                                    "Dense-" + direction + " for " + nameSuffix,
+                                    logic::ProblemItem::Visibility::Implicit
+                                );
+
+                            items.push_back(denseDef);
+
+                            auto dense = getDensityFormula(freeVarSymbols, nameSuffix, lessThan);
+                            auto prem = logic::Formulas::conjunction({dense, prem1});
+                            auto conc = logic::Formulas::equality(concLeft, concRight);
+                           
+
+                            auto lemma =
+                                logic::Formulas::universal(freeVarSymbols,
+                                    logic::Formulas::implication(prem,conc)
+                                );
+
+                            //TODO don't understand all this implicit explicit business
+                            items.push_back(std::make_shared<logic::Lemma>(lemma, 
+                                leftStr + "-" + rightStr + "-" + "equality-axiom", 
+                                logic::ProblemItem::Visibility::Implicit));
                         }
                     }
                 }
-            }
+            } 
         }
     }
 
