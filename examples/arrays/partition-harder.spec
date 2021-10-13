@@ -31,22 +31,6 @@ func main()
 }
 
 (axiom
-  (forall ((it Nat))
-    (<=
-      (blength (l17 it))
-      (i (l17 it))
-    )
-  )
-)
-(axiom
-  (forall ((it Nat))
-    (<=
-      (clength (l17 it))
-      (i (l17 it))
-    )
-  )
-)
-(axiom
   (<= 0 alength)
 )
 
@@ -54,7 +38,6 @@ func main()
   (forall ((pos Int))
     (=>
       (and
-        (<= 0 alength)
         (<= 0 pos)
         (< pos (blength main_end))
       )
@@ -73,7 +56,6 @@ func main()
   (forall ((pos Int))
     (=>
       (and
-        (<= 0 alength)
         (<= 0 pos)
         (< pos (clength main_end))
       )
@@ -92,7 +74,6 @@ func main()
   (forall ((pos Int))
     (=>
       (and
-        (<= 0 alength)
         (<= 0 pos)
         (< pos alength)
         (<= 0 (a pos))
@@ -112,7 +93,6 @@ func main()
   (forall ((pos Int))
     (=>
       (and
-        (<= 0 alength)
         (<= 0 pos)
         (< pos alength)
         (< (a pos) 0)
@@ -132,7 +112,6 @@ func main()
   (forall ((pos Int))
     (=>
       (and
-        (<= 0 alength)
         (<= 0 pos)
         (< pos alength)
       )

@@ -17,7 +17,7 @@ func main()
 
 (axiom
 	(forall ((it Nat))
-		(<= (alength (l10 it)) (i (l10 it)))
+		(= (alength (l10 it)) (i (l10 it)))
 	)
 )
 
