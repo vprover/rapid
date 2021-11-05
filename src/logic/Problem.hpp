@@ -91,7 +91,13 @@ namespace logic {
     class ReasoningTask
     {
     public:
-        ReasoningTask(std::vector<std::shared_ptr<const ProblemItem>> axioms, std::shared_ptr<const Conjecture> conjecture) : axioms(axioms), conjecture(conjecture) {}
+        ReasoningTask(std::vector<std::shared_ptr<const ProblemItem>> axioms, 
+                      std::shared_ptr<const Conjecture> conjecture,
+                      bool memSafetyVerification,
+                      bool memSafetyViolationCheck) :
+            axioms(axioms), conjecture(conjecture), 
+            memSafetyVerification(memSafetyVerification), 
+            memSafetyViolationCheck(memSafetyViolationCheck) {}
         
         const std::vector<std::shared_ptr<const ProblemItem>> axioms;
         const std::shared_ptr<const Conjecture> conjecture;
@@ -100,9 +106,11 @@ namespace logic {
          * generate a new file in the directory 'dirPath' and output the reasoning task in SMTLIB syntax.
          * the preamble string is added at the beginning of the file.
          */
-        void outputSMTLIBToDir(std::string dirPath, std::string preamble) const;
+        void outputSMTLIBToDir(std::string dirPath, std::string inputFileName, std::string preamble) const;
         
     private:
+        bool memSafetyVerification;
+        bool memSafetyViolationCheck;
         void outputSMTLIB(std::ostream& ostr) const;
     };
     
@@ -120,6 +128,19 @@ namespace logic {
         std::vector<std::shared_ptr<const ProblemItem>> items;
         
         std::vector<ReasoningTask> generateReasoningTasks() const;
+
+        void setMemSafetyConj1(std::shared_ptr<const logic::Conjecture> conj){
+            memSafetyConj1 = conj;
+        }
+        void setMemSafetyConj2(std::shared_ptr<const logic::Conjecture> conj){
+            memSafetyConj2 = conj;
+        }
+
+    private:
+        // trying to find memory bug
+        std::shared_ptr<const logic::Conjecture> memSafetyConj1;
+        // attempting to verify mem safety
+        std::shared_ptr<const logic::Conjecture> memSafetyConj2;        
     };
 }
 #endif

@@ -42,6 +42,7 @@ namespace analysis
         void visitStatement(const program::Statement* statement, OutputType& output);
         
         virtual void generateOutputFor(const program::Assignment* statement,  OutputType& output);
+        virtual void generateOutputFor(const program::VarDecl* statement,  OutputType& output);
         virtual void generateOutputFor(const program::IfElse* statement,         OutputType& output);
         virtual void generateOutputFor(const program::WhileStatement* statement, OutputType& output);
         virtual void generateOutputFor(const program::SkipStatement* statement,  OutputType& output);
@@ -65,6 +66,15 @@ namespace analysis
     {
         switch (statement->type())
         {
+
+            case program::Statement::Type::VarDecl:
+            {
+                auto castedDecl = static_cast<const program::VarDecl*>(statement);
+                // generate output
+                generateOutputFor(castedDecl, output);
+                break;
+            }
+
             case program::Statement::Type::Assignment:
             {
                 auto castedAssignment = static_cast<const program::Assignment*>(statement);
@@ -125,6 +135,8 @@ namespace analysis
     
     template <class OutputType>
     void ProgramTraverser<OutputType>::generateOutputFor(const program::Assignment* statement, OutputType& output){}
+    template <class OutputType>
+    void ProgramTraverser<OutputType>::generateOutputFor(const program::VarDecl* statement, OutputType& output){}
     template <class OutputType>
     void ProgramTraverser<OutputType>::generateOutputFor(const program::IfElse* statement, OutputType& output){}
     template <class OutputType>

@@ -442,6 +442,35 @@ namespace analysis {
         return toFormula(expr, timePoint, trace);        
     }
 
+    std::shared_ptr<const logic::Formula> quantifyAndGuard(std::shared_ptr<const logic::Formula> f, const program::Statement* statement)
+    {
+        auto enclosingIteratorsSymbols = std::vector<std::shared_ptr<const logic::Symbol>>();
+        auto enclosingIteratorTerms = std::vector<std::shared_ptr<const logic::Term>>();
+        auto enclosingFinalLoopCounts = std::vector<std::shared_ptr<const logic::Term>>();
+
+        for (const auto& enclosingLoop : *statement->enclosingLoops)
+        {
+            auto itSymbol = iteratorSymbol(enclosingLoop);
+            //Note that by using 0, we are no longer trace reasoning compatible       
+            auto lastItSymbol = lastIterationSymbol(enclosingLoop, 0);
+
+            enclosingIteratorsSymbols.push_back(itSymbol);
+            //Code below assumes that enclosing loops are iterated over from outermost to 
+            //innermost
+            enclosingFinalLoopCounts.push_back(logic::Terms::func(lastItSymbol, enclosingIteratorTerms));
+            enclosingIteratorTerms.push_back(logic::Terms::var(itSymbol));            
+        }
+
+        std::vector<std::shared_ptr<const logic::Formula>> conjuncts;
+        for(unsigned i = 0; i < enclosingIteratorTerms.size(); i++){
+            conjuncts.push_back(logic::Theory::natSub(enclosingIteratorTerms[i], enclosingFinalLoopCounts[i]));
+        }
+        auto guard = logic::Formulas::conjunctionSimp(conjuncts);
+        auto imp = logic::Formulas::implicationSimp(guard, f);
+        auto quantified = logic::Formulas::universalSimp(enclosingIteratorsSymbols, imp);
+        return quantified;
+    }
+
     std::shared_ptr<const logic::Formula> varEqual(std::shared_ptr<const program::Variable> v, std::shared_ptr<const logic::Term> timePoint1, std::shared_ptr<const logic::Term> timePoint2, std::shared_ptr<const logic::Term> trace)
     {
 

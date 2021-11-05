@@ -11,6 +11,15 @@ namespace analysis
 {    
     EndTimePointMap AnalysisPreComputation::computeEndTimePointMap(const program::Program& program)
     {
+        //TODO dangerous at the moment! We need to ensure that no function 
+        // ends with pointless variable declarations
+        auto getNextProperStatement = [](std::shared_ptr<const program::Function> f,int curr){
+          while(f->statements[curr].get()->type() == program::Statement::Type::VarDecl){
+            curr = curr + 1;
+          }
+          return f->statements[curr].get();
+        };
+
         EndTimePointMap endTimePointMap;
         for(const auto& function : program.functions)
         {
@@ -18,7 +27,7 @@ namespace analysis
             for(int i=1; i < function->statements.size(); ++i)
             {
                 auto lastStatement = function->statements[i-1].get();
-                auto nextTimepoint = startTimepointForStatement(function->statements[i].get());
+                auto nextTimepoint = startTimepointForStatement(getNextProperStatement(function, i));
                 addEndTimePointForStatement(lastStatement, nextTimepoint, endTimePointMap);
             }
             // for the last statement, set the end-location to be the end-location of the function.
@@ -52,7 +61,8 @@ namespace analysis
         else
         {
             assert(statement->type() == program::Statement::Type::Assignment ||
-                   statement->type() == program::Statement::Type::SkipStatement);
+                   statement->type() == program::Statement::Type::SkipStatement ||
+                   statement->type() == program::Statement::Type::VarDecl);
             endTimePointMap[statement] = nextTimepoint;
         }
     }
@@ -156,6 +166,7 @@ namespace analysis
                 break;
             }
             case program::Statement::Type::SkipStatement:
+            case program::Statement::Type::VarDecl:
             {
                 break;
             }

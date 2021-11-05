@@ -10,6 +10,7 @@ namespace logic {
         boolTrue();
         boolFalse();
         
+        junkInt();
         auto intConst = intConstant(0);
         intAddition(intConst,intConst);
         intSubtraction(intConst,intConst);
@@ -42,6 +43,12 @@ namespace logic {
         valueAtConstInt(null);
         valueAtConstArray(null);
         deref(tp, null);
+    }
+
+
+    std::shared_ptr<const FuncTerm> Theory::junkInt()
+    {
+        return Terms::func("junk-int", {}, Sorts::intSort(), false);
     }
 
     std::shared_ptr<const FuncTerm> Theory::intConstant(int i)
@@ -143,7 +150,7 @@ namespace logic {
 
     std::shared_ptr<const FuncTerm> Theory::nullLoc()
     {
-        return Terms::func("null-loc", {}, Sorts::locSort(), true);
+        return Terms::func("null-loc", {}, Sorts::locSort(), false);
     }
 
     std::shared_ptr<const FuncTerm> Theory::valueAtInt(std::shared_ptr<const Term> timePoint, std::shared_ptr<const Term> location)

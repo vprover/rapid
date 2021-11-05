@@ -35,14 +35,14 @@ namespace parser {
 }
 }
 
-// The parsing context.
-%param { parser::WhileParsingContext &context }
+// The parsing parsing_context.
+%param { parser::WhileParsingContext &parsing_context }
 %locations
 %define api.location.type {Location}
 %initial-action
 {
   // Initialize the initial location.
-  @$.begin.filename = @$.end.filename = &context.inputFile;
+  @$.begin.filename = @$.end.filename = &parsing_context.inputFile;
 };
 %define parse.trace
 %define parse.error verbose
@@ -53,7 +53,7 @@ namespace parser {
 using namespace program;
 
 // Tell Flex the lexer's prototype ...
-# define YY_DECL parser::WhileParser::symbol_type yylex(parser::WhileParsingContext &context)
+# define YY_DECL parser::WhileParser::symbol_type yylex(parser::WhileParsingContext &parsing_context)
 // ... and declare it for the parser's sake.
 YY_DECL;
 
@@ -127,6 +127,7 @@ YY_DECL;
 %type < std::vector<std::shared_ptr<const program::Statement>> > statement_list
 %type < std::shared_ptr<const program::Statement> > statement
 %type < std::vector<std::shared_ptr<const program::Variable>> > active_vars_dummy
+%type < std::shared_ptr<const program::VarDecl> > var_decl_statement
 %type < std::shared_ptr<const program::Assignment> > assignment_statement
 %type < std::shared_ptr<const program::IfElse> > if_else_statement
 %type < std::shared_ptr<const program::WhileStatement> > while_statement
@@ -162,7 +163,7 @@ problem:
   }
   program smtlib_problemitem_list 
   {
-    context.problemItems = $3;
+    parsing_context.problemItems = $3;
   }
 |
   LPAR SETTRACES INTEGER RPAR
@@ -172,20 +173,20 @@ problem:
       error(@3, "number of traces has to be greater than or equal to 1");
     }
 
-    context.numberOfTraces = (unsigned) $3;
+    parsing_context.numberOfTraces = (unsigned) $3;
     logic::Theory::declareTheories();
-    declareSymbolsForTraces(context.numberOfTraces);
+    declareSymbolsForTraces(parsing_context.numberOfTraces);
   }
   program smtlib_problemitem_list 
   {
-        context.problemItems = $7;
+        parsing_context.problemItems = $7;
   }
 ;
 
 program:
   function_list 
   { 
-    context.program = std::unique_ptr<const program::Program>(new program::Program($1)); 
+    parsing_context.program = std::unique_ptr<const program::Program>(new program::Program($1)); 
   }
 ;
 
@@ -197,20 +198,20 @@ smtlib_problemitem_list:
 smtlib_problemitem:
   LPAR AXIOM smtlib_formula RPAR 
   {
-    $$ = std::shared_ptr<const logic::Axiom>(new logic::Axiom($3, "user-axiom-" + std::to_string(context.numberOfAxioms)));
-    context.numberOfAxioms++;
+    $$ = std::shared_ptr<const logic::Axiom>(new logic::Axiom($3, "user-axiom-" + std::to_string(parsing_context.numberOfAxioms)));
+    parsing_context.numberOfAxioms++;
   }
 |
   LPAR LEMMA smtlib_formula RPAR 
   {
-    $$ = std::shared_ptr<const logic::Lemma>(new logic::Lemma($3, "user-lemma-" + std::to_string(context.numberOfLemmas)));
-    context.numberOfLemmas++;
+    $$ = std::shared_ptr<const logic::Lemma>(new logic::Lemma($3, "user-lemma-" + std::to_string(parsing_context.numberOfLemmas)));
+    parsing_context.numberOfLemmas++;
   }
 |
   LPAR CONJECTURE smtlib_formula RPAR 
   {
-    $$ = std::shared_ptr<const logic::Conjecture>(new logic::Conjecture($3, "user-conjecture-" + std::to_string(context.numberOfConjectures)));
-    context.numberOfConjectures++;
+    $$ = std::shared_ptr<const logic::Conjecture>(new logic::Conjecture($3, "user-conjecture-" + std::to_string(parsing_context.numberOfConjectures)));
+    parsing_context.numberOfConjectures++;
   }
 
 smtlib_formula_list:
@@ -287,21 +288,21 @@ smtlib_formula:
 | LPAR FORALLSMTLIB LPAR smtlib_quantvar_list RPAR 
   {
     // TODO: propagate existing-var-error to parser and raise error
-    context.pushQuantifiedVars($4);
+    parsing_context.pushQuantifiedVars($4);
   } 
   smtlib_formula RPAR 
   { 
-    context.popQuantifiedVars();
+    parsing_context.popQuantifiedVars();
     $$ = logic::Formulas::universal(std::move($4), std::move($7));
   }
 | LPAR EXISTSSMTLIB LPAR smtlib_quantvar_list RPAR 
   {
     // TODO: propagate existing-var-error to parser and raise error
-    context.pushQuantifiedVars($4);
+    parsing_context.pushQuantifiedVars($4);
   } 
   smtlib_formula RPAR 
   { 
-    context.popQuantifiedVars();
+    parsing_context.popQuantifiedVars();
     $$ = logic::Formulas::existential(std::move($4), std::move($7));
   }
 ;
@@ -314,7 +315,7 @@ smtlib_quantvar_list:
 smtlib_quantvar:
   LPAR SMTLIB_ID TYPE RPAR 
   { 
-    if(context.isDeclared($2))
+    if(parsing_context.isDeclared($2))
     {
       error(@2, $2 + " has already been declared");
     }
@@ -353,11 +354,11 @@ smtlib_term_list:
 smtlib_term:
 SMTLIB_ID                               
 {
-  if(!context.isDeclared($1))
+  if(!parsing_context.isDeclared($1))
   {
     error(@1, $1 + " has not been declared");
   }
-  auto symbol = context.fetch($1); 
+  auto symbol = parsing_context.fetch($1); 
 
   if(symbol->argSorts.size() > 0)
   {
@@ -371,11 +372,11 @@ SMTLIB_ID
   }
 | LPAR SMTLIB_ID smtlib_term_list RPAR    
 {
-  if(!context.isDeclared($2))
+  if(!parsing_context.isDeclared($2))
   {
     error(@2, $2 + " has not been declared");
   }
-  auto symbol = context.fetch($2); 
+  auto symbol = parsing_context.fetch($2); 
 
   if($3.size() < symbol->argSorts.size())
   {
@@ -452,22 +453,22 @@ function_list:
 function:
   FUNC PROGRAM_ID LPAR RPAR LCUR
   {
-    context.pushProgramVars();
+    parsing_context.pushProgramVars();
   }
   statement_list RCUR
   {
     auto functionEndLocationName = $2 + "_end";
-    context.locationToActiveVars[functionEndLocationName] = context.getActiveProgramVars();
-    context.popProgramVars();
+    parsing_context.locationToActiveVars[functionEndLocationName] = parsing_context.getActiveProgramVars();
+    parsing_context.popProgramVars();
 
   	auto function = std::shared_ptr<const program::Function>(new program::Function($2, std::move($7)));
 
     // compute enclosing loops
-    context.addEnclosingLoops(*function);
+    parsing_context.addEnclosingLoops(*function);
     $$ = function;
 
     // declare symbols for loops (needs to be done here, since it depends on enclosingLoops)
-    declareSymbolsForFunction(function.get(), context.numberOfTraces);
+    declareSymbolsForFunction(function.get(), parsing_context.numberOfTraces);
   }
 ;
 
@@ -476,23 +477,36 @@ statement_list:
 | statement_list active_vars_dummy statement
   {
     auto locationName = $3->location;
-    context.locationToActiveVars[locationName] = $2;
+    parsing_context.locationToActiveVars[locationName] = $2;
     $1.push_back(std::move($3)); $$ = std::move($1);
-  }
-| statement_list active_vars_dummy var_definition_head SCOL
-  {
-    // dummy is not used here, but silences a shift-reduce conflict
-    context.addProgramVar($3);
-    declareSymbolForProgramVar($3.get());
-    $$ = std::move($1);
   }
 ;
 
 statement:
-  assignment_statement {$$ = std::move($1);}
+  var_decl_statement {$$ = std::move($1);}
+| assignment_statement {$$ = std::move($1);}
 | if_else_statement {$$ = std::move($1);}
 | while_statement {$$ = std::move($1);}
 | skip_statement {$$ = std::move($1);}
+;
+
+
+var_decl_statement:
+  var_definition_head SCOL
+  {
+    // declare var
+    parsing_context.addProgramVar($1);
+    declareSymbolForProgramVar($1.get());
+
+    std::shared_ptr<const program::Expression> variable;
+    if(!$1->isPointer()){
+      variable = std::shared_ptr<const program::IntOrNatVariableAccess>(new IntOrNatVariableAccess(std::move($1)));
+    } else {
+      variable = std::shared_ptr<const program::PointerVariableAccess>(new PointerVariableAccess(std::move($1)));
+    }
+
+    $$ = std::shared_ptr<const program::VarDecl>(new program::VarDecl(@1.begin.line, std::move(variable)));        
+  }
 ;
 
 assignment_statement:
@@ -515,7 +529,7 @@ assignment_statement:
 | var_definition_head ASSIGN expr SCOL
   {
     // declare var
-    context.addProgramVar($1);
+    parsing_context.addProgramVar($1);
     declareSymbolForProgramVar($1.get());
 
     // construct location
@@ -542,24 +556,24 @@ assignment_statement:
 if_else_statement:
   IF LPAR formula RPAR 
   {
-    context.pushProgramVars();
+    parsing_context.pushProgramVars();
   }
   LCUR statement_list active_vars_dummy RCUR 
   {
-    context.popProgramVars();
+    parsing_context.popProgramVars();
   }
   ELSE 
   {
-    context.pushProgramVars();
+    parsing_context.pushProgramVars();
   }  
   LCUR statement_list active_vars_dummy RCUR 
   {
-    context.popProgramVars();
+    parsing_context.popProgramVars();
 
     auto leftEndLocationName = "l" + std::to_string(@1.begin.line) + "_lEnd";
     auto rightEndLocationName = "l" + std::to_string(@1.begin.line) + "_rEnd";
-    context.locationToActiveVars[leftEndLocationName] = $8;
-    context.locationToActiveVars[rightEndLocationName] = $15;
+    parsing_context.locationToActiveVars[leftEndLocationName] = $8;
+    parsing_context.locationToActiveVars[rightEndLocationName] = $15;
     $$ = std::shared_ptr<const program::IfElse>(new program::IfElse(@1.begin.line, std::move($3), std::move($7), std::move($14)));
   }
 ;
@@ -567,11 +581,11 @@ if_else_statement:
 while_statement:
   WHILE formula 
   {
-    context.pushProgramVars();
+    parsing_context.pushProgramVars();
   }
   LCUR statement_list RCUR
   {
-    context.popProgramVars();
+    parsing_context.popProgramVars();
     $$ = std::shared_ptr<const program::WhileStatement>(new program::WhileStatement(@1.begin.line, std::move($2), std::move($5)));
   }
 ;
@@ -584,18 +598,18 @@ skip_statement:
 active_vars_dummy:
   %empty 
   {
-    $$ = context.getActiveProgramVars(); 
+    $$ = parsing_context.getActiveProgramVars(); 
   }
 ;
 
 var_definition_head:
   type_dec PROGRAM_ID
   {
-    $$ = std::shared_ptr<const program::Variable>(new program::Variable($2, false,  std::move($1), context.numberOfTraces));
+    $$ = std::shared_ptr<const program::Variable>(new program::Variable($2, false,  std::move($1), parsing_context.numberOfTraces));
   }
 | CONST type_dec PROGRAM_ID
   {
-    $$ = std::shared_ptr<const program::Variable>(new program::Variable($3, true, std::move($2), context.numberOfTraces));
+    $$ = std::shared_ptr<const program::Variable>(new program::Variable($3, true, std::move($2), parsing_context.numberOfTraces));
   }
 ;
 
@@ -744,7 +758,7 @@ expr:
 location:
   PROGRAM_ID                
   { 
-  	auto var = context.getProgramVar($1);
+  	auto var = parsing_context.getProgramVar($1);
     if(var->isArray())
     {
       error(@1, "Array variable " + var->name + " needs index for access");
@@ -757,7 +771,7 @@ location:
   }
 | PROGRAM_ID LBRA expr RBRA 
   {
-	  auto var = context.getProgramVar($1);
+	  auto var = parsing_context.getProgramVar($1);
     if(!var->isArray())
     {
       error(@1, "Variable " + var->name + " is not an array");
@@ -770,7 +784,7 @@ location:
   }
 | REFERENCE PROGRAM_ID
   {
-    auto var = context.getProgramVar($2);
+    auto var = parsing_context.getProgramVar($2);
     if(var->isArray())
     {
       error(@1, "Cannot currently reference an array variable " + var->name);
@@ -800,7 +814,7 @@ void parser::WhileParser::error(const location_type& l,
                               const std::string& m)
 {
   std::cout << "Error while parsing location " << l << ":\n" << m << std::endl;
-  context.errorFlag = true;
+  parsing_context.errorFlag = true;
   exit(1);
 }
 

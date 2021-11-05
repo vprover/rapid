@@ -11,12 +11,13 @@ namespace logic {
     
     std::ostream& operator<<(std::ostream& ostr, const std::vector<std::shared_ptr<const ProblemItem>>& f){ostr << "not implemented"; return ostr;}
 
-    void ReasoningTask::outputSMTLIBToDir(std::string dirPath, std::string preamble) const
+    void ReasoningTask::outputSMTLIBToDir(std::string dirPath, std::string inputFileName, std::string preamble) const
     {
-        auto outPref = util::Configuration::instance().outputPrefix();
-        outPref = outPref == "" ? "" : outPref + "-";
-
-        auto outfileName = dirPath + outPref + conjecture->name + ".smt2";
+        std::string conjName = memSafetyVerification ?
+            "memory-safety-verification-condition" :
+            (memSafetyViolationCheck ? "memory-safety-violation-check" :
+            conjecture->name);
+        auto outfileName = dirPath + inputFileName + "-" + conjName + ".smt2";
         if(std::ifstream(outfileName))
         {
             std::cout << "Error: The output-file " << outfileName << " already exists!" << std::endl;
@@ -82,7 +83,8 @@ namespace logic {
         // output each axiom
         for (const auto& axiom : axioms)
         {
-            assert(axiom->type == ProblemItem::Type::Axiom || axiom->type == ProblemItem::Type::Definition);
+            assert(axiom->type == ProblemItem::Type::Lemma ||
+                   axiom->type == ProblemItem::Type::Axiom || axiom->type == ProblemItem::Type::Definition);
             if (axiom->name != "")
             {
                 ostr << "\n; " << (axiom->type == ProblemItem::Type::Axiom ? "Axiom: " : "Definition: ") << axiom->name;
@@ -119,69 +121,36 @@ namespace logic {
     std::vector<ReasoningTask> Problem::generateReasoningTasks() const
     {
         std::vector<ReasoningTask> tasks;
-
-        bool ouc = util::Configuration::instance().onlyOutputConjectures();
+        std::vector<std::shared_ptr<const Conjecture>> conjectures;
+        std::vector<std::shared_ptr<const ProblemItem>> axioms;
 
         for (int i = 0; i < items.size(); ++i)
         {
             auto item = items[i];
 
-            // if the item is a lemma or conjecture, generate a new reasoning task to prove that lemma/conjecture
-            if ((item->type == ProblemItem::Type::Lemma  && !ouc) || item->type == ProblemItem::Type::Conjecture)
+            if (item->type != ProblemItem::Type::Conjecture)
             {
-                // collect all previous axioms, which are not hidden or occur in fromItems
-                std::vector<std::shared_ptr<const ProblemItem>> currentAxioms;
-                for (int j = 0; j < i; ++j)
-                {
-                    auto curr = items[j];
+                axioms.push_back(item);
+            }
 
-                    if (item->fromItems.empty())
-                    {
-                        // implicit mode: collect all axioms visible for implicit mode
-                        if ((curr->type == ProblemItem::Type::Axiom || curr->type == ProblemItem::Type::Definition))
-                        {
-                            if(curr->visibility == ProblemItem::Visibility::All || curr->visibility == ProblemItem::Visibility::Implicit)
-                            {
-                                currentAxioms.push_back(curr);
-                            }
-                        }
-                        else if (curr->type == ProblemItem::Type::Lemma)
-                        {
-                            if(curr->visibility == ProblemItem::Visibility::All || curr->visibility == ProblemItem::Visibility::Implicit)
-                            {
-                                currentAxioms.push_back(std::make_shared<Axiom>(curr->formula, "already-proven-lemma " + curr->name));
-                            }
-                        }
-                    }
-                    else 
-                    {
-                        // explicit mode: collect all axioms, which are either visible for explicit mode or occur in fromItems
-                        if (curr->visibility == ProblemItem::Visibility::All || std::find(item->fromItems.begin(), item->fromItems.end(), curr->name) != item->fromItems.end())
-                        {
-                            if ((curr->type == ProblemItem::Type::Axiom || curr->type == ProblemItem::Type::Definition))
-                            {
-                                currentAxioms.push_back(curr);
-                            }
-                            else if (curr->type == ProblemItem::Type::Lemma)
-                            {
-                                currentAxioms.push_back(std::make_shared<Axiom>(curr->formula, "already-proven-lemma " + curr->name));
-                            }
-                        }
-                    }
-                }
-
-                // sanity check: if explicit mode is used, all axioms must have been found (note: there could be other axioms too)
-                if (!item->fromItems.empty())
-                {
-                    assert(item->fromItems.size() <= currentAxioms.size());
-                }
-
-                // add item as conjecture
-                auto conjecture = std::make_shared<Conjecture>(item->formula, item->name);
-                auto task = ReasoningTask(currentAxioms, conjecture);
-                tasks.push_back(task);
+            if (item->type == ProblemItem::Type::Conjecture)
+            {
+                //TODO use static cast instead?
+                conjectures.push_back(std::make_shared<Conjecture>(item->formula, item->name));
             }
         }
+
+        for(auto& conj : conjectures){
+            tasks.push_back(ReasoningTask(axioms, conj, false, false));   
+        }
+
+        if(memSafetyConj1 != nullptr){
+            //TODO perhaps allow users to separate these checks?
+            assert(memSafetyConj2 != nullptr);
+            tasks.push_back(ReasoningTask(axioms, memSafetyConj1, false, true));    
+            tasks.push_back(ReasoningTask(axioms, memSafetyConj2, true, false));                                        
+        }
+
         return tasks;
     }
 

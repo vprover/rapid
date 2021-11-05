@@ -5,9 +5,10 @@ func main() {
   Int b;
 
   while(a > 0){
-    while(b > 0){
+    Int bInLoop = b;
+    while(bInLoop > 0){
       *multPointer = *multPointer + 1;
-      b = b - 1;
+      bInLoop = bInLoop - 1;
     }
     a = a - 1;
   }

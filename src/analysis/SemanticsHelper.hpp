@@ -65,6 +65,12 @@ namespace analysis {
      * calls toTerm(expr,...) internally.
      */
     std::shared_ptr<const logic::Formula> toFormula(std::shared_ptr<const program::BoolExpression> expr, std::shared_ptr<const logic::Term> timePoint, std::shared_ptr<const logic::Term> trace);
+   
+    /*
+     *  Take a formula and quantify over all free variables found in statement whilst guarding
+     *  the variables with Sub clauses
+     */
+    std::shared_ptr<const logic::Formula> quantifyAndGuard(std::shared_ptr<const logic::Formula> f, const program::Statement* statement);
 
 # pragma mark - Methods for generating most used formulas for describing changes of state
     /*

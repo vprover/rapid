@@ -19,6 +19,9 @@ namespace logic {
         //TODO move memory management to its own file?
         static void declareMemoryArrays();
 
+        // junk integers represent the value of integer variables when they go out
+        // of scope 
+        static std::shared_ptr<const FuncTerm> junkInt();
         static std::shared_ptr<const FuncTerm> intConstant(int i);
         static std::shared_ptr<const FuncTerm> intAddition(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2);
         static std::shared_ptr<const FuncTerm> intSubtraction(std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2);

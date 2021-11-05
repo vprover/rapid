@@ -31,6 +31,20 @@ namespace analysis {
     }
 
 
+    std::vector<std::shared_ptr<const program::Variable>> difference(std::vector<std::shared_ptr<const program::Variable>> v1,
+                                                                       std::vector<std::shared_ptr<const program::Variable>> v2)
+    {
+        std::vector<std::shared_ptr<const program::Variable>> v3;
+
+        std::sort(v1.begin(), v1.end());
+        std::sort(v2.begin(), v2.end());
+
+        std::set_difference(v1.begin(),v1.end(),
+                              v2.begin(),v2.end(),
+                              back_inserter(v3));
+        return v3;
+    }
+
     std::vector<std::shared_ptr<const program::Variable>> vecUnion(std::vector<std::shared_ptr<const program::Variable>> v1,
                                                                    std::vector<std::shared_ptr<const program::Variable>> v2)
     {
@@ -86,7 +100,7 @@ namespace analysis {
 
 
     std::pair<std::vector<std::shared_ptr<const logic::Axiom>>, InlinedVariableValues> Semantics::generateSemantics()
-    {           
+    {   
         // generate semantics compositionally
         std::vector<std::shared_ptr<const logic::Axiom>> axioms;
         for(const auto& function : program.functions)
@@ -137,9 +151,12 @@ namespace analysis {
         std::vector<std::shared_ptr<const logic::Formula>> uniqueVars;
         for(int i = 0; i < allVars.size(); i++){
             auto var = allVars[i];
+            auto varAsTerm = logic::Terms::func(logic::Signature::fetch(var->name),{});
+            auto notNull = logic::Formulas::disequality(varAsTerm, logic::Theory::nullLoc());     
+            uniqueVars.push_back(notNull);
+                 
             for(int j = i + 1; j < allVars.size(); j++){
                 auto var2 = allVars[j];
-                auto varAsTerm = logic::Terms::func(logic::Signature::fetch(var->name),{});
                 auto var2AsTerm = logic::Terms::func(logic::Signature::fetch(var2->name),{});
                 auto notEqual = logic::Formulas::disequality(varAsTerm, var2AsTerm);
                 uniqueVars.push_back(notEqual);
@@ -166,7 +183,11 @@ namespace analysis {
 
     std::shared_ptr<const logic::Formula> Semantics::generateSemantics(const program::Statement* statement, SemanticsInliner& inliner, std::shared_ptr<const logic::Term> trace)
     {
-        if (statement->type() == program::Statement::Type::Assignment)
+        if(statement->type() == program::Statement::Type::VarDecl){
+            auto castedStatement = static_cast<const program::VarDecl*>(statement);
+            return generateSemantics(castedStatement, inliner, trace);
+        }
+        else if (statement->type() == program::Statement::Type::Assignment)
         {
             auto castedStatement = static_cast<const program::Assignment*>(statement);
             return generateSemantics(castedStatement, inliner, trace);
@@ -188,6 +209,41 @@ namespace analysis {
             return generateSemantics(castedStatement, inliner, trace);
         }
     }
+
+    std::shared_ptr<const logic::Formula> Semantics::generateSemantics(const program::VarDecl* varDecl, SemanticsInliner& inliner, std::shared_ptr<const logic::Term> trace)   
+    {
+        if (util::Configuration::instance().memSafetyMode()){
+            auto var = varDecl->var;
+            if(var->type() == program::Type::PointerVariableAccess){
+                //initialse pointers to point to null location
+                auto l2 = endTimePointMap.at(varDecl);
+                auto eq = logic::Formulas::equality(toTerm(var, l2, trace), logic::Theory::nullLoc(), 
+                    "Initialising pointer " + var->toString() + " to null at location " + varDecl->location);
+                return eq;
+           }
+       }
+       return logic::Theory::boolTrue();
+    }
+
+
+    void Semantics::createLeftHandsSides(std::shared_ptr<const logic::Term> lhs,
+        std::vector<std::shared_ptr<const logic::Term>>& lhSides)
+    {
+        if(lhs->type() == logic::Term::Type::FuncTerm){
+            auto castedLhs = std::static_pointer_cast<const logic::FuncTerm>(lhs);
+
+            if(castedLhs->isDerefAt()){
+                lhSides.push_back(lhs);        
+            }
+
+            if(castedLhs->isValueAt() || castedLhs->isDerefAt()){
+                assert(castedLhs->subterms.size() == 2);
+                auto location = castedLhs->subterms[1];
+                createLeftHandsSides(location, lhSides);
+            }
+        }
+    }
+
 
     std::shared_ptr<const logic::Formula> Semantics::generateSemantics(const program::Assignment*  assignment, SemanticsInliner& inliner, std::shared_ptr<const logic::Term> trace)
     {
@@ -311,6 +367,18 @@ namespace analysis {
                 lhsTerm = toTerm(lhs, l2, trace, true);
             }
 
+            if (util::Configuration::instance().memSafetyMode()){
+                std::vector<std::shared_ptr<const logic::Term>> leftHandSides;
+                createLeftHandsSides(lhsTerm, leftHandSides);
+                for(auto& lhs : leftHandSides){  
+                    auto eq = logic::Formulas::equality(lhs, logic::Theory::nullLoc());                             
+                    auto diseq = logic::Formulas::disequality(lhs, logic::Theory::nullLoc());
+
+                    memSafetyDisjuncts.push_back(quantifyAndGuard(eq, assignment));
+                    memSafetyConjuncts.push_back(quantifyAndGuard(diseq, assignment));                    
+                }
+            }
+
             // lhs(l2) = rhs(l1);
             auto eq = logic::Formulas::equality(lhsTerm, rhsTerm);
 
@@ -377,7 +445,9 @@ namespace analysis {
         auto lStart = startTimepointForStatement(ifElse);
         auto lEnd = endTimePointMap.at(ifElse);
         auto lLeftStart = startTimepointForStatement(ifElse->ifStatements.front().get());
+        auto lLeftEnd = startTimepointForStatement(ifElse->ifStatements.back().get());
         auto lRightStart = startTimepointForStatement(ifElse->elseStatements.front().get());
+        auto lRightEnd = startTimepointForStatement(ifElse->elseStatements.back().get());
 
         if (util::Configuration::instance().inlineSemantics())
         {
@@ -513,6 +583,12 @@ namespace analysis {
             // Part 1: values at the beginning of any branch are the same as at the beginning of the ifElse-statement
             // don't need to take the intersection with active vars at lLeftStart/lRightStart, since the active vars at lStart are always a subset of those at lLeftStart/lRightStart
             auto activeVars = locationToActiveVars.at(lStart->symbol->name);
+            
+            auto activeVarsEndLeft = locationToActiveVars.at(lLeftEnd->symbol->name);       
+            auto varsGoingOutOfScopeLeft = difference(activeVarsEndLeft, activeVars);
+
+            auto activeVarsEndRight = locationToActiveVars.at(lRightEnd->symbol->name);       
+            auto varsGoingOutOfScopeRight = difference(activeVarsEndRight, activeVars);            
 
             auto implicationIfBranch = logic::Formulas::implication(condition, allVarEqual(activeVars,lLeftStart,lStart, trace), "Jumping into the left branch doesn't change the variable values");
             auto implicationElseBranch = logic::Formulas::implication(negatedCondition, allVarEqual(activeVars,lRightStart,lStart, trace), "Jumping into the right branch doesn't change the variable values");
@@ -527,11 +603,43 @@ namespace analysis {
                 auto implication = logic::Formulas::implication(condition, semanticsOfStatement, "Semantics of left branch");
                 conjuncts.push_back(implication);
             }
+
+            if (util::Configuration::instance().memSafetyMode()){
+                for (const auto& var : varsGoingOutOfScopeLeft){
+                    auto memLocSymbol = locVarSymbol();
+                    auto memLocVariable = memLocVar();
+
+                    auto deref1 = logic::Theory::deref(lLeftEnd, memLocVariable);
+                    auto deref2 = logic::Theory::deref(lEnd, memLocVariable);                
+                    auto eq1 = logic::Formulas::equality(deref1, logic::Terms::locConstant(var->name));
+                    auto eq2 = logic::Formulas::equality(deref2, logic::Theory::nullLoc());
+                    auto f = logic::Formulas::implication(eq1, eq2);
+                    auto pointsToNull = logic::Formulas::universal({memLocSymbol}, f, "Variables that pointed to " + var->name + " now point to null");
+                    conjuncts.push_back(pointsToNull);
+                }
+            }
+
             for (const auto& statement : ifElse->elseStatements)
             {
                 auto semanticsOfStatement = generateSemantics(statement.get(), inliner, trace);
                 auto implication = logic::Formulas::implication(negatedCondition, semanticsOfStatement,  "Semantics of right branch");
                 conjuncts.push_back(implication);
+            }
+
+
+            if (util::Configuration::instance().memSafetyMode()){
+                for (const auto& var : varsGoingOutOfScopeLeft){
+                    auto memLocSymbol = locVarSymbol();
+                    auto memLocVariable = memLocVar();
+
+                    auto deref1 = logic::Theory::deref(lRightEnd, memLocVariable);
+                    auto deref2 = logic::Theory::deref(lEnd, memLocVariable);                
+                    auto eq1 = logic::Formulas::equality(deref1, logic::Terms::locConstant(var->name));
+                    auto eq2 = logic::Formulas::equality(deref2, logic::Theory::nullLoc());
+                    auto f = logic::Formulas::implication(eq1, eq2);
+                    auto pointsToNull = logic::Formulas::universal({memLocSymbol}, f, "Variables that pointed to " + var->name + " now point to null");
+                    conjuncts.push_back(pointsToNull);
+                }
             }
 
             return logic::Formulas::conjunction(conjuncts, "Semantics of IfElse at location " + ifElse->location);
@@ -551,12 +659,15 @@ namespace analysis {
         auto lStartSuccOfIt = timepointForLoopStatement(whileStatement, logic::Theory::natSucc(it));
         auto lStartN = timepointForLoopStatement(whileStatement, n);
         auto lBodyStartIt = startTimepointForStatement(whileStatement->bodyStatements.front().get());
+        auto lBodyEndIt = startTimepointForStatement(whileStatement->bodyStatements.back().get());
         auto lEnd = endTimePointMap.at(whileStatement);
 
         auto posSymbol = posVarSymbol();
         auto pos = posVar();
 
+        auto activeVarsEndLoop = locationToActiveVars.at(lBodyEndIt->symbol->name);       
         auto activeVars = locationToActiveVars.at(lStart0->symbol->name);
+        auto varsGoingOutOfScope = difference(activeVarsEndLoop, activeVars);
 
         if (util::Configuration::instance().inlineSemantics())
         {
@@ -756,6 +867,22 @@ namespace analysis {
             // Part 4: The values after the while-loop are the values from the timepoint with location lStart and iteration n
             auto part4 = allVarEqual(activeVars,lEnd,lStartN, trace, "The values after the while-loop are the values from the last iteration");
             conjuncts.push_back(part4);
+
+            //TODO consider adding this only when creating mem safety VC
+            if (util::Configuration::instance().memSafetyMode()){
+                for (const auto& var : varsGoingOutOfScope){
+                    auto memLocSymbol = locVarSymbol();
+                    auto memLocVariable = memLocVar();
+
+                    auto deref1 = logic::Theory::deref(lStartN, memLocVariable);
+                    auto deref2 = logic::Theory::deref(lEnd, memLocVariable);                
+                    auto eq1 = logic::Formulas::equality(deref1, logic::Terms::locConstant(var->name));
+                    auto eq2 = logic::Formulas::equality(deref2, logic::Theory::nullLoc());
+                    auto f = logic::Formulas::implication(eq1, eq2);
+                    auto pointsToNull = logic::Formulas::universal({memLocSymbol}, f, "Variables that pointed to " + var->name + " now point to null");
+                    conjuncts.push_back(pointsToNull);
+                }
+            }
 
             return logic::Formulas::conjunction(conjuncts, "Loop at location " + whileStatement->location);
         }

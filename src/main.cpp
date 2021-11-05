@@ -43,6 +43,13 @@ int main(int argc, char *argv[])
                 assert(inputFile.size() > extension.size());
                 assert(inputFile.compare(inputFile.size()-extension.size(), extension.size(),extension) == 0);
                 auto inputFileWithoutExtension = inputFile.substr(0,inputFile.size()-extension.size());
+                std::string inputFileName;
+                auto i = inputFileWithoutExtension.rfind('/'); 
+                if(i != std::string::npos){
+                    inputFileName = inputFileWithoutExtension.substr(i+1, inputFileWithoutExtension.length() - i);
+                } else {
+                    inputFileName = inputFileWithoutExtension;
+                }
 
                 // parse inputFile
                 auto parserResult = parser::parse(inputFile);
@@ -67,6 +74,7 @@ int main(int argc, char *argv[])
 
                 analysis::Semantics s(*parserResult.program, parserResult.locationToActiveVars, parserResult.problemItems, parserResult.numberOfTraces);
                 auto [semantics, inlinedVarValues] = s.generateSemantics();
+                
                 problemItems.insert(problemItems.end(), semantics.begin(), semantics.end());
 
                 // for all variables that represent unsigned, add constraints of the form
@@ -82,14 +90,20 @@ int main(int argc, char *argv[])
                 problemItems.insert(problemItems.end(), parserResult.problemItems.begin(), parserResult.problemItems.end());
                 
                 logic::Problem problem(problemItems);
-                
-                // generate reasoning tasks, convert each reasoning task to smtlib, and output it to output-file
+                // When attempting to reason about memory safety, we output a 
+                // special conjectures
+                if(util::Configuration::instance().memSafetyMode()){
+                    problem.setMemSafetyConj1(s.getMemorySafetyConj1());
+                    problem.setMemSafetyConj2(s.getMemorySafetyConj2());                    
+                }
+
+                // generate reasoning task, convert reasoning task to smtlib, and output it to output-file
                 auto tasks = problem.generateReasoningTasks();
-                for (const auto& task : tasks)
-                {
-                    std::stringstream preamble;
-                    preamble << util::Output::comment << *parserResult.program << util::Output::nocomment;
-                    task.outputSMTLIBToDir(outputDir, preamble.str());
+
+                for (const auto& task : tasks) {
+                  std::stringstream preamble;
+                  preamble << util::Output::comment << *parserResult.program << util::Output::nocomment;
+                  task.outputSMTLIBToDir(outputDir, inputFileName, preamble.str());
                 }
             }
         }
