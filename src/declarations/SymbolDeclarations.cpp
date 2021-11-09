@@ -1,5 +1,7 @@
 #include "SymbolDeclarations.hpp"
 
+#include <Options.hpp>
+#include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
@@ -8,10 +10,15 @@ std::shared_ptr<const logic::Symbol> locationSymbol(std::string location,
                                                     unsigned numberOfLoops) {
   auto enclosingIteratorTypes = std::vector<const logic::Sort*>();
   for (int i = 0; i < numberOfLoops; ++i) {
-    enclosingIteratorTypes.push_back(logic::Sorts::natSort());
+    if (util::Configuration::instance().integerIterations()) {
+      enclosingIteratorTypes.push_back(logic::Sorts::intSort());
+    } else {
+      enclosingIteratorTypes.push_back(logic::Sorts::natSort());
+    }
   }
+  logic::Symbol::SymbolType typ = logic::Symbol::SymbolType::TimePoint;
   return logic::Signature::fetchOrAdd(location, enclosingIteratorTypes,
-                                      logic::Sorts::timeSort());
+                                      logic::Sorts::timeSort(), false, typ);
 }
 
 std::shared_ptr<const logic::Symbol> locationSymbolForStatement(
@@ -32,6 +39,9 @@ std::shared_ptr<const logic::Symbol> locationSymbolEndLocation(
 
 std::shared_ptr<const logic::Symbol> lastIterationSymbol(
     const program::WhileStatement* statement, unsigned numberOfTraces) {
+  if (util::Configuration::instance().integerIterations()) {
+    return intLastIterationSymbol(statement, numberOfTraces);
+  }
   std::vector<const logic::Sort*> argumentSorts;
   for (unsigned i = 0; i < statement->enclosingLoops->size(); ++i) {
     argumentSorts.push_back(logic::Sorts::natSort());
@@ -39,12 +49,18 @@ std::shared_ptr<const logic::Symbol> lastIterationSymbol(
   if (numberOfTraces > 1) {
     argumentSorts.push_back(logic::Sorts::traceSort());
   }
+
+  logic::Symbol::SymbolType typ = logic::Symbol::SymbolType::FinalLoopCount;
   return logic::Signature::fetchOrAdd("n" + statement->location, argumentSorts,
-                                      logic::Sorts::natSort());
+                                      logic::Sorts::natSort(), false, typ);
 }
 
 std::shared_ptr<const logic::Symbol> iteratorSymbol(
     const program::WhileStatement* whileStatement) {
+
+  if (util::Configuration::instance().integerIterations()) {
+    return intIteratorSymbol(whileStatement);
+  }
   return logic::Signature::varSymbol("It" + whileStatement->location,
                                      logic::Sorts::natSort());
 }
@@ -65,20 +81,70 @@ std::shared_ptr<const logic::Symbol> traceSymbol(unsigned traceNumber) {
 void declareSymbolForProgramVar(const program::Variable* var) {
   // variables are now constants of sort location
   std::vector<const logic::Sort*> argSorts;
-  /*if (!var->isConstant)
-  {
-      argSorts.push_back(logic::Sorts::timeSort());
-  }
-  if (var->isArray())
-  {
-      argSorts.push_back(logic::Sorts::intSort());
-  }
-  if(var->numberOfTraces > 1)
-  {
-      argSorts.push_back(logic::Sorts::traceSort());
-  }*/
 
   logic::Signature::add(var->name, argSorts, logic::Sorts::locSort());
+}
+
+// TODO no need for two functions?
+std::shared_ptr<const logic::Symbol> intLastIterationSymbol(
+    const program::WhileStatement* statement, unsigned numberOfTraces) {
+  std::vector<const logic::Sort*> argumentSorts;
+  for (unsigned i = 0; i < statement->enclosingLoops->size(); ++i) {
+    argumentSorts.push_back(logic::Sorts::intSort());
+  }
+  if (numberOfTraces > 1) {
+    argumentSorts.push_back(logic::Sorts::traceSort());
+  }
+  logic::Symbol::SymbolType typ = logic::Symbol::SymbolType::FinalLoopCount;
+  return logic::Signature::fetchOrAdd("n" + statement->location, argumentSorts,
+                                      logic::Sorts::intSort(), false, typ);
+}
+
+std::shared_ptr<const logic::Symbol> intIteratorSymbol(
+    const program::WhileStatement* whileStatement) {
+  return logic::Signature::varSymbol("It" + whileStatement->location,
+                                     logic::Sorts::intSort());
+}
+
+std::shared_ptr<const logic::Symbol> declareInitTargetSymbol(
+    const program::Variable* var) {
+  // declare target symbol var_final and var_init for invariant generation
+  assert(!var->isConstant);
+  std::vector<const logic::Sort*> argSorts;
+  if (var->isArray()) {
+    argSorts.push_back(logic::Sorts::intSort());
+  }
+  if (var->numberOfTraces > 1) {
+    // TODO: this probably needs more proper handling
+    argSorts.push_back(logic::Sorts::traceSort());
+  }
+
+  return logic::Signature::add(var->name + "_init", argSorts,
+                               logic::Sorts::intSort());
+}
+
+std::shared_ptr<const logic::Symbol> declareFinalTargetSymbol(
+    const program::Variable* var) {
+  // declare target symbol var_final and var_init for invariant generation
+  assert(!var->isConstant);
+  std::vector<const logic::Sort*> argSorts;
+  if (var->isArray()) {
+    argSorts.push_back(logic::Sorts::intSort());
+  }
+  if (var->numberOfTraces > 1) {
+    // TODO: this probably needs more proper handling
+    argSorts.push_back(logic::Sorts::traceSort());
+  }
+
+  return logic::Signature::add(var->name + "_final", argSorts,
+                               logic::Sorts::intSort());
+}
+
+void declareColorSymbolLeft(const program::Variable* var) {
+  // declare color symbol left for symbol elimination
+  assert(!var->isConstant);
+  auto orientation = "left";
+  logic::Signature::addColorSymbol(var->name, orientation);
 }
 
 void declareSymbolsForTraces(unsigned numberOfTraces) {

@@ -121,10 +121,18 @@ class ReasoningTask {
   void outputSMTLIBToDir(std::string dirPath, std::string inputFileName,
                          std::string preamble) const;
 
+  /*
+   * generate a new file in the directory 'dirPath' and output the reasoning
+   * task in TPTP syntax. the preamble string is added at the beginning of the
+   * file.
+   */
+  void outputTPTPToDir(std::string dirPath, std::string preamble) const;
+
  private:
   bool memSafetyVerification;
   bool memSafetyViolationCheck;
   void outputSMTLIB(std::ostream& ostr) const;
+  void outputTPTP(std::ostream& ostr) const;
 };
 
 /* represents a list of axioms, lemmas and conjectures,

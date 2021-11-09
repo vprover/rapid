@@ -125,6 +125,7 @@ class SemanticsInliner {
   typedef std::unordered_map<std::shared_ptr<const program::Variable>,
                              std::shared_ptr<const logic::Term>>
       VarValues;
+
   /*
    * dictionaries to keep track of the current variable values.
    * for array-variables we keep track of the last timepoint the array was

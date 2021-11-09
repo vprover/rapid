@@ -12,6 +12,10 @@ func main()
   }
 }
 
+(axiom 
+  (<= 0 alength)
+)
+
 (conjecture
   (=>
     (= 0 alength)

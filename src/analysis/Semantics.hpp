@@ -8,7 +8,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "../util/Options.hpp"
 #include "AnalysisPreComputation.hpp"
 #include "Formula.hpp"
 #include "Problem.hpp"
@@ -58,22 +57,8 @@ class Semantics {
   generateSemantics();
   std::vector<std::shared_ptr<const logic::Axiom>> generateBounds();
 
-  std::shared_ptr<const logic::Conjecture> getMemorySafetyConj1() {
-    auto conj = logic::Formulas::disjunctionSimp(memSafetyDisjuncts);
-    return std::make_shared<logic::Conjecture>(
-        conj, "Conjecture stating that there exists an invalid memory access");
-  }
-
-  std::shared_ptr<const logic::Conjecture> getMemorySafetyConj2() {
-    auto conj = logic::Formulas::conjunctionSimp(memSafetyConjuncts);
-    return std::make_shared<logic::Conjecture>(
-        conj, "Conjecture stating that all memory accesses are valid");
-  }
 
  private:
-  void createLeftHandsSides(
-      std::shared_ptr<const logic::Term> lhs,
-      std::vector<std::shared_ptr<const logic::Term>>& lhSides);
 
   const program::Program& program;
   const EndTimePointMap endTimePointMap;
@@ -83,8 +68,18 @@ class Semantics {
   std::vector<std::shared_ptr<const logic::ProblemItem>>& problemItems;
   const unsigned numberOfTraces;
   InlinedVariableValues inlinedVariableValues;
-  std::vector<std::shared_ptr<const logic::Formula>> memSafetyDisjuncts;
-  std::vector<std::shared_ptr<const logic::Formula>> memSafetyConjuncts;
+  
+  // stores variables that are used in the left side of assignments, i.e.
+  // symbols that need to be colored and targeted for symbol elimination
+  std::unordered_map<std::string, std::shared_ptr<const program::Variable>>
+      coloredSymbols;
+  // used to track start timepoints of all loops to find the first relevant
+  // timepoint for target symbols
+  std::vector<std::shared_ptr<const logic::Term>> loopStartTimePoints;
+  // used to track start timepoints of all loops to find the last relevant
+  // timepoint for target symbols
+  // TODO, I dont think these arrays are necessary 
+  std::vector<std::shared_ptr<const logic::Term>> loopEndTimePoints;
 
   std::shared_ptr<const logic::Formula> generateSemantics(
       const program::Statement* statement, SemanticsInliner& inliner,
@@ -93,7 +88,7 @@ class Semantics {
       const program::VarDecl* varDecl, SemanticsInliner& inliner,
       std::shared_ptr<const logic::Term> trace);
   std::shared_ptr<const logic::Formula> generateSemantics(
-      const program::Assignment* intAssignment, SemanticsInliner& inliner,
+      const program::Assignment* assignment, SemanticsInliner& inliner,
       std::shared_ptr<const logic::Term> trace);
   std::shared_ptr<const logic::Formula> generateSemantics(
       const program::IfElse* ifElse, SemanticsInliner& inliner,

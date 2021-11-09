@@ -9,6 +9,7 @@
 
 std::shared_ptr<const logic::Symbol> locationSymbol(std::string location,
                                                     unsigned numberOfLoops);
+
 std::shared_ptr<const logic::Symbol> locationSymbolForStatement(
     const program::Statement* statement);
 std::shared_ptr<const logic::Symbol> locationSymbolEndLocation(
@@ -21,6 +22,17 @@ std::shared_ptr<const logic::Symbol> lastIterationSymbol(
 
 std::shared_ptr<const logic::Symbol> posVarSymbol();
 std::shared_ptr<const logic::Symbol> locVarSymbol();  // memory location
+
+std::shared_ptr<const logic::Symbol> intIteratorSymbol(
+    const program::WhileStatement* whileStatement);
+std::shared_ptr<const logic::Symbol> intLastIterationSymbol(
+    const program::WhileStatement* whileStatement, unsigned numberOfTraces);
+
+std::shared_ptr<const logic::Symbol> declareInitTargetSymbol(
+    const program::Variable* var);
+std::shared_ptr<const logic::Symbol> declareFinalTargetSymbol(
+    const program::Variable* var);
+void declareColorSymbolLeft(const program::Variable* var);
 
 std::shared_ptr<const logic::Symbol> traceSymbol(unsigned traceNumber);
 

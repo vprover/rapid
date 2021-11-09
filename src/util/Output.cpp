@@ -52,7 +52,11 @@ int CommentingStreambuf::overflow(int c) {
     return EOF;
   }
   if (_atLineStart) {
-    _dest->sputc(';');
+    if (util::Configuration::instance().tptp()) {
+      _dest->sputc('%');
+    } else {
+      _dest->sputc(';');
+    }
     _dest->sputc(' ');
     _atLineStart = false;
   }

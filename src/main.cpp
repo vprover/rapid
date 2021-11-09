@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "analysis/Semantics.hpp"
+#include "analysis/GenerateMemConjectures.hpp"
 #include "analysis/TheoryAxioms.hpp"
 #include "analysis/TraceLemmas.hpp"
 #include "logic/Problem.hpp"
@@ -70,29 +71,34 @@ int main(int argc, char* argv[]) {
         problemItems.insert(problemItems.end(), semantics.begin(),
                             semantics.end());
 
-        // for all variables that represent unsigned, add constraints of the
-        // form forall (tp : Time) x(tp) >= 0
-        auto unsignedVarBounds = s.generateBounds();
-        problemItems.insert(problemItems.end(), unsignedVarBounds.begin(),
-                            unsignedVarBounds.end());
+        // When attempting to reason about memory safety, we output a
+        // special conjectures
+        if (util::Configuration::instance().memSafetyMode()) {
+          analysis::MemConjectureGenerator mcg(*parserResult.program);
+          auto memSafetyConjectures = mcg.generateMemSafetyConjectures();
+          problemItems.insert(problemItems.end(), memSafetyConjectures.begin(),
+                             memSafetyConjectures.end()); 
+        }
 
-        auto traceLemmas = analysis::generateTraceLemmas(
-            *parserResult.program, parserResult.locationToActiveVars,
-            parserResult.numberOfTraces, semantics, inlinedVarValues);
-        problemItems.insert(problemItems.end(), traceLemmas.begin(),
-                            traceLemmas.end());
+        if (util::Configuration::instance().outputTraceLemmas()) {
+          auto traceLemmas = analysis::generateTraceLemmas(
+              *parserResult.program, parserResult.locationToActiveVars,
+              parserResult.numberOfTraces, semantics, inlinedVarValues);
+          problemItems.insert(problemItems.end(), traceLemmas.begin(),
+                              traceLemmas.end());
+        } else {
+          // perhaps we want to add in conjunction with trace lemmas?
+          auto lemmas = analysis::generateNonTraceLemmas(
+              *parserResult.program, parserResult.locationToActiveVars,
+              parserResult.numberOfTraces, semantics, inlinedVarValues);
+          problemItems.insert(problemItems.end(), lemmas.begin(), lemmas.end());
+        }
 
         problemItems.insert(problemItems.end(),
                             parserResult.problemItems.begin(),
                             parserResult.problemItems.end());
 
         logic::Problem problem(problemItems);
-        // When attempting to reason about memory safety, we output a
-        // special conjectures
-        if (util::Configuration::instance().memSafetyMode()) {
-          problem.setMemSafetyConj1(s.getMemorySafetyConj1());
-          problem.setMemSafetyConj2(s.getMemorySafetyConj2());
-        }
 
         // generate reasoning task, convert reasoning task to smtlib, and output
         // it to output-file
@@ -102,7 +108,24 @@ int main(int argc, char* argv[]) {
           std::stringstream preamble;
           preamble << util::Output::comment << *parserResult.program
                    << util::Output::nocomment;
-          task.outputSMTLIBToDir(outputDir, inputFileName, preamble.str());
+
+          if (util::Configuration::instance().tptp()) {
+            task.outputTPTPToDir(outputDir, preamble.str());
+          } else {
+            task.outputSMTLIBToDir(outputDir, inputFileName, preamble.str());
+          }
+        }
+
+        if (util::Configuration::instance().postcondition()) {
+          for (const auto& task : tasks) {
+            if (task.conjecture.get()->name.find("user-conjecture") !=
+                std::string::npos) {
+              std::stringstream preamble;
+              preamble << util::Output::comment << *parserResult.program
+                       << util::Output::nocomment;
+              task.outputTPTPToDir(outputDir, preamble.str());
+            }
+          }
         }
       }
     }

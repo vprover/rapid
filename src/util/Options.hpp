@@ -75,9 +75,14 @@ class Configuration {
         _inlineSemantics("-inlineSemantics", true),
         _variableDifferences("-varDiff", false),
         _axiomatiseToInt("-axToInt", false),
-        _lemmaPredicates("-lemmaPredicates", true),
         _memSafetyMode("-memSafetyMode", false),
-
+        _lemmaPredicates("-lemmaPredicates", true),
+        _integerIterations("-integerIterations", false),
+        _inlineLemmas("-inlineLemmas", false),
+        _postcondition("-postcondition", false),
+        _outputTraceLemmas("-outputTraceLemmas", false),
+        _tptp("-tptp", false),
+        _hol("-hol", false),
         _allOptions() {
     registerOption(&_outputDir);
     registerOption(&_generateBenchmark);
@@ -85,8 +90,28 @@ class Configuration {
     registerOption(&_inlineSemantics);
     registerOption(&_variableDifferences);
     registerOption(&_axiomatiseToInt);
-    registerOption(&_lemmaPredicates);
     registerOption(&_memSafetyMode);
+    // uses lemma predicates for Rapid Vampire
+    registerOption(&_lemmaPredicates);
+
+    // semantics with iterations using integer instead of natural number sort
+    registerOption(&_integerIterations);
+
+    // inline lemmas as one big formula without naming
+    registerOption(&_inlineLemmas);
+
+    // postcondition mode prints color and target symbols
+    registerOption(&_postcondition);
+
+    // outputs trace lemmas. With Vampire's new support for induction
+    // these are not required
+    registerOption(&_outputTraceLemmas);
+
+    // tptp outputs formula in TPTP syntax
+    registerOption(&_tptp);
+
+    // hol outputs formula in TPTP HOL syntax
+    registerOption(&_hol);
   }
 
   bool setAllValues(int argc, char* argv[]);
@@ -97,13 +122,21 @@ class Configuration {
   bool generateBenchmark() { return _generateBenchmark.getValue(); }
   bool nativeNat() { return _nativeNat.getValue(); }
   bool inlineSemantics() { return _inlineSemantics.getValue(); }
+
   bool variableDifferences() { return _variableDifferences.getValue(); }
   bool axiomatiseToInt() { return _axiomatiseToInt.getValue(); }
-  bool lemmaPredicates() { return _lemmaPredicates.getValue(); }
   bool memSafetyMode() { return _memSafetyMode.getValue(); }
 
   void setDontInline() { _inlineSemantics.setValue("off"); }
-  static Configuration& instance() { return _instance; }
+  bool lemmaPredicates() { return _lemmaPredicates.getValue(); }
+  bool integerIterations() { return _integerIterations.getValue(); }
+  bool inlineLemmas() { return _inlineLemmas.getValue(); }
+  bool postcondition() { return _postcondition.getValue(); }
+  bool outputTraceLemmas() { return _outputTraceLemmas.getValue(); }
+  bool tptp() { return _tptp.getValue(); }
+  bool hol() { return _hol.getValue(); }
+
+  static Configuration instance() { return _instance; }
 
  protected:
   StringOption _outputDir;
@@ -112,8 +145,14 @@ class Configuration {
   BooleanOption _inlineSemantics;
   BooleanOption _variableDifferences;
   BooleanOption _axiomatiseToInt;
-  BooleanOption _lemmaPredicates;
   BooleanOption _memSafetyMode;
+  BooleanOption _lemmaPredicates;
+  BooleanOption _integerIterations;
+  BooleanOption _inlineLemmas;
+  BooleanOption _postcondition;
+  BooleanOption _outputTraceLemmas;
+  BooleanOption _tptp;
+  BooleanOption _hol;
 
   std::map<std::string, Option*> _allOptions;
 

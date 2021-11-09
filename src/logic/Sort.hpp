@@ -6,6 +6,8 @@
 #include <memory>
 #include <string>
 
+#include "../util/Options.hpp"
+
 namespace logic {
 
 #pragma mark - Sort
@@ -25,10 +27,12 @@ class Sort {
   bool operator==(Sort& o);
 
   std::string toSMTLIB() const;
+  std::string toTPTP() const;
 };
 std::ostream& operator<<(std::ostream& ostr, const Sort& s);
 
 std::string declareSortSMTLIB(const Sort& s);
+std::string declareSortTPTP(const Sort& s);
 
 #pragma mark - Sorts
 
@@ -40,9 +44,13 @@ class Sorts {
   static Sort* boolSort() { return fetchOrDeclare("Bool"); }
   static Sort* intSort() { return fetchOrDeclare("Int"); }
   static Sort* natSort() { return fetchOrDeclare("Nat"); }
-  static Sort* locSort() {
-    return fetchOrDeclare("Location");
-  }  // memory locations
+  static Sort* iterSort() {
+    if(util::Configuration::instance().integerIterations()){
+      return intSort();
+    }
+    return natSort();
+  }
+  static Sort* locSort() { return fetchOrDeclare("Location"); }  // memory locations
   static Sort* arraySort() { return fetchOrDeclare("Array"); }
   static Sort* timeSort() { return fetchOrDeclare("Time"); }
   static Sort* traceSort() { return fetchOrDeclare("Trace"); }

@@ -1,0 +1,31 @@
+func main()
+{
+  const Int[] a;
+  const Int alength;
+
+  Int i = 0;
+  Int j = 0;
+  while(i < alength)
+  {
+    i = i + 1;
+    j = 1;
+  }
+}
+
+(axiom 
+  (<= 0 alength)
+)
+
+(conjecture
+  (=>
+    (= 0 alength)
+    (= (j main_end) 1)
+  )
+)
+
+(conjecture
+  (=>
+    (< 0 alength)
+    (= (j main_end) 0)
+  )
+)

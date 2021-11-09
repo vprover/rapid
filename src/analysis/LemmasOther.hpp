@@ -56,26 +56,38 @@ class AtLeastOneIterationLemmas
   virtual void generateOutputFor(
       const program::WhileStatement* statement,
       std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
+
 };
 
-/*
- * LEMMA 2
- * TODO: not used currently, since implementation unsound
- * TODO: check, generalize, extend, recategorize, test.
- */
-class OrderingSynchronizationLemmas
+class LoopConditionAnalysisLemmas
     : public ProgramTraverser<
           std::vector<std::shared_ptr<const logic::ProblemItem>>> {
  public:
-  using ProgramTraverser::ProgramTraverser;  // inherit initializer, note:
-                                             // doesn't allow additional members
-                                             // in subclass!
+  LoopConditionAnalysisLemmas(
+      const program::Program& program,
+      std::unordered_map<std::string,
+                         std::vector<std::shared_ptr<const program::Variable>>>
+          locationToActiveVars,
+      unsigned numberOfTraces,
+      std::vector<std::shared_ptr<const logic::Axiom>> programSemantics)
+      : ProgramTraverser<
+            std::vector<std::shared_ptr<const logic::ProblemItem>>>(
+            program, locationToActiveVars, numberOfTraces),
+        programSemantics(programSemantics) {}
 
  private:
+  std::vector<std::shared_ptr<const logic::Axiom>> programSemantics;
+
+  bool doesNotChangeInLoop(
+      std::unordered_set<std::shared_ptr<const program::Variable>>&
+          assignedVars,
+      std::shared_ptr<const program::IntExpression> expr);
+
   virtual void generateOutputFor(
       const program::WhileStatement* statement,
       std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
 };
+
 }  // namespace analysis
 
 #endif

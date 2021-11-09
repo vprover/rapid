@@ -14,10 +14,13 @@ namespace analysis {
 void ValueEvolutionLemmas::generateOutputFor(
     const program::WhileStatement* whileStatement,
     std::vector<std::shared_ptr<const logic::ProblemItem>>& items) {
+
+  static bool integerIts = util::Configuration::instance().integerIterations();
+
   auto boundLSymbol =
-      logic::Signature::varSymbol("boundL", logic::Sorts::natSort());
+      logic::Signature::varSymbol("boundL", logic::Sorts::iterSort());
   auto boundRSymbol =
-      logic::Signature::varSymbol("boundR", logic::Sorts::natSort());
+      logic::Signature::varSymbol("boundR", logic::Sorts::iterSort());
 
   auto boundL = logic::Terms::var(boundLSymbol);
   auto boundR = logic::Terms::var(boundRSymbol);
@@ -27,7 +30,7 @@ void ValueEvolutionLemmas::generateOutputFor(
   auto lStartboundR = timepointForLoopStatement(whileStatement, boundR);
   auto lStartIt = timepointForLoopStatement(whileStatement, it);
   auto lStartSuccOfIt =
-      timepointForLoopStatement(whileStatement, logic::Theory::natSucc(it));
+      timepointForLoopStatement(whileStatement, logic::Theory::succ(it));
 
   auto posSymbol = posVarSymbol();
   auto pos = posVar();
@@ -123,11 +126,16 @@ void ValueEvolutionLemmas::generateOutputFor(
             rhs2 = logic::Terms::arraySelect(rhs2, pos);
           }
 
+          auto conjunct = integerIts ? 
+              logic::Theory::intLessEqual(logic::Theory::intZero(), boundL) :
+              logic::Theory::boolTrue();
+
           auto premiseFormula = logic::Formulas::universal(
               {it->symbol}, logic::Formulas::implication(
-                                logic::Formulas::conjunction(
-                                    {logic::Theory::natSubEq(boundL, it),
-                                     logic::Theory::natSub(it, boundR),
+                                logic::Formulas::conjunctionSimp(
+                                    {conjunct,
+                                     logic::Theory::lessEq(boundL, it),
+                                     logic::Theory::less(it, boundR),
                                      predicateFunctor(lhs, rhs1, "")}),
                                 predicateFunctor(lhs, rhs2, "")));
           auto premiseDef = std::make_shared<logic::Definition>(
@@ -135,12 +143,19 @@ void ValueEvolutionLemmas::generateOutputFor(
                   argSymbols,
                   logic::Formulas::equivalence(premise, premiseFormula)),
               "Premise for " + name, logic::ProblemItem::Visibility::Implicit);
-          items.push_back(premiseDef);
+          
+          // only add named premise if we don't use inlined lemmas
+          if (!util::Configuration::instance().inlineLemmas()) {
+            items.push_back(premiseDef);
+          }
 
           // Part 2B: Define lemma:
           // boundL<=boundR => IH(boundR)
           auto conclusionFormula = logic::Formulas::implication(
-              logic::Theory::natSubEq(boundL, boundR),
+              logic::Formulas::conjunctionSimp({
+                logic::Theory::lessEq(boundL, boundR),
+                conjunct
+              }),
               inductionHypothesis(boundR));
           // forall enclosingIterators: forall boundL,boundR. (Premise =>
           // Conclusion) or forall enclosingIterators: forall boundL,boundR.
@@ -152,6 +167,15 @@ void ValueEvolutionLemmas::generateOutputFor(
               inductionAxBCDef->name, inductionAxICDef->name,
               inductionAxiomConDef->name, inductionAxiom->name,
               premiseDef->name};
+
+          if (util::Configuration::instance().inlineLemmas()) {
+            lemma = logic::Formulas::universal(
+                argSymbols, logic::Formulas::implication(premiseFormula,
+                                                         conclusionFormula));
+            fromItems = {inductionAxBCDef->name, inductionAxICDef->name,
+                         inductionAxiomConDef->name, inductionAxiom->name};
+          }
+
           items.push_back(std::make_shared<logic::Lemma>(
               lemma, name, logic::ProblemItem::Visibility::Implicit,
               fromItems));
@@ -164,6 +188,7 @@ void ValueEvolutionLemmas::generateOutputFor(
 void StaticAnalysisLemmas::generateOutputFor(
     const program::WhileStatement* statement,
     std::vector<std::shared_ptr<const logic::ProblemItem>>& items) {
+  static bool integerIts = util::Configuration::instance().integerIterations();  
   auto itSymbol = iteratorSymbol(statement);
   auto it = iteratorTermForLoop(statement);
 
@@ -252,7 +277,7 @@ void StaticAnalysisLemmas::generateOutputFor(
         // IH(it))
         auto lemma = logic::Formulas::universal(
             argSymbols,
-            logic::Formulas::implication(logic::Theory::natSubEq(it, n),
+            logic::Formulas::implication(logic::Theory::lessEq(it, n),
                                          inductionHypothesis(it)));
 
         std::vector<std::string> fromItems = {
@@ -303,6 +328,7 @@ std::pair<bool, bool> StaticAnalysisLemmas::derefAssignementsInLoop(
         if (b2) {
           p2iDerefAssigned = true;
         }
+
       }
       break;
     }
@@ -329,3 +355,4 @@ std::pair<bool, bool> StaticAnalysisLemmas::derefAssignementsInLoop(
 }
 
 }  // namespace analysis
+

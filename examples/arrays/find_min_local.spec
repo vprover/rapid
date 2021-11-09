@@ -9,13 +9,13 @@ func main()
 	b[0] = a[0];
 	Int blength = 1;
 
-	Int i = 0;
+	Int i = 1;
 	Int m = 0;
 	while (i < alength)
 	{
 		if (a[i] < a[m])
 		{
-			b[i] = a[i];
+			b[blength] = a[i];
 			blength = blength + 1;
 			m = i;
 		}
@@ -26,6 +26,10 @@ func main()
 		i = i + 1;
 	}
 }
+
+(axiom
+  (<= 1 alength)
+)
 
 (conjecture
 	(forall ((k Int))

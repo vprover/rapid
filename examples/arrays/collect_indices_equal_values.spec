@@ -30,11 +30,15 @@ func main()
 	}
 }
 
+(axiom
+  (<= 0 alength)
+)
+
+
 (conjecture
    (forall ((pos Int))
       (=>
         (and
-          (<= 0 alength)
           (<= 0 pos)
           (< pos (blength main_end))
         )
@@ -50,7 +54,6 @@ func main()
   (forall ((pos Int))
     (=>
       (and
-        (<= 0 alength)
         (<= 0 pos)
         (< pos (blength main_end))
       )
@@ -63,15 +66,12 @@ func main()
   (forall ((pos Int))
     (=>
       (and
-        (<= 0 alength)
         (<= 0 pos)
         (< pos alength)
         (= (a1 pos) (a2 pos))
       )
       (exists ((pos2 Int))
-        (and
-          (= (b main_end pos2) pos)
-        )
+        (= (b main_end pos2) pos)
       )
     )
   )
@@ -81,7 +81,6 @@ func main()
   (forall ((pos Int))
     (=>
       (and
-        (<= 0 alength)
         (<= 0 pos)
         (< pos alength)
         (= (a1 pos) (a2 pos))

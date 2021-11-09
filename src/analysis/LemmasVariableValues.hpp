@@ -111,6 +111,7 @@ class ValueEvolutionLemmas
   virtual void generateOutputFor(
       const program::WhileStatement* statement,
       std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
+
 };
 
 /* LEMMA 2

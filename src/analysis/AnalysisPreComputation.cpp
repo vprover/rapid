@@ -124,7 +124,7 @@ void AnalysisPreComputation::addEndTimePointForWhileStatement(
   auto lastStatement = whileStatement->bodyStatements.back().get();
   auto nextTimepointForStatement = timepointForLoopStatement(
       whileStatement,
-      logic::Theory::natSucc(iteratorTermForLoop(whileStatement)));
+      logic::Theory::succ(iteratorTermForLoop(whileStatement)));
   addEndTimePointForStatement(lastStatement, nextTimepointForStatement,
                               endTimePointMap);
 }

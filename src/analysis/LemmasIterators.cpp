@@ -11,19 +11,22 @@ namespace analysis {
 void IntermediateValueLemmas::generateOutputFor(
     const program::WhileStatement* statement,
     std::vector<std::shared_ptr<const logic::ProblemItem>>& items) {
+
+  static bool integerIts = util::Configuration::instance().integerIterations();
+
   auto itSymbol = iteratorSymbol(statement);
   auto it = iteratorTermForLoop(statement);
-  auto it2Symbol = logic::Signature::varSymbol("it", logic::Sorts::natSort());
+  auto it2Symbol = logic::Signature::varSymbol("it", logic::Sorts::iterSort());
   auto it2 = logic::Terms::var(it2Symbol);
 
   auto lStartIt = timepointForLoopStatement(statement, it);
   auto lStartIt2 = timepointForLoopStatement(statement, it2);
   auto lStartSuccOfIt =
-      timepointForLoopStatement(statement, logic::Theory::natSucc(it));
+      timepointForLoopStatement(statement, logic::Theory::succ(it));
   auto lStartSuccOfIt2 =
-      timepointForLoopStatement(statement, logic::Theory::natSucc(it2));
+      timepointForLoopStatement(statement, logic::Theory::succ(it2));
   auto lStartZero =
-      timepointForLoopStatement(statement, logic::Theory::natZero());
+      timepointForLoopStatement(statement, logic::Theory::zero());
 
   auto posSymbol = posVarSymbol();
   auto pos = logic::Terms::var(posSymbol);
@@ -86,45 +89,25 @@ void IntermediateValueLemmas::generateOutputFor(
           items.push_back(inductionAxiom);
 
           // PART 2: Add trace lemma
-          std::vector<std::shared_ptr<const logic::Term>> freeVars1 = {};
           std::vector<std::shared_ptr<const logic::Term>> freeVars2 = {};
-          for (const auto& symbol : freeVarSymbols1) {
-            freeVars1.push_back(logic::Terms::var(symbol));
-          }
+
           for (const auto& symbol : freeVarSymbols2) {
             freeVars2.push_back(logic::Terms::var(symbol));
           }
 
           // PART 2A: Add definition for dense
-          auto dense =
-              logic::Formulas::lemmaPredicate("Dense-" + nameSuffix, freeVars1);
+          auto dense = getDensityFormula(freeVarSymbols1, nameSuffix, true);
           // Dense_v: forall it. (it<n => ( v(l(s(it))    )=v(l(it)    ) or
           // v(l(s(it))    )=v(l(it)    )+1 ) )         , or
           //          forall it. (it<n => ( v(l(s(it)),pos)=v(l(it),pos) or
           //          v(l(s(it)),pos)=v(l(it),pos)+1 ) )
 
-          auto lhs = toTerm(v, lStartSuccOfIt, trace);
-          auto rhs = toTerm(v, lStartIt, trace);
+          auto denseDefinition = getDensityDefinition(
+              freeVarSymbols1, v, nameSuffix, itSymbol, it, lStartIt,
+              lStartSuccOfIt, n, trace, true);
 
-          if (v->isArray()) {
-            lhs = logic::Terms::arraySelect(lhs, pos);
-            rhs = logic::Terms::arraySelect(rhs, pos);
-          }
-
-          auto denseFormula = logic::Formulas::universal(
-              {itSymbol},
-              logic::Formulas::implication(
-                  logic::Theory::natSub(it, n),
-                  logic::Formulas::disjunction(
-                      {logic::Formulas::equality(lhs, rhs),
-                       logic::Formulas::equality(
-                           lhs, logic::Theory::intAddition(
-                                    rhs, logic::Theory::intConstant(1)))})));
           auto denseDef = std::make_shared<logic::Definition>(
-              logic::Formulas::universal(
-                  freeVarSymbols1,
-                  logic::Formulas::equivalence(dense, denseFormula)),
-              "Dense for " + nameSuffix,
+              denseDefinition, "Dense for " + nameSuffix,
               logic::ProblemItem::Visibility::Implicit);
 
           items.push_back(denseDef);
@@ -136,13 +119,9 @@ void IntermediateValueLemmas::generateOutputFor(
           //          v(l(zero),pos)<=x & x<v(l(n),pos) & Dense_v
           auto premiseFormula = logic::Formulas::conjunction(
               {logic::Theory::intLessEqual(
-                   /*v->isArray() ? toTerm(v,lStartZero,pos,trace) :*/ toTerm(
-                       v, lStartZero, trace),
-                   x),
+                    toTerm(v, lStartZero, trace), x),
                logic::Theory::intLess(
-                   x,
-                   /*v->isArray() ? toTerm(v,lStartN,pos,trace) :*/ toTerm(
-                       v, lStartN, trace)),
+                   x, toTerm(v, lStartN, trace)),
                dense});
           auto premiseDef = std::make_shared<logic::Definition>(
               logic::Formulas::universal(
@@ -150,7 +129,10 @@ void IntermediateValueLemmas::generateOutputFor(
                   logic::Formulas::equivalence(premise, premiseFormula)),
               "Premise for " + name, logic::ProblemItem::Visibility::Implicit);
 
-          items.push_back(premiseDef);
+          // only add named premise if we don't use inlined lemmas
+          if (!util::Configuration::instance().inlineLemmas()) {
+            items.push_back(premiseDef);
+          }
 
           // PART 2C: Add lemma
           // Conclusion: exists it2. (it2<n & v(l(it2)    )=x & v(l(s(it2))
@@ -160,18 +142,17 @@ void IntermediateValueLemmas::generateOutputFor(
 
           auto lhs1 = toTerm(v, lStartIt2, trace);
           auto lhs2 = toTerm(v, lStartSuccOfIt2, trace);
-          rhs = toTerm(v, lStartIt2, trace);
+          auto rhs = toTerm(v, lStartIt2, trace);
 
-          if (v->isArray()) {
-            lhs1 = logic::Terms::arraySelect(lhs1, pos);
-            lhs2 = logic::Terms::arraySelect(lhs2, pos);
-            rhs = logic::Terms::arraySelect(rhs, pos);
-          }
+          auto conjunctFirst = integerIts ? 
+              logic::Theory::intLessEqual(logic::Theory::intZero(), it) :
+              logic::Theory::boolTrue();
 
           auto conclusion = logic::Formulas::existential(
               {it2Symbol},
-              logic::Formulas::conjunction({
-                  logic::Theory::natSub(it2, n),
+              logic::Formulas::conjunctionSimp({
+                  conjunctFirst,
+                  logic::Theory::less(it2, n),
                   logic::Formulas::equality(lhs1, x),
                   logic::Formulas::equality(
                       lhs2, logic::Theory::intAddition(
@@ -188,31 +169,98 @@ void IntermediateValueLemmas::generateOutputFor(
                                                 inductionAxiom->name,
                                                 denseDef->name,
                                                 premiseDef->name};
+
+          if (util::Configuration::instance().inlineLemmas()) {
+            lemma = logic::Formulas::universal(
+                freeVarSymbols2,
+                logic::Formulas::implication(premiseFormula, conclusion));
+            fromItems = {inductionAxBCDef->name, inductionAxICDef->name,
+                         inductionAxiomConDef->name, inductionAxiom->name,
+                         denseDef->name};
+          }
+
           items.push_back(std::make_shared<logic::Lemma>(
               lemma, name, logic::ProblemItem::Visibility::Implicit,
               fromItems));
+
+          if(integerIts){
+            // Note for integer encoding it makes sense to add a second notion of
+            // strict density to derive i(l(0)) + it = i(l(it)) PART 2A: Add
+            // definition for strict dense
+            auto denseStrict =
+                getDensityFormula(freeVarSymbols1, "strict-" + nameSuffix, true);
+
+            // Dense_v: forall it. (0≤it<n => ( v(l(s(it))    )=v(l(it)    )+1 ) )
+            // , or
+            //          forall it. (0≤it<n => ( v(l(s(it)),pos)=v(l(it),pos)+1 ) )
+            auto denseStrictFormula = logic::Formulas::universal(
+                {itSymbol},
+                logic::Formulas::implication(
+                    logic::Formulas::conjunction({
+                        logic::Theory::intLessEqual(logic::Theory::intZero(), it),
+                        logic::Theory::intLess(it, n),
+                    }),
+                    logic::Formulas::equality(toTerm(v, lStartSuccOfIt, trace),
+                        logic::Theory::intAddition(toTerm(v, lStartIt, trace),
+                            logic::Theory::intConstant(1)))
+                        ));
+            auto denseStrictDef = std::make_shared<logic::Definition>(
+                logic::Formulas::universal(freeVarSymbols1,
+                                           logic::Formulas::equivalence(
+                                               denseStrict, denseStrictFormula)),
+                "Dense-strict for " + nameSuffix,
+                logic::ProblemItem::Visibility::Implicit);
+
+            items.push_back(denseStrictDef);
+
+            // PART 3B: Add lemma
+            // Dense-strict-v-l => forall it. (0≤it<n => ( v(l(it)) = v(l(0)) + it
+            // ) )
+            auto lemmaStrict = logic::Formulas::implication(
+                denseStrict,
+                logic::Formulas::universal(
+                    {itSymbol},
+                    logic::Formulas::implication(
+                        logic::Formulas::conjunction({
+                            logic::Theory::intLessEqual(logic::Theory::intZero(), it),
+                            logic::Theory::intLess(it, n),
+                        }),
+                        logic::Formulas::equality(toTerm(v, lStartIt, trace),
+                            logic::Theory::intAddition(toTerm(v, lStartIt, trace),
+                                it)))));
+
+            items.push_back(std::make_shared<logic::Definition>(
+                lemmaStrict, "Strict density for " + nameSuffix,
+                logic::ProblemItem::Visibility::Implicit));
+          }
         }
       }
     }
   }
-}
+} 
+
 
 void IterationInjectivityLemmas::generateOutputFor(
     const program::WhileStatement* statement,
     std::vector<std::shared_ptr<const logic::ProblemItem>>& items) {
+
+  static bool integerIts = util::Configuration::instance().integerIterations();
+
   auto itSymbol = iteratorSymbol(statement);
   auto it = iteratorTermForLoop(statement);
-  auto it1Symbol = logic::Signature::varSymbol("it1", logic::Sorts::natSort());
+  auto it1Symbol =
+      logic::Signature::varSymbol("it1", logic::Sorts::iterSort());
   auto it1 = logic::Terms::var(it1Symbol);
-  auto it2Symbol = logic::Signature::varSymbol("it2", logic::Sorts::natSort());
+  auto it2Symbol =
+      logic::Signature::varSymbol("it2", logic::Sorts::iterSort());
   auto it2 = logic::Terms::var(it2Symbol);
 
   auto lStartIt = timepointForLoopStatement(statement, it);
   auto lStartSuccOfIt =
-      timepointForLoopStatement(statement, logic::Theory::natSucc(it));
+      timepointForLoopStatement(statement, logic::Theory::succ(it));
   auto lStartIt1 = timepointForLoopStatement(statement, it1);
   auto lStartSuccOfIt1 =
-      timepointForLoopStatement(statement, logic::Theory::natSucc(it1));
+      timepointForLoopStatement(statement, logic::Theory::succ(it1));
   auto lStartIt2 = timepointForLoopStatement(statement, it2);
 
   auto assignedVars = AnalysisPreComputation::computeAssignedVars(statement);
@@ -222,8 +270,8 @@ void IterationInjectivityLemmas::generateOutputFor(
        locationToActiveVars.at(locationSymbolForStatement(statement)->name)) {
     if (!v->isConstant && assignedVars.find(v) != assignedVars.end()) {
       if (!v->isArray())  // We assume that loop counters are not array elements
-                          // and therefore only add iterator-lemmas for
-                          // non-array-vars
+                        // and therefore only add iterator-lemmas for
+                        // non-array-vars
       {
         for (unsigned traceNumber = 1; traceNumber < numberOfTraces + 1;
              traceNumber++) {
@@ -265,12 +313,8 @@ void IterationInjectivityLemmas::generateOutputFor(
           // PART 2: Add trace lemma
 
           // PART 2A: Add definition for stronglyDense
-          std::vector<std::shared_ptr<const logic::Term>> freeVars = {};
-          for (const auto& symbol : freeVarSymbols) {
-            freeVars.push_back(logic::Terms::var(symbol));
-          }
-          auto dense =
-              logic::Formulas::lemmaPredicate("Dense-" + nameSuffix, freeVars);
+          auto dense = getDensityFormula(freeVarSymbols, nameSuffix, true);
+
           // TODO: refactor, currently depends on the following facts
           // - the dense-definition is generated as part of the
           // intermediate-value lemma
@@ -279,6 +323,10 @@ void IterationInjectivityLemmas::generateOutputFor(
           // - the name of the definition matches the name used here.
           auto denseDefName = "Dense for " + nameSuffix;
 
+          auto conjunct = integerIts ? 
+              logic::Theory::intLessEqual(logic::Theory::intZero(), it) :
+              logic::Theory::boolTrue();
+
           /* Premise:
            *    and
            *       Dense_v
@@ -286,21 +334,23 @@ void IterationInjectivityLemmas::generateOutputFor(
            *       it1<it2
            *       it2<=n
            */
-          auto premise = logic::Formulas::conjunction({
+          auto premise = logic::Formulas::conjunctionSimp({
               dense,
               logic::Formulas::equality(
                   toTerm(v, lStartSuccOfIt1, trace),
                   logic::Theory::intAddition(toTerm(v, lStartIt1, trace),
                                              logic::Theory::intConstant(1))),
-              logic::Theory::natSub(it1, it2),
-              logic::Theory::natSubEq(it2, n),
+              conjunct,
+              logic::Theory::less(it1, it2),
+              logic::Theory::lessEq(it2, n),
           });
 
           // Conclusion: v(l(it1))!=v(l(it2))
           auto conclusion = logic::Formulas::disequality(
               toTerm(v, lStartIt1, trace), toTerm(v, lStartIt2, trace));
 
-          // forall enclosingIterators. forall it1,it2. (premise => conclusion)
+          // forall enclosingIterators. forall it1,it2. (premise =>
+          // conclusion)
           auto lemma = logic::Formulas::universal(
               freeVarSymbols,
               logic::Formulas::universal(
@@ -318,4 +368,5 @@ void IterationInjectivityLemmas::generateOutputFor(
     }
   }
 }
+
 }  // namespace analysis

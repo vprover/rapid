@@ -49,7 +49,6 @@ class Variable {
             numberOfTraces == rhs.numberOfTraces));
     return (name == rhs.name);
   }
-
   bool operator!=(const Variable& rhs) const { return !operator==(rhs); }
 };
 }  // namespace program

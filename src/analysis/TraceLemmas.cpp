@@ -81,4 +81,22 @@ std::vector<std::shared_ptr<const logic::ProblemItem>> generateTraceLemmas(
 
   return items;
 }
+
+std::vector<std::shared_ptr<const logic::ProblemItem>> generateNonTraceLemmas(
+    const program::Program& program,
+    std::unordered_map<std::string,
+                       std::vector<std::shared_ptr<const program::Variable>>>
+        locationToActiveVars,
+    unsigned numberOfTraces,
+    std::vector<std::shared_ptr<const logic::Axiom>> programSemantics,
+    InlinedVariableValues& inlinedVarValues) {
+  std::vector<std::shared_ptr<const logic::ProblemItem>> items;
+
+  LoopConditionAnalysisLemmas loopConditionAnalysisLemmas(
+      program, locationToActiveVars, numberOfTraces, programSemantics);
+  loopConditionAnalysisLemmas.generate(items);
+
+  return items;
+}
+
 }  // namespace analysis

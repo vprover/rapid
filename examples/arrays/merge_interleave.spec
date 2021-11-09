@@ -14,6 +14,11 @@ func main()
 	}
 }
 
+(axiom
+  (<= 0 alength)
+)
+
+
 (conjecture
    (forall ((pos Int))
       (=>
@@ -47,7 +52,7 @@ func main()
           (and
             (<= 0 alength)
             (<= 0 pos)
-            (< pos alength)
+            (< pos (* alength 2))
           )
           (or
             (= (c main_end pos) (a j))

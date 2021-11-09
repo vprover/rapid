@@ -44,6 +44,7 @@ class Statement {
     WhileStatement,
     SkipStatement
   };
+
   virtual Type type() const = 0;
 
   virtual std::string toString(int indentation) const = 0;
@@ -84,6 +85,7 @@ class Assignment : public Statement {
   const std::shared_ptr<const Expression> rhs;
 
   Type type() const override { return Type::Assignment; }
+
   std::string toString(int indentation) const override;
 };
 

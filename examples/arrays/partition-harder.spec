@@ -9,12 +9,10 @@ func main()
 {
   const Int[] a;
   const Int alength;
-
   Int[] b;
   Int blength = 0;
   Int[] c;
   Int clength = 0;
-
 	Int i = 0;
 	while(i < alength)
 	{
@@ -33,27 +31,13 @@ func main()
 }
 
 (axiom
-  (forall ((it Nat))
-    (<= 
-      (blength (l19 it))
-      (i (l19 it)) 
-    )
-  )
-)
-(axiom
-  (forall ((it Nat))
-    (<= 
-      (clength (l19 it))
-      (i (l19 it)) 
-    )
-  )
+  (<= 0 alength)
 )
 
 (conjecture
   (forall ((pos Int))
     (=>
       (and
-        (<= 0 alength)
         (<= 0 pos)
         (< pos (blength main_end))
       )
@@ -72,7 +56,6 @@ func main()
   (forall ((pos Int))
     (=>
       (and
-        (<= 0 alength)
         (<= 0 pos)
         (< pos (clength main_end))
       )
@@ -91,7 +74,6 @@ func main()
   (forall ((pos Int))
     (=>
       (and
-        (<= 0 alength)
         (<= 0 pos)
         (< pos alength)
         (<= 0 (a pos))
@@ -111,7 +93,6 @@ func main()
   (forall ((pos Int))
     (=>
       (and
-        (<= 0 alength)
         (<= 0 pos)
         (< pos alength)
         (< (a pos) 0)
@@ -131,7 +112,6 @@ func main()
   (forall ((pos Int))
     (=>
       (and
-        (<= 0 alength)
         (<= 0 pos)
         (< pos alength)
       )

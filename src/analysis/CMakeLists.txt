@@ -1,5 +1,6 @@
 set(SPECTRE_ANALYSIS_SOURCES
     Semantics.cpp
+    GenerateMemConjectures.cpp
     SemanticsHelper.cpp
     SemanticsInliner.cpp
     AnalysisPreComputation.cpp
@@ -14,6 +15,7 @@ set(SPECTRE_ANALYSIS_SOURCES
 )
 set(SPECTRE_ANALYSIS_HEADERS
     Semantics.hpp
+    GenerateMemConjectures.hpp    
     SemanticsHelper.hpp
     SemanticsInliner.hpp
     AnalysisPreComputation.hpp

@@ -27,6 +27,7 @@ class Term {
   virtual Type type() const = 0;
 
   virtual std::string toSMTLIB() const = 0;
+  virtual std::string toTPTP() const = 0;
   virtual std::string prettyString() const = 0;
 };
 
@@ -44,6 +45,7 @@ class LVariable : public Term {
 
   Type type() const override { return Term::Type::Variable; }
   std::string toSMTLIB() const override;
+  std::string toTPTP() const override;
   virtual std::string prettyString() const override;
 
   static unsigned freshId;
@@ -71,6 +73,7 @@ class FuncTerm : public Term {
 
   Type type() const override { return Term::Type::FuncTerm; }
   std::string toSMTLIB() const override;
+  virtual std::string toTPTP() const override;
   virtual std::string prettyString() const override;
 };
 
@@ -137,11 +140,12 @@ class Terms {
   static std::shared_ptr<const FuncTerm> arraySelect(
       std::shared_ptr<const Term> array, std::shared_ptr<const Term> index);
   static std::shared_ptr<const FuncTerm> func(
-      std::string name, std::vector<std::shared_ptr<const Term>> subterms,
-      const Sort* sort, bool noDeclaration = false);
+      std::string name, std::vector<std::shared_ptr<const Term> > subterms,
+      const Sort* sort, bool noDeclaration = false,
+      Symbol::SymbolType typ = Symbol::SymbolType::Other);
   static std::shared_ptr<const FuncTerm> func(
       std::shared_ptr<const Symbol> symbol,
-      std::vector<std::shared_ptr<const Term>> subterms);
+      std::vector<std::shared_ptr<const Term> > subterms);
 };
 }  // namespace logic
 #endif
