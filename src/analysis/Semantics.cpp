@@ -199,31 +199,34 @@ Semantics::generateSemantics() {
 
 std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     const program::Statement* statement, SemanticsInliner& inliner,
-    std::shared_ptr<const logic::Term> trace) {
+    std::shared_ptr<const logic::Term> trace,
+    bool finalStatementInScope) {
   if (statement->type() == program::Statement::Type::VarDecl) {
     auto castedStatement = static_cast<const program::VarDecl*>(statement);
-    return generateSemantics(castedStatement, inliner, trace);
+    return generateSemantics(castedStatement, inliner, trace, finalStatementInScope);
   } else if (statement->type() == program::Statement::Type::Assignment) {
     auto castedStatement = static_cast<const program::Assignment*>(statement);
-    return generateSemantics(castedStatement, inliner, trace);
+    return generateSemantics(castedStatement, inliner, trace, finalStatementInScope);
   } else if (statement->type() == program::Statement::Type::IfElse) {
     auto castedStatement = static_cast<const program::IfElse*>(statement);
-    return generateSemantics(castedStatement, inliner, trace);
+    return generateSemantics(castedStatement, inliner, trace, finalStatementInScope);
   } else if (statement->type() == program::Statement::Type::WhileStatement) {
     auto castedStatement =
         static_cast<const program::WhileStatement*>(statement);
-    return generateSemantics(castedStatement, inliner, trace);
+    return generateSemantics(castedStatement, inliner, trace, finalStatementInScope);
   } else {
     assert(statement->type() == program::Statement::Type::SkipStatement);
     auto castedStatement =
         static_cast<const program::SkipStatement*>(statement);
-    return generateSemantics(castedStatement, inliner, trace);
+    return generateSemantics(castedStatement, inliner, trace, finalStatementInScope);
   }
 }
 
 std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     const program::VarDecl* varDecl, SemanticsInliner& inliner,
-    std::shared_ptr<const logic::Term> trace) {
+    std::shared_ptr<const logic::Term> trace, 
+    bool finalStatementInScope) {
+  //TODO jsut ignore declarations that are at the end of scope?
   if (util::Configuration::instance().memSafetyMode()) {
     auto var = varDecl->var;
     if (var->type() == program::Type::PointerVariableAccess) {
@@ -241,7 +244,8 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
 
 std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     const program::Assignment* assignment, SemanticsInliner& inliner,
-    std::shared_ptr<const logic::Term> trace) {
+    std::shared_ptr<const logic::Term> trace,
+    bool finalStatementInScope) {
   std::vector<std::shared_ptr<const logic::Formula>> conjuncts;
 
   auto l1 = startTimepointForStatement(assignment);
@@ -368,7 +372,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
       rhsTerm = logic::Terms::arrayStore(array, index, toStore);
       lhsTerm = toTerm(lhs, l2, trace, true);
     }
-    
+
     // lhs(l2) = rhs(l1);
     auto eq = logic::Formulas::equality(lhsTerm, rhsTerm);
 
@@ -376,7 +380,6 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
 
     auto lhsAsFunc = std::static_pointer_cast<const logic::FuncTerm>(lhsTerm);
 
-    // forall positions pos. (pos!=e(l1) => a(l2,pos) = a(l1,pos))
     auto locSymbol = locVarSymbol();
     auto loc = memLocVar();
 
@@ -597,11 +600,10 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
         auto memLocSymbol = locVarSymbol();
         auto memLocVariable = memLocVar();
 
-        auto deref1 = logic::Theory::deref(lLeftEnd, memLocVariable);
-        auto deref2 = logic::Theory::deref(lEnd, memLocVariable);
+        auto deref = logic::Theory::deref(lEnd, memLocVariable);
         auto eq1 = logic::Formulas::equality(
-            deref1, logic::Terms::locConstant(var->name));
-        auto eq2 = logic::Formulas::equality(deref2, logic::Theory::nullLoc());
+            deref, logic::Terms::locConstant(var->name));
+        auto eq2 = logic::Formulas::equality(deref, logic::Theory::nullLoc());
         auto f = logic::Formulas::implication(eq1, eq2);
         auto pointsToNull = logic::Formulas::universal(
             {memLocSymbol}, f,
@@ -619,7 +621,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     }
 
     if (util::Configuration::instance().memSafetyMode()) {
-      for (const auto& var : varsGoingOutOfScopeLeft) {
+      for (const auto& var : varsGoingOutOfScopeRight) {
         auto memLocSymbol = locVarSymbol();
         auto memLocVariable = memLocVar();
 

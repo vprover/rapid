@@ -20,9 +20,9 @@ void ReasoningTask::outputSMTLIBToDir(std::string dirPath,
                                       std::string inputFileName,
                                       std::string preamble) const {
   std::string conjName =
-      memSafetyVerification
+      conjecture->memVerificationConj()
           ? "memory-safety-verification-condition"
-          : (memSafetyViolationCheck ? "memory-safety-violation-check"
+          : (conjecture->memViolationCheckConj() ? "memory-safety-violation-check"
                                      : conjecture->name);
 
   auto outfileName = dirPath + inputFileName + "-" + conjName + ".smt2";
@@ -185,21 +185,12 @@ std::vector<ReasoningTask> Problem::generateReasoningTasks() const {
     }
 
     if (item->type == ProblemItem::Type::Conjecture) {
-      // TODO use static cast instead?
-      conjectures.push_back(
-          std::make_shared<Conjecture>(item->formula, item->name));
+      conjectures.push_back(std::static_pointer_cast<const logic::Conjecture>(item));
     }
   }
 
   for (auto& conj : conjectures) {
-    tasks.push_back(ReasoningTask(axioms, conj, false, false));
-  }
-
-  if (memSafetyConj1 != nullptr) {
-    // TODO perhaps allow users to separate these checks?
-    assert(memSafetyConj2 != nullptr);
-    tasks.push_back(ReasoningTask(axioms, memSafetyConj1, false, true));
-    tasks.push_back(ReasoningTask(axioms, memSafetyConj2, true, false));
+    tasks.push_back(ReasoningTask(axioms, conj));
   }
 
   return tasks;

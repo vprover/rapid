@@ -68,7 +68,7 @@ class Semantics {
   std::vector<std::shared_ptr<const logic::ProblemItem>>& problemItems;
   const unsigned numberOfTraces;
   InlinedVariableValues inlinedVariableValues;
-  
+
   // stores variables that are used in the left side of assignments, i.e.
   // symbols that need to be colored and targeted for symbol elimination
   std::unordered_map<std::string, std::shared_ptr<const program::Variable>>
@@ -83,22 +83,22 @@ class Semantics {
 
   std::shared_ptr<const logic::Formula> generateSemantics(
       const program::Statement* statement, SemanticsInliner& inliner,
-      std::shared_ptr<const logic::Term> trace);
+      std::shared_ptr<const logic::Term> trace, bool finalStatementInScope = false);
   std::shared_ptr<const logic::Formula> generateSemantics(
       const program::VarDecl* varDecl, SemanticsInliner& inliner,
-      std::shared_ptr<const logic::Term> trace);
+      std::shared_ptr<const logic::Term> trace, bool finalStatementInScope);
   std::shared_ptr<const logic::Formula> generateSemantics(
       const program::Assignment* assignment, SemanticsInliner& inliner,
-      std::shared_ptr<const logic::Term> trace);
+      std::shared_ptr<const logic::Term> trace, bool finalStatementInScope);
   std::shared_ptr<const logic::Formula> generateSemantics(
       const program::IfElse* ifElse, SemanticsInliner& inliner,
-      std::shared_ptr<const logic::Term> trace);
+      std::shared_ptr<const logic::Term> trace, bool finalStatementInScope);
   std::shared_ptr<const logic::Formula> generateSemantics(
       const program::WhileStatement* whileStatement, SemanticsInliner& inliner,
-      std::shared_ptr<const logic::Term> trace);
+      std::shared_ptr<const logic::Term> trace, bool finalStatementInScope);
   std::shared_ptr<const logic::Formula> generateSemantics(
       const program::SkipStatement* skipStatement, SemanticsInliner& inliner,
-      std::shared_ptr<const logic::Term> trace);
+      std::shared_ptr<const logic::Term> trace, bool finalStatementInScope);
 };
 }  // namespace analysis
 #endif

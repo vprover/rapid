@@ -167,7 +167,8 @@ std::shared_ptr<const logic::Formula> toFormula(
  */
 std::shared_ptr<const logic::Formula> quantifyAndGuard(
     std::shared_ptr<const logic::Formula> f,
-    const program::Statement* statement);
+    const program::Statement* statement,
+    bool universal = true);
 
 #pragma mark - Methods for generating most used formulas for describing changes of state
 /*

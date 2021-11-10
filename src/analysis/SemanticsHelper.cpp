@@ -707,7 +707,8 @@ std::shared_ptr<const logic::Formula> toFormula(
 
 std::shared_ptr<const logic::Formula> quantifyAndGuard(
     std::shared_ptr<const logic::Formula> f,
-    const program::Statement* statement) {
+    const program::Statement* statement,
+    bool universal) {
   auto enclosingIteratorsSymbols =
       std::vector<std::shared_ptr<const logic::Symbol>>();
   auto enclosingIteratorTerms =
@@ -736,7 +737,9 @@ std::shared_ptr<const logic::Formula> quantifyAndGuard(
   auto guard = logic::Formulas::conjunctionSimp(conjuncts);
   auto imp = logic::Formulas::implicationSimp(guard, f);
   auto quantified =
-      logic::Formulas::universalSimp(enclosingIteratorsSymbols, imp);
+    universal ?
+      logic::Formulas::universalSimp(enclosingIteratorsSymbols, imp) :
+      logic::Formulas::existentialSimp(enclosingIteratorsSymbols, imp);
   return quantified;
 }
 

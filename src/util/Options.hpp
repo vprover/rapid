@@ -136,7 +136,7 @@ class Configuration {
   bool tptp() { return _tptp.getValue(); }
   bool hol() { return _hol.getValue(); }
 
-  static Configuration instance() { return _instance; }
+  static Configuration& instance() { return _instance; }
 
  protected:
   StringOption _outputDir;

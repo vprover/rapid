@@ -175,6 +175,7 @@ problem:
 
     parsing_context.numberOfTraces = (unsigned) $3;
     logic::Theory::declareTheories();
+    logic::Theory::declareMemoryArrays();    
     declareSymbolsForTraces(parsing_context.numberOfTraces);
   }
   program smtlib_problemitem_list 

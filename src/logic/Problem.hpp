@@ -92,9 +92,20 @@ class Lemma : public ProblemItem {
 class Conjecture : public ProblemItem {
  public:
   Conjecture(std::shared_ptr<const logic::Formula> conjecture,
-             std::string name = "", std::vector<std::string> fromItems = {})
+             std::string name = "", std::vector<std::string> fromItems = {},
+             bool memSafetyVerification = false, 
+             bool memSafetyViolationCheck = false)
       : ProblemItem(ProblemItem::Type::Conjecture, conjecture, name,
-                    ProblemItem::Visibility::All, fromItems) {}
+                    ProblemItem::Visibility::All, fromItems), 
+      memSafetyVerification(memSafetyVerification),
+      memSafetyViolationCheck(memSafetyViolationCheck) {}
+
+  bool memVerificationConj() const { return memSafetyVerification; }
+  bool memViolationCheckConj() const { return memSafetyViolationCheck; }
+
+private:
+  bool memSafetyVerification;
+  bool memSafetyViolationCheck;
 };
 
 // represents a first-order reasoning task which can be passed to a prover.
@@ -103,12 +114,9 @@ class Conjecture : public ProblemItem {
 class ReasoningTask {
  public:
   ReasoningTask(std::vector<std::shared_ptr<const ProblemItem>> axioms,
-                std::shared_ptr<const Conjecture> conjecture,
-                bool memSafetyVerification, bool memSafetyViolationCheck)
+                std::shared_ptr<const Conjecture> conjecture)
       : axioms(axioms),
-        conjecture(conjecture),
-        memSafetyVerification(memSafetyVerification),
-        memSafetyViolationCheck(memSafetyViolationCheck) {}
+        conjecture(conjecture) {}
 
   const std::vector<std::shared_ptr<const ProblemItem>> axioms;
   const std::shared_ptr<const Conjecture> conjecture;
@@ -129,8 +137,6 @@ class ReasoningTask {
   void outputTPTPToDir(std::string dirPath, std::string preamble) const;
 
  private:
-  bool memSafetyVerification;
-  bool memSafetyViolationCheck;
   void outputSMTLIB(std::ostream& ostr) const;
   void outputTPTP(std::ostream& ostr) const;
 };
@@ -149,19 +155,6 @@ class Problem {
   std::vector<std::shared_ptr<const ProblemItem>> items;
 
   std::vector<ReasoningTask> generateReasoningTasks() const;
-
-  void setMemSafetyConj1(std::shared_ptr<const logic::Conjecture> conj) {
-    memSafetyConj1 = conj;
-  }
-  void setMemSafetyConj2(std::shared_ptr<const logic::Conjecture> conj) {
-    memSafetyConj2 = conj;
-  }
-
- private:
-  // trying to find memory bug
-  std::shared_ptr<const logic::Conjecture> memSafetyConj1;
-  // attempting to verify mem safety
-  std::shared_ptr<const logic::Conjecture> memSafetyConj2;
 };
 }  // namespace logic
 #endif

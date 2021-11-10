@@ -2,8 +2,8 @@ func main() {
   Int x; // input
   Int y; // input
   Int z; // input
-  Int* r1 = #x;
-  Int* r2 = #y;
+  Int * r1 = #x;
+  Int * r2 = #y;
 
   while( z>0 ) {
     Int* tmp = r1;

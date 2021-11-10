@@ -29,13 +29,15 @@ MemConjectureGenerator::generateMemSafetyConjectures() {
     }
   }
 
+  std::vector<std::string> emp = {};
+
   auto disjunct = logic::Formulas::disjunctionSimp(memSafetyDisjuncts);
   auto conj1 = std::make_shared<logic::Conjecture>(
-       disjunct, "Conjecture stating that there exists an invalid memory access");
+       disjunct, "Conjecture stating that there exists an invalid memory access", emp, false, true);
 
   auto conjunct = logic::Formulas::conjunctionSimp(memSafetyConjuncts);
   auto conj2 =  std::make_shared<logic::Conjecture>(
-       conjunct, "Conjecture stating that all memory accesses are valid");
+       conjunct, "Conjecture stating that all memory accesses are valid", emp, true, false);
 
   std::vector<std::shared_ptr<const logic::Conjecture>> conjectures;
   conjectures.push_back(conj1);
@@ -104,7 +106,10 @@ void MemConjectureGenerator::generateConjectures(
     auto diseq =
         logic::Formulas::disequality(lhs, logic::Theory::nullLoc());
 
-    memSafetyDisjuncts.push_back(quantifyAndGuard(eq, assignment));
+    // false means use existential quantification
+    // we hypothesise that these exists and iteration such
+    // that the dereference at that reference is invalid
+    memSafetyDisjuncts.push_back(quantifyAndGuard(eq, assignment, false));
     memSafetyConjuncts.push_back(quantifyAndGuard(diseq, assignment));
   }
 }
