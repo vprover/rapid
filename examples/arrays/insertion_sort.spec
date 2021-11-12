@@ -21,11 +21,14 @@ func main()
   }
 }
 
+(assert
+  (<= 2 alength)
+)
+
 (conjecture
   (forall ((k Int))
     (=>
       (and
-        (<= 2 alength)
         (<= 0 k)
         (< k (- alength 1))
       )

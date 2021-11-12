@@ -66,10 +66,10 @@ std::ostream& operator<<(
 
 class VarDecl : public Statement {
  public:
-  VarDecl(unsigned lineNumber, std::shared_ptr<const Expression> var)
+  VarDecl(unsigned lineNumber, std::shared_ptr<const program::Variable> var)
       : Statement(lineNumber), var(std::move(var)) {}
 
-  const std::shared_ptr<const Expression> var;
+  const std::shared_ptr<const program::Variable> var;
 
   Type type() const override { return Type::VarDecl; }
   std::string toString(int indentation) const override;

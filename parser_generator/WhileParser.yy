@@ -499,14 +499,14 @@ var_decl_statement:
     parsing_context.addProgramVar($1);
     declareSymbolForProgramVar($1.get());
 
-    std::shared_ptr<const program::Expression> variable;
+/*    std::shared_ptr<const program::Expression> variable;
     if(!$1->isPointer()){
       variable = std::shared_ptr<const program::IntOrNatVariableAccess>(new IntOrNatVariableAccess(std::move($1)));
     } else {
       variable = std::shared_ptr<const program::PointerVariableAccess>(new PointerVariableAccess(std::move($1)));
-    }
+    }*/
 
-    $$ = std::shared_ptr<const program::VarDecl>(new program::VarDecl(@1.begin.line, std::move(variable)));        
+    $$ = std::shared_ptr<const program::VarDecl>(new program::VarDecl(@1.begin.line, std::move($1)));        
   }
 ;
 

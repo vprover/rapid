@@ -38,6 +38,10 @@ class AnalysisPreComputation {
       const program::WhileStatement* whileStatement,
       const std::shared_ptr<const logic::Term> nextTimepoint,
       EndTimePointMap& endTimePointMap);
+  static const program::Statement*
+    getNextProperStatement(
+      std::vector<std::shared_ptr<const program::Statement>> statements,
+      unsigned currPos);
 
  public:
   /*

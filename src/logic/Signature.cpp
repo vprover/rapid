@@ -227,7 +227,7 @@ std::shared_ptr<const Symbol> Signature::fetchOrAdd(
       std::make_pair(name, std::shared_ptr<Symbol>(new Symbol(
                                name, argSorts, rngSort, noDeclaration, typ))));
   auto symbol = pair.first->second;
-
+  
   if (pair.second) {
     _signatureOrderedByInsertion.push_back(symbol);
   }

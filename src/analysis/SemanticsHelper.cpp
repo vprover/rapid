@@ -486,8 +486,9 @@ std::shared_ptr<const logic::Term> toTerm(
           std::static_pointer_cast<const program::DerefP2PExpression>(expr);
       return toTerm(castedExpr, timePoint, trace);
     }
+    default:
+      assert(false);
   }
-  assert(false);
   // to silence compiler warnings, but we should never reach here
   return toTerm(expr, timePoint, trace);
 }
@@ -633,8 +634,9 @@ std::shared_ptr<const logic::Term> toTerm(
           std::static_pointer_cast<const program::DerefP2IExpression>(expr);
       return toTerm(castedExpr, timePoint, trace);
     }
+    default :
+      assert(false);
   }
-  assert(false);
   // to silence compiler warnings, but we should never reach here
   return toTerm(expr, timePoint, trace);
 }
@@ -735,11 +737,13 @@ std::shared_ptr<const logic::Formula> quantifyAndGuard(
                                               enclosingFinalLoopCounts[i]));
   }
   auto guard = logic::Formulas::conjunctionSimp(conjuncts);
-  auto imp = logic::Formulas::implicationSimp(guard, f);
+  auto form = universal ? 
+    logic::Formulas::implicationSimp(guard, f) :
+    logic::Formulas::conjunctionSimp({guard, f});    
   auto quantified =
     universal ?
-      logic::Formulas::universalSimp(enclosingIteratorsSymbols, imp) :
-      logic::Formulas::existentialSimp(enclosingIteratorsSymbols, imp);
+      logic::Formulas::universalSimp(enclosingIteratorsSymbols, form) :
+      logic::Formulas::existentialSimp(enclosingIteratorsSymbols, form);
   return quantified;
 }
 

@@ -80,9 +80,12 @@ std::shared_ptr<const logic::Symbol> traceSymbol(unsigned traceNumber) {
 
 void declareSymbolForProgramVar(const program::Variable* var) {
   // variables are now constants of sort location
-  std::vector<const logic::Sort*> argSorts;
 
-  logic::Signature::add(var->name, argSorts, logic::Sorts::locSort());
+  logic::Symbol::SymbolType typ = logic::Symbol::SymbolType::ProgramVar;
+  if (var->isConstant) {
+    typ = logic::Symbol::SymbolType::ConstProgramVar;
+  }
+  logic::Signature::add(var->name, {}, logic::Sorts::locSort(), false, typ);
 }
 
 // TODO no need for two functions?

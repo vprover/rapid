@@ -199,42 +199,40 @@ Semantics::generateSemantics() {
 
 std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     const program::Statement* statement, SemanticsInliner& inliner,
-    std::shared_ptr<const logic::Term> trace,
-    bool finalStatementInScope) {
+    std::shared_ptr<const logic::Term> trace) {
   if (statement->type() == program::Statement::Type::VarDecl) {
     auto castedStatement = static_cast<const program::VarDecl*>(statement);
-    return generateSemantics(castedStatement, inliner, trace, finalStatementInScope);
+    return generateSemantics(castedStatement, inliner, trace);
   } else if (statement->type() == program::Statement::Type::Assignment) {
     auto castedStatement = static_cast<const program::Assignment*>(statement);
-    return generateSemantics(castedStatement, inliner, trace, finalStatementInScope);
+    return generateSemantics(castedStatement, inliner, trace);
   } else if (statement->type() == program::Statement::Type::IfElse) {
     auto castedStatement = static_cast<const program::IfElse*>(statement);
-    return generateSemantics(castedStatement, inliner, trace, finalStatementInScope);
+    return generateSemantics(castedStatement, inliner, trace);
   } else if (statement->type() == program::Statement::Type::WhileStatement) {
     auto castedStatement =
         static_cast<const program::WhileStatement*>(statement);
-    return generateSemantics(castedStatement, inliner, trace, finalStatementInScope);
+    return generateSemantics(castedStatement, inliner, trace);
   } else {
     assert(statement->type() == program::Statement::Type::SkipStatement);
     auto castedStatement =
         static_cast<const program::SkipStatement*>(statement);
-    return generateSemantics(castedStatement, inliner, trace, finalStatementInScope);
+    return generateSemantics(castedStatement, inliner, trace);
   }
 }
 
 std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     const program::VarDecl* varDecl, SemanticsInliner& inliner,
-    std::shared_ptr<const logic::Term> trace, 
-    bool finalStatementInScope) {
+    std::shared_ptr<const logic::Term> trace) {
   //TODO jsut ignore declarations that are at the end of scope?
   if (util::Configuration::instance().memSafetyMode()) {
     auto var = varDecl->var;
-    if (var->type() == program::Type::PointerVariableAccess) {
+    if (var->isPointer()) {
       // initialse pointers to point to null location
       auto l2 = endTimePointMap.at(varDecl);
       auto eq = logic::Formulas::equality(
           toTerm(var, l2, trace), logic::Theory::nullLoc(),
-          "Initialising pointer " + var->toString() + " to null at location " +
+          "Initialising pointer " + var->name + " to null at location " +
               varDecl->location);
       return eq;
     }
@@ -244,8 +242,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
 
 std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     const program::Assignment* assignment, SemanticsInliner& inliner,
-    std::shared_ptr<const logic::Term> trace,
-    bool finalStatementInScope) {
+    std::shared_ptr<const logic::Term> trace) {
   std::vector<std::shared_ptr<const logic::Formula>> conjuncts;
 
   auto l1 = startTimepointForStatement(assignment);
@@ -254,6 +251,9 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
   auto l2Name = l2->symbol->name;
   auto activeVars = intersection(locationToActiveVars.at(l1Name),
                                  locationToActiveVars.at(l2Name));
+  auto varsGoingOutOfScope = 
+    difference(locationToActiveVars.at(l1Name),
+               locationToActiveVars.at(l2Name));
 
   if (util::Configuration::instance().inlineSemantics()) {
     // This is safe as we assume no pointers when using the inliner
@@ -358,7 +358,14 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     if (isRefExpr(rhs)) {
       auto castedRhs =
           std::static_pointer_cast<const program::VarReference>(rhs);
-      rhsTerm = logic::Terms::locConstant(castedRhs->referent->name);
+
+      if(std::find(varsGoingOutOfScope.begin(), varsGoingOutOfScope.end(),
+         castedRhs->referent) != varsGoingOutOfScope.end()){
+        //rhs variable about to go out of scope
+        rhsTerm = logic::Theory::nullLoc();
+      } else{
+        rhsTerm = logic::Terms::locConstant(castedRhs->referent->name);
+      }
       lhsTerm = toTerm(lhs, l2, trace);
     }
 
@@ -408,10 +415,34 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     if (activeVarsContainsPointerVars) {
       auto lhs2 = logic::Theory::deref(l2, loc);
       auto rhs2 = logic::Theory::deref(l1, loc);
-      auto eq2 = logic::Formulas::equality(lhs2, rhs2);
-      forms.push_back(lhsAsFunc->isDerefAt()
-                          ? logic::Formulas::implication(premise, eq2)
-                          : eq2);
+
+      std::vector<std::shared_ptr<const logic::Formula>> disjs;
+      std::vector<std::shared_ptr<const logic::Formula>> conjs;
+
+      if(util::Configuration::instance().memSafetyMode()){
+        for(auto var : varsGoingOutOfScope){
+          auto f1 =
+            logic::Formulas::equality(rhs2, logic::Terms::locConstant(var->name));
+          auto f2 =
+            logic::Formulas::disequality(rhs2, logic::Terms::locConstant(var->name));          
+          disjs.push_back(f1);  
+          conjs.push_back(f2);  
+        }
+      }
+
+      if(lhsAsFunc->isDerefAt()){
+        conjs.push_back(premise);
+      }
+
+      if(util::Configuration::instance().memSafetyMode()){
+        auto disjForm = logic::Formulas::disjunctionSimp(disjs);
+        auto eq5 = logic::Formulas::equality(lhs2, logic::Theory::nullLoc());
+        forms.push_back(logic::Formulas::implicationSimp(disjForm, eq5));
+      }
+
+      auto conjForm = logic::Formulas::conjunctionSimp(conjs);
+      auto eq6 = logic::Formulas::equality(lhs2, rhs2);
+      forms.push_back(logic::Formulas::implicationSimp(conjForm, eq6));
     }
 
     if (activeVarsContainsArrayVars) {
@@ -443,11 +474,8 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
   auto lEnd = endTimePointMap.at(ifElse);
   auto lLeftStart =
       startTimepointForStatement(ifElse->ifStatements.front().get());
-  auto lLeftEnd = startTimepointForStatement(ifElse->ifStatements.back().get());
   auto lRightStart =
       startTimepointForStatement(ifElse->elseStatements.front().get());
-  auto lRightEnd =
-      startTimepointForStatement(ifElse->elseStatements.back().get());
 
   if (util::Configuration::instance().inlineSemantics()) {
     // Part 1: visit start-location
@@ -569,12 +597,6 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     // lStart are always a subset of those at lLeftStart/lRightStart
     auto activeVars = locationToActiveVars.at(lStart->symbol->name);
 
-    auto activeVarsEndLeft = locationToActiveVars.at(lLeftEnd->symbol->name);
-    auto varsGoingOutOfScopeLeft = difference(activeVarsEndLeft, activeVars);
-
-    auto activeVarsEndRight = locationToActiveVars.at(lRightEnd->symbol->name);
-    auto varsGoingOutOfScopeRight = difference(activeVarsEndRight, activeVars);
-
     auto implicationIfBranch = logic::Formulas::implication(
         condition, allVarEqual(activeVars, lLeftStart, lStart, trace),
         "Jumping into the left branch doesn't change the variable values");
@@ -595,47 +617,12 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
       conjuncts.push_back(implication);
     }
 
-    if (util::Configuration::instance().memSafetyMode()) {
-      for (const auto& var : varsGoingOutOfScopeLeft) {
-        auto memLocSymbol = locVarSymbol();
-        auto memLocVariable = memLocVar();
-
-        auto deref = logic::Theory::deref(lEnd, memLocVariable);
-        auto eq1 = logic::Formulas::equality(
-            deref, logic::Terms::locConstant(var->name));
-        auto eq2 = logic::Formulas::equality(deref, logic::Theory::nullLoc());
-        auto f = logic::Formulas::implication(eq1, eq2);
-        auto pointsToNull = logic::Formulas::universal(
-            {memLocSymbol}, f,
-            "Variables that pointed to " + var->name + " now point to null");
-        conjuncts.push_back(pointsToNull);
-      }
-    }
-
     for (const auto& statement : ifElse->elseStatements) {
       auto semanticsOfStatement =
           generateSemantics(statement.get(), inliner, trace);
       auto implication = logic::Formulas::implication(
           negatedCondition, semanticsOfStatement, "Semantics of right branch");
       conjuncts.push_back(implication);
-    }
-
-    if (util::Configuration::instance().memSafetyMode()) {
-      for (const auto& var : varsGoingOutOfScopeRight) {
-        auto memLocSymbol = locVarSymbol();
-        auto memLocVariable = memLocVar();
-
-        auto deref1 = logic::Theory::deref(lRightEnd, memLocVariable);
-        auto deref2 = logic::Theory::deref(lEnd, memLocVariable);
-        auto eq1 = logic::Formulas::equality(
-            deref1, logic::Terms::locConstant(var->name));
-        auto eq2 = logic::Formulas::equality(deref2, logic::Theory::nullLoc());
-        auto f = logic::Formulas::implication(eq1, eq2);
-        auto pointsToNull = logic::Formulas::universal(
-            {memLocSymbol}, f,
-            "Variables that pointed to " + var->name + " now point to null");
-        conjuncts.push_back(pointsToNull);
-      }
     }
 
     return logic::Formulas::conjunction(
@@ -660,16 +647,12 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
   auto lStartN = timepointForLoopStatement(whileStatement, n);
   auto lBodyStartIt =
       startTimepointForStatement(whileStatement->bodyStatements.front().get());
-  auto lBodyEndIt =
-      startTimepointForStatement(whileStatement->bodyStatements.back().get());
   auto lEnd = endTimePointMap.at(whileStatement);
 
   auto posSymbol = posVarSymbol();
   auto pos = posVar();
 
-  auto activeVarsEndLoop = locationToActiveVars.at(lBodyEndIt->symbol->name);
   auto activeVars = locationToActiveVars.at(lStart0->symbol->name);
-  auto varsGoingOutOfScope = difference(activeVarsEndLoop, activeVars);
 
   if (util::Configuration::instance().inlineSemantics()) {
     auto assignedVars =
@@ -880,24 +863,6 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
                              "from the last iteration");
     conjuncts.push_back(part4);
 
-    if (util::Configuration::instance().memSafetyMode()) {
-      for (const auto& var : varsGoingOutOfScope) {
-        auto memLocSymbol = locVarSymbol();
-        auto memLocVariable = memLocVar();
-
-        auto deref1 = logic::Theory::deref(lStartN, memLocVariable);
-        auto deref2 = logic::Theory::deref(lEnd, memLocVariable);
-        auto eq1 = logic::Formulas::equality(
-            deref1, logic::Terms::locConstant(var->name));
-        auto eq2 = logic::Formulas::equality(deref2, logic::Theory::nullLoc());
-        auto f = logic::Formulas::implication(eq1, eq2);
-        auto pointsToNull = logic::Formulas::universal(
-            {memLocSymbol}, f,
-            "Variables that pointed to " + var->name + " now point to null");
-        conjuncts.push_back(pointsToNull);
-      }
-    }
-
     return logic::Formulas::conjunction(
         conjuncts, "Loop at location " + whileStatement->location);
   }
@@ -915,9 +880,85 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
   } else {
     auto l2 = endTimePointMap.at(skipStatement);
 
-    // identify startTimePoint and endTimePoint
-    auto eq = logic::Formulas::equality(l1, l2, "Ignore any skip statement");
-    return eq;
+    auto l1Name = l1->symbol->name;
+    auto l2Name = l2->symbol->name;
+    auto activeVars = intersection(locationToActiveVars.at(l1Name),
+                                   locationToActiveVars.at(l2Name));
+    auto varsGoingOutOfScope = 
+      difference(locationToActiveVars.at(l1Name),
+                 locationToActiveVars.at(l2Name));
+   
+    if(!varsGoingOutOfScope.empty()){
+      auto locSymbol = locVarSymbol();
+      auto loc = memLocVar();
+
+      bool activeVarsContainsArrayVars = false;
+      bool activeVarsContainsPointerVars = false;
+
+      for (auto var : activeVars) {
+        if (var->isArray()) {
+          activeVarsContainsArrayVars = true;
+        } else if (var->isPointer()) {
+          activeVarsContainsPointerVars = true;
+        }
+      }
+
+      std::vector<std::shared_ptr<const logic::Formula>> forms;
+
+      auto lhs1 = logic::Theory::valueAtInt(l2, loc);
+      auto rhs1 = logic::Theory::valueAtInt(l1, loc);
+      auto eq1 = logic::Formulas::equality(lhs1, rhs1);
+
+      forms.push_back(eq1);
+
+      if (activeVarsContainsPointerVars) {
+        auto lhs2 = logic::Theory::deref(l2, loc);
+        auto rhs2 = logic::Theory::deref(l1, loc);
+
+        std::vector<std::shared_ptr<const logic::Formula>> disjs;
+        std::vector<std::shared_ptr<const logic::Formula>> conjs;
+
+        if(util::Configuration::instance().memSafetyMode()){
+          for(auto var : varsGoingOutOfScope){
+            auto f1 =
+              logic::Formulas::equality(rhs2, logic::Terms::locConstant(var->name));
+            auto f2 =
+              logic::Formulas::disequality(rhs2, logic::Terms::locConstant(var->name));          
+            disjs.push_back(f1);  
+            conjs.push_back(f2);  
+          }
+        }
+
+        if(util::Configuration::instance().memSafetyMode()){
+          auto disjForm = logic::Formulas::disjunctionSimp(disjs);
+          auto eq2 = logic::Formulas::equality(lhs2, logic::Theory::nullLoc());
+          forms.push_back(logic::Formulas::implicationSimp(disjForm, eq2));
+        }
+
+        auto conjForm = logic::Formulas::conjunctionSimp(conjs);
+        auto eq3 = logic::Formulas::equality(lhs2, rhs2);
+        forms.push_back(logic::Formulas::implicationSimp(conjForm, eq3));
+      }
+
+      if (activeVarsContainsArrayVars) {
+        auto lhs4 = logic::Theory::valueAtArray(l2, loc);
+        auto rhs4 = logic::Theory::valueAtArray(l1, loc);
+        auto eq4 = logic::Formulas::equality(lhs4, rhs4);
+        forms.push_back(eq4);
+      }
+
+      auto conj = logic::Formulas::conjunctionSimp(forms);
+      auto conjunct = logic::Formulas::universal({locSymbol}, conj, 
+        "Pointer to vars going out of scope after skip set to point to null at " +
+                         skipStatement->location);
+
+      return conjunct;
+    } else {
+
+      // identify startTimePoint and endTimePoint
+      auto eq = logic::Formulas::equality(l1, l2, "Ignore any skip statement");
+      return eq;
+    }
   }
 }
 }  // namespace analysis

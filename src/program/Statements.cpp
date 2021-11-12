@@ -12,7 +12,7 @@ std::ostream& operator<<(std::ostream& ostr, const Statement& v) {
 };
 
 std::string VarDecl::toString(int indentation) const {
-  return std::string(indentation, ' ') + var->toString() + " @" + location;
+  return std::string(indentation, ' ') + var->name + " @" + location;
 }
 
 std::string Assignment::toString(int indentation) const {

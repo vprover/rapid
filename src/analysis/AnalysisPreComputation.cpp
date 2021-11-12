@@ -8,18 +8,24 @@
 #include "Theory.hpp"
 
 namespace analysis {
+
+const program::Statement*
+AnalysisPreComputation::getNextProperStatement(
+  std::vector<std::shared_ptr<const program::Statement>> statements,
+  unsigned currPos){
+
+  // TODO dangerous at the moment! We need to ensure that no statement
+  // block ends with pointless variable declarations  
+    while (statements[currPos].get()->type() ==
+           program::Statement::Type::VarDecl) {
+      currPos = currPos + 1;
+    }
+    return statements[currPos].get();  
+}
+
+
 EndTimePointMap AnalysisPreComputation::computeEndTimePointMap(
     const program::Program& program) {
-  // TODO dangerous at the moment! We need to ensure that no function
-  //  ends with pointless variable declarations
-  auto getNextProperStatement = [](std::shared_ptr<const program::Function> f,
-                                   int curr) {
-    while (f->statements[curr].get()->type() ==
-           program::Statement::Type::VarDecl) {
-      curr = curr + 1;
-    }
-    return f->statements[curr].get();
-  };
 
   EndTimePointMap endTimePointMap;
   for (const auto& function : program.functions) {
@@ -28,7 +34,7 @@ EndTimePointMap AnalysisPreComputation::computeEndTimePointMap(
     for (int i = 1; i < function->statements.size(); ++i) {
       auto lastStatement = function->statements[i - 1].get();
       auto nextTimepoint =
-          startTimepointForStatement(getNextProperStatement(function, i));
+          startTimepointForStatement(getNextProperStatement(function->statements, i));
       addEndTimePointForStatement(lastStatement, nextTimepoint,
                                   endTimePointMap);
     }
@@ -81,7 +87,8 @@ void AnalysisPreComputation::addEndTimePointForIfElseStatement(
   for (int i = 1; i < ifElse->ifStatements.size(); ++i) {
     auto lastStatement = ifElse->ifStatements[i - 1].get();
     auto nextTimepointForStatement =
-        startTimepointForStatement(ifElse->ifStatements[i].get());
+        startTimepointForStatement(
+          getNextProperStatement(ifElse->ifStatements, i));
     addEndTimePointForStatement(lastStatement, nextTimepointForStatement,
                                 endTimePointMap);
   }
@@ -91,7 +98,8 @@ void AnalysisPreComputation::addEndTimePointForIfElseStatement(
   for (int i = 1; i < ifElse->elseStatements.size(); ++i) {
     auto lastStatement = ifElse->elseStatements[i - 1].get();
     auto nextTimepointForStatement =
-        startTimepointForStatement(ifElse->elseStatements[i].get());
+        startTimepointForStatement(
+          getNextProperStatement(ifElse->elseStatements, i));
     addEndTimePointForStatement(lastStatement, nextTimepointForStatement,
                                 endTimePointMap);
   }
@@ -114,7 +122,8 @@ void AnalysisPreComputation::addEndTimePointForWhileStatement(
   for (int i = 1; i < whileStatement->bodyStatements.size(); ++i) {
     auto lastStatement = whileStatement->bodyStatements[i - 1].get();
     auto nextTimepointForStatement =
-        startTimepointForStatement(whileStatement->bodyStatements[i].get());
+        startTimepointForStatement(
+          getNextProperStatement(whileStatement->bodyStatements, i));
     addEndTimePointForStatement(lastStatement, nextTimepointForStatement,
                                 endTimePointMap);
   }

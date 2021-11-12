@@ -49,19 +49,21 @@ MemConjectureGenerator::generateMemSafetyConjectures() {
 void MemConjectureGenerator::createLeftHandsSides(
     std::shared_ptr<const logic::Term> lhs,
     std::vector<std::shared_ptr<const logic::Term>>& lhSides) {
-  if (lhs->type() == logic::Term::Type::FuncTerm) {
-    auto castedLhs = std::static_pointer_cast<const logic::FuncTerm>(lhs);
 
-    if (castedLhs->isDerefAt()) {
-      lhSides.push_back(lhs);
-    }
+  auto castedLhs = std::static_pointer_cast<const logic::FuncTerm>(lhs);
 
-    if (castedLhs->isValueAt() || castedLhs->isDerefAt()) {
-      assert(castedLhs->subterms.size() == 2);
-      auto location = castedLhs->subterms[1];
-      createLeftHandsSides(location, lhSides);
+  if (castedLhs->isValueAt() || castedLhs->isDerefAt()) {
+    assert(castedLhs->subterms.size() == 2);
+    auto location = castedLhs->subterms[1];
+    if(location->type() == logic::Term::Type::FuncTerm){
+    	auto castedLoc = std::static_pointer_cast<const logic::FuncTerm>(location);
+    	if(castedLoc->isDerefAt()){
+        lhSides.push_back(location);
+        createLeftHandsSides(location, lhSides);
+    	}
     }
   }
+ 
 }
 
 void MemConjectureGenerator::generateConjectures(
@@ -100,7 +102,11 @@ void MemConjectureGenerator::generateConjectures(
   }
 
   std::vector<std::shared_ptr<const logic::Term>> leftHandSides;
-  createLeftHandsSides(lhsTerm, leftHandSides);
+
+  if (lhsTerm->type() == logic::Term::Type::FuncTerm) {
+    createLeftHandsSides(lhsTerm, leftHandSides);
+  }
+
   for (auto& lhs : leftHandSides) {
     auto eq = logic::Formulas::equality(lhs, logic::Theory::nullLoc());
     auto diseq =
