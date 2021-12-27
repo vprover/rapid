@@ -16,17 +16,21 @@
 
 namespace program {
 
-enum BasicType { INTEGER, NAT, ARRAY, POINTER };
+enum BasicType { STRUCT, INTEGER, NAT, ARRAY, POINTER };
+
+class VarDecl;
 
 class ExprType {
  public:
   ExprType(BasicType bt) : bt(bt) {}
   ExprType(std::shared_ptr<const ExprType> child)
       : bt(program::BasicType::POINTER), child(child) {}
+  ExprType(std::shared_ptr<const ExprType> child, BasicType bt)
+      : bt(bt), child(child) {}
   ~ExprType() {}
 
   std::shared_ptr<const ExprType> getChild() const { return child; }
-  std::string toString() const {
+  virtual std::string toString() const {
     if (bt == BasicType::POINTER) {
       return "->" + child->toString();
     } else if (bt == BasicType::INTEGER) {
@@ -38,6 +42,33 @@ class ExprType {
     }
   }
   program::BasicType type() const { return bt; };
+  bool isStructType() const { 
+    return bt == BasicType::STRUCT;
+  }
+
+  bool isIntType() const { 
+    return bt == BasicType::INTEGER;
+  }
+
+  bool isPointerType() const { 
+    return bt == BasicType::POINTER;
+  }
+
+  bool isArrayType() const { 
+    return bt == BasicType::ARRAY;
+  }
+
+  bool isPointerToPointer() const {
+    return (bt == BasicType::POINTER && child->type() == BasicType::POINTER);
+  }
+
+  bool isPointerToStruct() const {
+    return (bt == BasicType::POINTER && child->type() == BasicType::STRUCT);
+  }
+
+  bool isPointerToNonPointer() const {
+    return (bt == BasicType::POINTER && child->type() != BasicType::POINTER);    
+  }
 
   // recursive equality def
   bool operator==(const ExprType& other) const {
@@ -51,25 +82,37 @@ class ExprType {
   program::BasicType bt;
 };
 
+
+// hack needed for bison: std::vector has no overload for ostream, but these
+// overloads are needed for bison
+std::ostream& operator<<(
+    std::ostream& ostr,
+    const std::vector<std::shared_ptr<const program::ExprType>>& e);
+
 enum class Type {
-  ArithmeticConstant,
+  IntegerConstant,
   Addition,
   Subtraction,
   Modulo,
   Multiplication,
-  IntOrNatVariableAccess,
-  PointerVariableAccess,
-  Pointer2IntDeref,
-  Pointer2PointerDeref,
+  VariableAccess,
+  PointerDeref,
   IntArrayApplication,
   VarReference,
+  FieldAccess,
 };
 
 class Expression {
  public:
   virtual ~Expression() {}
 
-  virtual bool isPointerExpr() const = 0;
+  Expression(BasicType bt) {
+    exprtype = std::shared_ptr<const ExprType>(new ExprType(bt));
+  }
+
+  Expression(std::shared_ptr<const ExprType> typ) {
+    exprtype = typ;
+  }
 
   virtual bool containsReference() const { return false; }
 
@@ -83,77 +126,81 @@ class Expression {
     return exprtype;
   }
 
+  virtual bool isArithmeticExpr() const { 
+    return exprtype->type() == BasicType::INTEGER ||
+           exprtype->type() == BasicType::NAT;
+  }
+
+  virtual bool isPointerExpr() const { 
+    return exprtype->type() == BasicType::POINTER;
+  }
+
+  virtual bool isStructExpr() const { 
+    return exprtype->type() == BasicType::STRUCT;
+  }
+
  protected:
   std::shared_ptr<const ExprType> exprtype;
 };
+std::ostream& operator<<(std::ostream& ostr, const Expression& e);
 
-class IntExpression : public Expression {
+class ArithmeticConstant : public Expression {
  public:
-  IntExpression() {
-    exprtype = std::shared_ptr<const ExprType>(
-        new ExprType(program::BasicType::INTEGER));
-  }
-  virtual bool isPointerExpr() const override { return false; }
-};
-std::ostream& operator<<(std::ostream& ostr, const IntExpression& e);
-
-class ArithmeticConstant : public IntExpression {
- public:
-  ArithmeticConstant(unsigned value) : value(value) {}
+  ArithmeticConstant(unsigned value) : Expression(BasicType::INTEGER), value(value) {}
 
   const int value;
 
-  Type type() const override { return program::Type::ArithmeticConstant; }
+  Type type() const override { return program::Type::IntegerConstant; }
   std::string toString() const override;
 };
 
-class Addition : public IntExpression {
+class Addition : public Expression {
  public:
-  Addition(std::shared_ptr<const IntExpression> summand1,
-           std::shared_ptr<const IntExpression> summand2)
-      : summand1(std::move(summand1)), summand2(std::move(summand2)) {}
+  Addition(std::shared_ptr<const Expression> summand1,
+           std::shared_ptr<const Expression> summand2)
+      : Expression(BasicType::INTEGER), summand1(std::move(summand1)), summand2(std::move(summand2)) {}
 
-  const std::shared_ptr<const IntExpression> summand1;
-  const std::shared_ptr<const IntExpression> summand2;
+  const std::shared_ptr<const Expression> summand1;
+  const std::shared_ptr<const Expression> summand2;
 
   Type type() const override { return program::Type::Addition; }
   std::string toString() const override;
 };
 
-class Subtraction : public IntExpression {
+class Subtraction : public Expression {
  public:
-  Subtraction(std::shared_ptr<const IntExpression> child1,
-              std::shared_ptr<const IntExpression> child2)
-      : child1(std::move(child1)), child2(std::move(child2)) {}
+  Subtraction(std::shared_ptr<const Expression> child1,
+              std::shared_ptr<const Expression> child2)
+      : Expression(BasicType::INTEGER), child1(std::move(child1)), child2(std::move(child2)) {}
 
-  const std::shared_ptr<const IntExpression> child1;
-  const std::shared_ptr<const IntExpression> child2;
+  const std::shared_ptr<const Expression> child1;
+  const std::shared_ptr<const Expression> child2;
 
   Type type() const override { return program::Type::Subtraction; }
   std::string toString() const override;
 };
 
-class Modulo : public IntExpression {
+class Modulo : public Expression {
  public:
-  Modulo(std::shared_ptr<const IntExpression> child1,
-         std::shared_ptr<const IntExpression> child2)
-      : child1(std::move(child1)), child2(std::move(child2)) {}
+  Modulo(std::shared_ptr<const Expression> child1,
+         std::shared_ptr<const Expression> child2)
+      : Expression(BasicType::INTEGER), child1(std::move(child1)), child2(std::move(child2)) {}
 
-  const std::shared_ptr<const IntExpression> child1;
-  const std::shared_ptr<const IntExpression> child2;
+  const std::shared_ptr<const Expression> child1;
+  const std::shared_ptr<const Expression> child2;
 
   Type type() const override { return program::Type::Modulo; }
   std::string toString() const override;
 };
 
-class Multiplication : public IntExpression {
+class Multiplication : public Expression {
  public:
-  Multiplication(std::shared_ptr<const IntExpression> factor1,
-                 std::shared_ptr<const IntExpression> factor2)
-      : factor1(std::move(factor1)), factor2(std::move(factor2)) {}
+  Multiplication(std::shared_ptr<const Expression> factor1,
+                 std::shared_ptr<const Expression> factor2)
+      : Expression(BasicType::INTEGER), factor1(std::move(factor1)), factor2(std::move(factor2)) {}
 
-  const std::shared_ptr<const IntExpression> factor1;
-  const std::shared_ptr<const IntExpression> factor2;
+  const std::shared_ptr<const Expression> factor1;
+  const std::shared_ptr<const Expression> factor2;
 
   Type type() const override { return program::Type::Multiplication; }
   std::string toString() const override;
@@ -227,13 +274,13 @@ class ArithmeticComparison : public BoolExpression {
  public:
   enum class Kind { GE, GT, LE, LT, EQ };
 
-  ArithmeticComparison(Kind kind, std::shared_ptr<const IntExpression> child1,
-                       std::shared_ptr<const IntExpression> child2)
+  ArithmeticComparison(Kind kind, std::shared_ptr<const Expression> child1,
+                       std::shared_ptr<const Expression> child2)
       : kind(kind), child1(std::move(child1)), child2(std::move(child2)) {}
 
   const Kind kind;
-  const std::shared_ptr<const IntExpression> child1;
-  const std::shared_ptr<const IntExpression> child2;
+  const std::shared_ptr<const Expression> child1;
+  const std::shared_ptr<const Expression> child2;
 
   Type type() const override {
     return BoolExpression::Type::ArithmeticComparison;

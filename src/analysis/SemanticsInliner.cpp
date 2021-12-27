@@ -115,7 +115,7 @@ void SemanticsInliner::computePersistentTermsRec(
         }
       }
 
-      if (castedTerm->isConstValueAt() || castedTerm->isConstArrayAt()) {
+      if (castedTerm->isConstMemoryArray()) {
         // check whether castedTerm could denote constant program variable
         auto programVarName = castedTerm->subterms[0]->symbol->name;
         if (programVarName != "0" && programVarName != "1" &&
@@ -177,11 +177,11 @@ std::shared_ptr<const logic::Term> SemanticsInliner::toCachedTermFull(
 }
 
 std::shared_ptr<const logic::Term> SemanticsInliner::toCachedTerm(
-    std::shared_ptr<const program::IntExpression> expr) {
+    std::shared_ptr<const program::Expression> expr) {
   assert(expr != nullptr);
 
   switch (expr->type()) {
-    case program::Type::ArithmeticConstant: {
+    case program::Type::IntegerConstant: {
       auto castedExpr =
           std::static_pointer_cast<const program::ArithmeticConstant>(expr);
       return logic::Theory::intConstant(castedExpr->value);
@@ -208,9 +208,9 @@ std::shared_ptr<const logic::Term> SemanticsInliner::toCachedTerm(
       return logic::Theory::intMultiplication(
           toCachedTerm(castedExpr->factor1), toCachedTerm(castedExpr->factor2));
     }
-    case program::Type::IntOrNatVariableAccess: {
+    case program::Type::VariableAccess: {
       auto castedExpr =
-          std::static_pointer_cast<const program::IntOrNatVariableAccess>(expr);
+          std::static_pointer_cast<const program::VariableAccess>(expr);
       return toCachedTermFull(castedExpr->var);
     }
     case program::Type::IntArrayApplication: {
@@ -544,14 +544,14 @@ std::shared_ptr<const logic::Term> InlinedVariableValues::toInlinedTerm(
 
 std::shared_ptr<const logic::Term> InlinedVariableValues::toInlinedTerm(
     const program::WhileStatement* whileStatement,
-    std::shared_ptr<const program::IntExpression> expr,
+    std::shared_ptr<const program::Expression> expr,
     std::shared_ptr<const logic::Term> timepoint,
     std::shared_ptr<const logic::Term> trace) {
   assert(expr != nullptr);
   assert(whileStatement != nullptr);
 
   switch (expr->type()) {
-    case program::Type::ArithmeticConstant: {
+    case program::Type::IntegerConstant: {
       auto castedExpr =
           std::static_pointer_cast<const program::ArithmeticConstant>(expr);
       return logic::Theory::intConstant(castedExpr->value);
@@ -583,9 +583,9 @@ std::shared_ptr<const logic::Term> InlinedVariableValues::toInlinedTerm(
           toInlinedTerm(whileStatement, castedExpr->factor1, timepoint, trace),
           toInlinedTerm(whileStatement, castedExpr->factor2, timepoint, trace));
     }
-    case program::Type::IntOrNatVariableAccess: {
+    case program::Type::VariableAccess: {
       auto var =
-          std::static_pointer_cast<const program::IntOrNatVariableAccess>(expr)
+          std::static_pointer_cast<const program::VariableAccess>(expr)
               ->var;
       if (AnalysisPreComputation::computeAssignedVars(whileStatement)
               .count(var) == 0) {

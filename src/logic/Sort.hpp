@@ -19,10 +19,20 @@ class Sort {
 
  private:
   // constructor is private to prevent accidental usage.
-  Sort(std::string name) : name(name){};
+  Sort(std::string name) : name(name), constructor(""){};
+  Sort(std::string name, std::string constructor, 
+    std::vector<std::pair<std::string, std::string>> selectors) : 
+    name(name), constructor(constructor), selectors(selectors){};
 
  public:
   const std::string name;
+  const std::string constructor;
+  const std::vector<std::pair<std::string, std::string>> selectors;
+
+  bool isNatSort() const { return name == "Nat"; }
+  bool isIntSort() const { return name == "Int"; }
+  bool isArraySort() const { return name == "Array"; }
+  bool isAlgebraicSort() const { return selectors.size(); }
 
   bool operator==(Sort& o);
 
@@ -51,10 +61,13 @@ class Sorts {
     return natSort();
   }
   static Sort* locSort() { return fetchOrDeclare("Location"); }  // memory locations
-  static Sort* arraySort() { return fetchOrDeclare("Array"); }
+  static Sort* arraySort() { return fetchOrDeclare("Arr"); }
   static Sort* timeSort() { return fetchOrDeclare("Time"); }
   static Sort* traceSort() { return fetchOrDeclare("Trace"); }
-
+  static Sort* structSort(std::string name,
+    std::vector<std::pair<std::string, std::string>> selectors);
+  static Sort* fetch(std::string name);
+ 
   // returns map containing all previously constructed sorts as pairs
   // (nameOfSort, Sort)
   static const std::map<std::string, std::unique_ptr<Sort>>& nameToSort() {

@@ -81,7 +81,7 @@ class LoopConditionAnalysisLemmas
   bool doesNotChangeInLoop(
       std::unordered_set<std::shared_ptr<const program::Variable>>&
           assignedVars,
-      std::shared_ptr<const program::IntExpression> expr);
+      std::shared_ptr<const program::Expression> expr);
 
   virtual void generateOutputFor(
       const program::WhileStatement* statement,

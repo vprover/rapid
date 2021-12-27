@@ -58,7 +58,7 @@ class AnalysisPreComputation {
       std::shared_ptr<const program::BoolExpression> expr,
       std::unordered_set<std::shared_ptr<const program::Variable>>& variables);
   static void computeVariablesContainedInLoopCondition(
-      std::shared_ptr<const program::IntExpression> expr,
+      std::shared_ptr<const program::Expression> expr,
       std::unordered_set<std::shared_ptr<const program::Variable>>& variables);
 };
 }  // namespace analysis

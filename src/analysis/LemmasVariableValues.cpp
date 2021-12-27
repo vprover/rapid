@@ -302,10 +302,12 @@ std::pair<bool, bool> StaticAnalysisLemmas::derefAssignementsInLoop(
   switch (statement->type()) {
     case program::Statement::Type::Assignment: {
       auto casted = static_cast<const program::Assignment*>(statement);
-      if (casted->lhs->type() == program::Type::Pointer2PointerDeref) {
-        p2pDerefAssigned = true;
-      } else if (casted->lhs->type() == program::Type::Pointer2IntDeref) {
-        p2iDerefAssigned = true;
+      if (casted->lhs->type() == program::Type::PointerDeref) {
+        if(casted->lhs->exprType()->isPointerToPointer()){
+          p2pDerefAssigned = true;
+        } else {
+          p2iDerefAssigned = true; 
+        }
       }
       break;
     }

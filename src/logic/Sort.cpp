@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "Options.hpp"
+#include "Signature.hpp"
 
 namespace logic {
 
@@ -17,7 +18,7 @@ std::string Sort::toSMTLIB() const {
     return "Int";
   } else if (name == "Bool") {
     return "Bool";
-  } else if (name == "Array") {
+  } else if (name == "Arr") {
     // only integer indexed integer arrays at the moment
     return "(Array Int Int)";
   } else {
@@ -48,6 +49,13 @@ std::string declareSortSMTLIB(const Sort& s) {
     } else {
       return "(declare-datatypes ((Nat 0)) (( (zero) (s (p Nat)) )) )\n";
     }
+  } else if (s.isAlgebraicSort()){    
+    std::string res = "(declare-datatype " + s.toSMTLIB() + " ((" + s.constructor + " ";
+    for(const auto& sel : s.selectors){
+      res = res + "(" + sel.first + " " + sel.second + ")";
+    }
+    res = res + ")))\n";
+    return res;
   } else {
     return "(declare-sort " + s.toSMTLIB() + " 0)\n";
   }
@@ -81,6 +89,31 @@ std::ostream& operator<<(std::ostream& ostr, const Sort& s) {
 #pragma mark - Sorts
 
 std::map<std::string, std::unique_ptr<Sort>> Sorts::_sorts;
+
+Sort* Sorts::structSort(std::string name,
+    std::vector<std::pair<std::string, std::string>> selectors) {
+  
+  std::string constructor = toLower(name);
+
+  auto it = _sorts.find(name);
+
+  if (it == _sorts.end()) {
+    //TODO change name of constructor to lower case
+    auto ret = _sorts.insert(
+        std::make_pair(name, std::unique_ptr<Sort>(new Sort(name, constructor, selectors))));
+    return ret.first->second.get();
+  } else {
+    assert((*it).second->isAlgebraicSort());
+    return (*it).second.get();
+  }  
+}
+
+
+Sort* Sorts::fetch(std::string name){
+  auto it = _sorts.find(name);
+  assert(it != _sorts.end());
+  return (*it).second.get();
+}
 
 Sort* Sorts::fetchOrDeclare(std::string name) {
   auto it = _sorts.find(name);

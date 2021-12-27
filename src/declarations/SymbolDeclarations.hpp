@@ -45,7 +45,7 @@ std::shared_ptr<const logic::Symbol> traceSymbol(unsigned traceNumber);
  * (two-traces), and all other symbols are declared per function whenever the
  * function-parsing is finished.
  */
-void declareSymbolForProgramVar(const program::Variable* var);
+void declareSymbolsForProgramVar(const program::Variable* var);
 void declareSymbolsForTraces(unsigned numberOfTraces);
 void declareSymbolsForFunction(const program::Function* function,
                                unsigned numberOfTraces);

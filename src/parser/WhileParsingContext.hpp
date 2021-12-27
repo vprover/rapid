@@ -33,8 +33,12 @@ class WhileParsingContext {
         numberOfConjectures(0),
         quantifiedVarsDeclarations(),
         quantifiedVarsStack(),
+        declaredTypeNames(),
         programVarsDeclarations(),
-        programVarsStack() {}
+        programVarsStack() {
+          declaredTypeNames.push_back("Int");
+          declaredTypeNames.push_back("Nat");
+        }
 
   // input
   std::string inputFile;
@@ -56,6 +60,9 @@ class WhileParsingContext {
   std::unordered_map<std::string, std::shared_ptr<const logic::Symbol>>
       quantifiedVarsDeclarations;
   std::vector<std::vector<std::string>> quantifiedVarsStack;
+  std::vector<std::string> declaredTypeNames;
+  std::unordered_map<std::string, std::shared_ptr<const program::ExprType>>
+      structTypeDecls;
 
   std::unordered_map<std::string, std::shared_ptr<const program::Variable>>
       programVarsDeclarations;
@@ -74,6 +81,11 @@ class WhileParsingContext {
   void pushProgramVars();
   void popProgramVars();
   bool addProgramVar(std::shared_ptr<const program::Variable> programVar);
+  bool addTypeName(std::string name);
+  bool validTypeName(std::string name);
+  void addStructType(std::string name, std::shared_ptr<const program::ExprType>);
+  std::shared_ptr<const program::ExprType> getExprType(std::string name);
+
   std::shared_ptr<const program::Variable> getProgramVar(std::string name);
   std::vector<std::shared_ptr<const program::Variable>> getActiveProgramVars();
 

@@ -71,6 +71,43 @@ bool WhileParsingContext::addProgramVar(
   return true;
 }
 
+bool WhileParsingContext::addTypeName(std::string name){
+  if(std::find(declaredTypeNames.begin(), declaredTypeNames.end(),name) !=
+     declaredTypeNames.end()){
+    return false;
+  }
+  declaredTypeNames.push_back(name);
+  return true;
+}
+
+
+bool WhileParsingContext::validTypeName(std::string name){
+  if(std::find(declaredTypeNames.begin(), declaredTypeNames.end(),name) !=
+     declaredTypeNames.end()){
+    return true;
+  }  
+  return false;
+}
+
+void WhileParsingContext::addStructType(std::string name, 
+  std::shared_ptr<const program::ExprType> st){
+  structTypeDecls[name] = st;
+}
+
+
+
+std::shared_ptr<const program::ExprType> 
+WhileParsingContext::getExprType(std::string name){
+  assert(validTypeName(name));
+  if(name == "Int"){
+    return std::shared_ptr<const program::ExprType>(new program::ExprType(program::BasicType::INTEGER));
+  } else if (name == "Nat"){
+    return std::shared_ptr<const program::ExprType>(new program::ExprType(program::BasicType::NAT));
+  }
+  return structTypeDecls[name];
+}
+
+
 std::shared_ptr<const program::Variable> WhileParsingContext::getProgramVar(
     std::string name) {
   if (programVarsDeclarations.count(name) > 0) {

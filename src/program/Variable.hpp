@@ -16,6 +16,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <list>
 
 #include "Expression.hpp"
 
@@ -38,6 +39,8 @@ class Variable {
   bool isPointer() const { return vt->type() == program::BasicType::POINTER; }
 
   bool isArray() const { return vt->type() == program::BasicType::ARRAY; }
+
+  bool isStruct() const { return vt->type() == program::BasicType::STRUCT; }
 
   bool isNat() const { return vt->type() == program::BasicType::NAT; }
 
@@ -70,13 +73,39 @@ std::ostream& operator<<(
     std::ostream& ostr,
     const std::vector<std::shared_ptr<const program::Variable>>& e);
 
-class IntOrNatVariableAccess : public IntExpression {
+// hack needed for bison: std::vector has no overload for ostream, but these
+// overloads are needed for bison
+std::ostream& operator<<(
+    std::ostream& ostr,
+    const std::list<std::shared_ptr<const program::Variable>>& e);
+
+class StructType : public ExprType {
+  public:
+  
+  StructType(std::string name, 
+    std::list<std::shared_ptr<const program::Variable>> f) :
+      fields(f), 
+      name(name),
+    ExprType(BasicType::STRUCT) {}
+
+  std::string getName() const { return name; }
+  std::shared_ptr<const program::Variable> getField(std::string name) const;
+  std::list<std::shared_ptr<const program::Variable>> getFields() const { return fields; }
+
+  std::string toString() const override;
+
+  private:
+    std::list<std::shared_ptr<const program::Variable>> fields;
+    std::string name;
+};
+
+class VariableAccess : public Expression {
  public:
-  IntOrNatVariableAccess(std::shared_ptr<const Variable> var)
-      : IntExpression(), var(var) {
+  VariableAccess(std::shared_ptr<const Variable> var)
+      : Expression(var->vt), var(var) {
     assert(this->var != nullptr);
-    assert(this->var->vt->type() == program::BasicType::INTEGER ||
-           this->var->vt->type() == program::BasicType::NAT);
+    //assert(this->var->vt->type() == program::BasicType::INTEGER ||
+    //       this->var->vt->type() == program::BasicType::NAT);
   }
 
   const std::shared_ptr<const Variable> var;
@@ -84,24 +113,51 @@ class IntOrNatVariableAccess : public IntExpression {
   bool isConstVar() const override { return var->isConstant; };
 
   program::Type type() const override {
-    return program::Type::IntOrNatVariableAccess;
+    return program::Type::VariableAccess;
   }
 
   std::string toString() const override;
 };
 
-class IntArrayApplication : public IntExpression {
+class StructFieldAccess : public Expression {
+ public:
+  StructFieldAccess(std::shared_ptr<const Variable> field,
+                    std::shared_ptr<const Expression> struc) :
+  Expression(field->vt), field(std::move(field)), struc(std::move(struc)){
+    assert(this->struc->isStructExpr());
+  }
+
+  program::Type type() const override {
+    return program::Type::FieldAccess;
+  }
+
+  std::string toString() const override;
+
+  std::shared_ptr<const Expression> getStruct() const {
+    return struc;
+  }
+
+  std::shared_ptr<const Variable> getField() const {
+    return field;
+  }
+
+  private:
+    const std::shared_ptr<const Variable> field;
+    const std::shared_ptr<const Expression> struc;
+};
+
+class IntArrayApplication : public Expression {
  public:
   IntArrayApplication(std::shared_ptr<const Variable> array,
-                      std::shared_ptr<const IntExpression> index)
-      : array(std::move(array)), index(std::move(index)) {
+                      std::shared_ptr<const Expression> index)
+      : Expression(array->vt), array(std::move(array)), index(std::move(index)) {
     assert(this->array != nullptr);
     assert(this->index != nullptr);
     assert(this->array->vt->type() == program::BasicType::ARRAY);
   }
 
   const std::shared_ptr<const Variable> array;
-  const std::shared_ptr<const IntExpression> index;
+  const std::shared_ptr<const Expression> index;
 
   bool isConstVar() const override { return array->isConstant; };
 
@@ -112,82 +168,35 @@ class IntArrayApplication : public IntExpression {
   std::string toString() const override;
 };
 
-class PointerExpression : public Expression {
+class DerefExpression : public Expression {
  public:
-  PointerExpression(std::shared_ptr<const ExprType> type) {
-    exprtype = type;
-    assert(type->type() == program::BasicType::POINTER);
-  }
-
-  virtual bool isPointerExpr() const override { return true; }
-};
-std::ostream& operator<<(std::ostream& ostr, const IntExpression& e);
-
-class DerefP2IExpression : public IntExpression {
- public:
-  DerefP2IExpression(std::shared_ptr<const PointerExpression> expr)
-      : expr(expr) {
+  DerefExpression(std::shared_ptr<const Expression> expr)
+      : Expression(
+          std::shared_ptr<const program::ExprType>(new ExprType(
+            expr->exprType()->getChild()->getChild(), 
+            expr->exprType()->getChild()->type()      
+          )) 
+        ), expr(expr) {
     assert(expr != nullptr);
     assert(expr->exprType()->type() == program::BasicType::POINTER);
-    assert(expr->exprType()->getChild()->type() == program::BasicType::INTEGER);
   }
 
-  const std::shared_ptr<const PointerExpression> expr;
+  const std::shared_ptr<const Expression> expr;
 
   bool containsReference() const override { return expr->containsReference(); }
 
   program::Type type() const override {
-    return program::Type::Pointer2IntDeref;
+    return program::Type::PointerDeref;
   }
 
   std::string toString() const override;
 };
 
-class PointerVariableAccess : public PointerExpression {
- public:
-  PointerVariableAccess(std::shared_ptr<const Variable> var)
-      : PointerExpression(var->vt), var(var) {
-    assert(this->var != nullptr);
-    assert(this->var->vt->type() == program::BasicType::POINTER);
-  }
 
-  const std::shared_ptr<const Variable> var;
-
-  bool isConstVar() const override { return var->isConstant; };
-
-  program::Type type() const override {
-    return program::Type::PointerVariableAccess;
-  }
-
-  std::string toString() const override;
-};
-
-class DerefP2PExpression : public PointerExpression {
- public:
-  DerefP2PExpression(std::shared_ptr<const PointerExpression> expr)
-      : PointerExpression(expr->exprType()->getChild()), expr(expr) {
-    assert(expr != nullptr);
-    assert(expr->exprType()->getChild()->type() == program::BasicType::POINTER);
-  }
-
-  const std::shared_ptr<const PointerExpression> expr;
-
-  virtual bool containsReference() const override {
-    return expr->containsReference();
-  }
-
-  program::Type type() const override {
-    return program::Type::Pointer2PointerDeref;
-  }
-
-  std::string toString() const override;
-};
-
-class VarReference : public PointerExpression {
+class VarReference : public Expression {
  public:
   VarReference(std::shared_ptr<const Variable> var)
-      : PointerExpression(
-            std::shared_ptr<const program::ExprType>(new ExprType(var->vt))),
+      : Expression(std::shared_ptr<const program::ExprType>(new ExprType(var->vt))),
         referent(var) {
     assert(referent != nullptr);
   }

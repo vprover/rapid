@@ -1,4 +1,5 @@
 #include "SymbolDeclarations.hpp"
+#include "../analysis/SemanticsHelper.hpp"
 
 #include <Options.hpp>
 #include <iostream>
@@ -78,13 +79,42 @@ std::shared_ptr<const logic::Symbol> traceSymbol(unsigned traceNumber) {
   return logic::Signature::fetchOrAdd(traceName, {}, logic::Sorts::traceSort());
 }
 
-void declareSymbolForProgramVar(const program::Variable* var) {
+void declareSymbolsForProgramVar(const program::Variable* var) {
   // variables are now constants of sort location
+
+  //TODO get rid of code duplication
+  /*auto toLower = [](std::string s){
+    std::transform(s.begin(), s.begin() + 1, s.begin(), ::tolower);
+    return s;
+  };*/
 
   logic::Symbol::SymbolType typ = logic::Symbol::SymbolType::ProgramVar;
   if (var->isConstant) {
     typ = logic::Symbol::SymbolType::ConstProgramVar;
   }
+
+  std::vector<const logic::Sort*> subtermSorts;
+  if(!var->isConstant){
+    subtermSorts.push_back(logic::Sorts::timeSort());
+  }
+  subtermSorts.push_back(logic::Sorts::locSort());
+  
+  auto sort = analysis::toSort(var->vt);
+  // Add selectors as function symbols
+  if(sort->isAlgebraicSort()){
+    for(const auto& selector : sort->selectors){
+      auto resSort = logic::Sorts::fetch(selector.second);
+      auto name = selector.first;
+      //true means do not declare. We don't want these output separately in the SMTLIB file
+      logic::Signature::fetchOrAdd(name, {sort}, resSort, true);
+    }
+  }
+
+  std::string str = var->isConstant ? "const_" : "";
+  std::string arrName = "value_" + str + logic::toLower(sort->name);
+
+  // declare the memory arrays
+  logic::Signature::fetchOrAdd(arrName, subtermSorts, sort, false, logic::Symbol::SymbolType::Selector);
   logic::Signature::add(var->name, {}, logic::Sorts::locSort(), false, typ);
 }
 

@@ -1,17 +1,13 @@
 func main() {
   Int i = 1;
-  Int* j = #i;
   Int k;
   if( k > 0){
-    Int b = 3;
-    j = #b;
+    i = 3;
   } else {
     skip;
   }
-  *j = 2;
 }
 
-
 (conjecture
-  true 
+  (= (i main_end) 3)  
 )

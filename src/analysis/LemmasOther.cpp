@@ -62,11 +62,11 @@ void AtLeastOneIterationLemmas::generateOutputFor(
 
 bool LoopConditionAnalysisLemmas::doesNotChangeInLoop(
     std::unordered_set<std::shared_ptr<const program::Variable>>& assignedVars,
-    std::shared_ptr<const program::IntExpression> expr) {
+    std::shared_ptr<const program::Expression> expr) {
   switch (expr->type()) {
-    case program::Type::IntOrNatVariableAccess: {
+    case program::Type::VariableAccess: {
       auto var =
-          std::static_pointer_cast<const program::IntOrNatVariableAccess>(expr);
+          std::static_pointer_cast<const program::VariableAccess>(expr);
       return assignedVars.find(var->var) == assignedVars.end();
     }
     case program::Type::Addition: {
@@ -91,7 +91,7 @@ bool LoopConditionAnalysisLemmas::doesNotChangeInLoop(
       return doesNotChangeInLoop(assignedVars, castedExpr->factor1) &&
              doesNotChangeInLoop(assignedVars, castedExpr->factor2);
     }
-    case program::Type::ArithmeticConstant: {
+    case program::Type::IntegerConstant: {
       return true;
     }
     case program::Type::IntArrayApplication: {

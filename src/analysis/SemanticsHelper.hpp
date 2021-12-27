@@ -62,6 +62,11 @@ std::shared_ptr<const logic::Term> startTimepointForStatement(
 std::vector<std::shared_ptr<const logic::Symbol>> enclosingIteratorsSymbols(
     const program::Statement* statement);
 
+#pragma mark - Methods for generating sorts
+
+logic::Sort* toSort(
+    std::shared_ptr<const program::ExprType> type);
+
 #pragma mark - Methods for generating most used terms/predicates denoting program-expressions
 /* The parameter lhsOfAssignment is used when converting an array access.
  * The conversion of these depends on the side of the assignment they occur.
@@ -98,7 +103,7 @@ std::shared_ptr<const logic::Formula> getDensityFormula(
 
 std::shared_ptr<const logic::Formula> getDensityDefinition(
     std::vector<std::shared_ptr<const logic::Symbol>> freeVarSymbols,
-    const std::shared_ptr<const program::IntExpression> expr,
+    const std::shared_ptr<const program::Expression> expr,
     std::string nameSuffix, std::shared_ptr<const logic::Symbol> itSymbol,
     std::shared_ptr<const logic::LVariable> it,
     std::shared_ptr<const logic::Term> lStartIt,
@@ -134,11 +139,11 @@ std::shared_ptr<const logic::Term> toTerm(
     std::shared_ptr<const logic::Term> timePoint,
     std::shared_ptr<const logic::Term> trace);
 std::shared_ptr<const logic::Term> toTerm(
-    std::shared_ptr<const program::DerefP2IExpression> e,
+    std::shared_ptr<const program::DerefExpression> e,
     std::shared_ptr<const logic::Term> timePoint,
     std::shared_ptr<const logic::Term> trace);
 std::shared_ptr<const logic::Term> toTerm(
-    std::shared_ptr<const program::DerefP2PExpression> e,
+    std::shared_ptr<const program::StructFieldAccess> e,
     std::shared_ptr<const logic::Term> timePoint,
     std::shared_ptr<const logic::Term> trace);
 
@@ -146,8 +151,8 @@ std::shared_ptr<const logic::Term> toTerm(
  * convert the expression expr to a logical term refering to the value of the
  * Expression expr at the Timepoint timepoint. calls toTerm(var,...) internally.
  */
-std::shared_ptr<const logic::Term> toTerm(
-    std::shared_ptr<const program::IntExpression> expr,
+std::shared_ptr<const logic::Term> toIntTerm(
+    std::shared_ptr<const program::Expression> expr,
     std::shared_ptr<const logic::Term> timePoint,
     std::shared_ptr<const logic::Term> trace, bool lhsOfAssignment = false);
 

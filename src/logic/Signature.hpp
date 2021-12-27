@@ -18,6 +18,12 @@
 
 namespace logic {
 
+//Sticking it here as not sure where to put it
+inline std::string toLower(std::string s){
+  std::transform(s.begin(), s.begin() + 1, s.begin(), ::tolower);
+  return s;
+};
+
 class Symbol {
   // we need each symbol to be either declared in the signature or to be a
   // variable (which will be declared by the quantifier) We use the
@@ -31,6 +37,7 @@ class Symbol {
     ConstProgramVar,
     FinalLoopCount,
     TimePoint,
+    Selector,
     Other
   };
 
@@ -92,6 +99,7 @@ class Symbol {
   const bool isColorSymbol;
 
   bool isPredicateSymbol() const { return rngSort == Sorts::boolSort(); }
+  bool isSelectorSymbol() const { return symbolType == SymbolType::Selector; }
 
   std::string toSMTLIB() const;
   std::string toTPTP() const;

@@ -50,12 +50,21 @@ std::string ArithmeticComparison::toString() const {
   }
 }
 
-std::ostream& operator<<(std::ostream& ostr, const IntExpression& e) {
+std::ostream& operator<<(std::ostream& ostr, const Expression& e) {
   ostr << e.toString();
   return ostr;
 }
 std::ostream& operator<<(std::ostream& ostr, const BoolExpression& e) {
   ostr << e.toString();
+  return ostr;
+}
+
+//    hack needed for bison: std::vector has no overload for ostream, but
+//    these overloads are needed for bison
+std::ostream& operator<<(
+    std::ostream& ostr,
+    const std::vector<std::shared_ptr<const program::ExprType>>& e) {
+  ostr << "not implemented";
   return ostr;
 }
 

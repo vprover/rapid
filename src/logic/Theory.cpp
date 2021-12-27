@@ -1,6 +1,7 @@
 #include "Theory.hpp"
 
 #include "Options.hpp"
+#include "Signature.hpp"
 
 namespace logic {
 
@@ -37,10 +38,7 @@ void Theory::declareMemoryArrays() {
   auto sel = Signature::fetchArraySelect();
   auto store = Signature::fetchArrayStore();
 
-  valueAtInt(tp, null);
-  valueAtArray(tp, null);
-  valueAtConstInt(null);
-  valueAtConstArray(null);
+  //valueAt(tp, null, "Int", false);
   deref(tp, null);
 }
 
@@ -185,28 +183,22 @@ std::shared_ptr<const FuncTerm> Theory::nullLoc() {
   return Terms::func("null-loc", {}, Sorts::locSort(), false);
 }
 
-std::shared_ptr<const FuncTerm> Theory::valueAtInt(
+std::shared_ptr<const FuncTerm> Theory::valueAt(
     std::shared_ptr<const Term> timePoint,
-    std::shared_ptr<const Term> location) {
-  return Terms::func("value_int", {timePoint, location}, Sorts::intSort(),
-                     false);
-}
+    std::shared_ptr<const Term> location,
+    std::string sortName,
+    bool isConst) {
 
-std::shared_ptr<const FuncTerm> Theory::valueAtArray(
-    std::shared_ptr<const Term> timePoint,
-    std::shared_ptr<const Term> location) {
-  return Terms::func("value_arr", {timePoint, location}, Sorts::arraySort(),
-                     false);
-}
+  std::vector<std::shared_ptr<const Term>> subterms;
+  if(!isConst){
+    subterms.push_back(timePoint);
+  }
+  subterms.push_back(location);
 
-std::shared_ptr<const FuncTerm> Theory::valueAtConstInt(
-    std::shared_ptr<const Term> location) {
-  return Terms::func("value_const_int", {location}, Sorts::intSort(), false);
-}
+  std::string str = isConst ? "const_" : "";
+  std::string funcName = "value_" + str + toLower(sortName);
 
-std::shared_ptr<const FuncTerm> Theory::valueAtConstArray(
-    std::shared_ptr<const Term> location) {
-  return Terms::func("value_const_arr", {location}, Sorts::arraySort(), false);
+  return Terms::func(funcName, subterms, Sorts::fetch(sortName), false);
 }
 
 std::shared_ptr<const FuncTerm> Theory::deref(

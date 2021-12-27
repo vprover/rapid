@@ -28,6 +28,7 @@ void error(const parser::Location& l,
 %}
 %option noyywrap nounput batch debug noinput
 IDENT [a-z][a-zA-Z_0-9]*
+TYPE_IDENT [A-Z][a-zA-Z_0-9]*
 NUM   [0-9]+
 BLANK [ \t]
 
@@ -65,6 +66,7 @@ else         { return parser::WhileParser::make_ELSE(loc); }
 while        { return parser::WhileParser::make_WHILE(loc); }
 skip         { return parser::WhileParser::make_SKIP(loc); }
 func         { BEGIN(programstate); return parser::WhileParser::make_FUNC(loc);}
+struct       { BEGIN(programstate); return parser::WhileParser::make_STRUCT(loc); }
 const        { return parser::WhileParser::make_CONST(loc); }
 
 and         	{ return parser::WhileParser::make_ANDSMTLIB(loc); }
@@ -87,6 +89,9 @@ exists      	{ return parser::WhileParser::make_EXISTSSMTLIB(loc); }
 
 ";"          { return parser::WhileParser::make_SCOL(loc); }
 
+"."          { return parser::WhileParser::make_DOT(loc); }
+"->"         { return parser::WhileParser::make_ARROW(loc); }
+
 "*"          { return parser::WhileParser::make_MUL(loc); }
 "+"          { return parser::WhileParser::make_PLUS(loc); }
 "-"          { return parser::WhileParser::make_MINUS(loc); }
@@ -106,8 +111,10 @@ mod          { return parser::WhileParser::make_MOD(loc); }
 
 "Int"|"Bool"|"Nat"|"Time"|"Trace" { return parser::WhileParser::make_TYPE(yytext, loc); }
 
+<programstate>{TYPE_IDENT}  { return parser::WhileParser::make_STRUCT_NAME(yytext, loc); }
 <programstate>{IDENT}     { return parser::WhileParser::make_PROGRAM_ID(yytext, loc); }
 <smtlibstate>{IDENT}      { return parser::WhileParser::make_SMTLIB_ID(yytext, loc); }
+
 {NUM}        {
   errno = 0;
   long n = strtol (yytext, NULL, 10);

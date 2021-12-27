@@ -148,24 +148,17 @@ AnalysisPreComputation::computeAssignedVars(const program::Statement* statement,
       auto casted = static_cast<const program::Assignment*>(statement);
       // add variable on lhs to assignedVars, independently from whether those
       // vars are simple ones or arrays.
-      if (casted->lhs->type() == program::Type::IntOrNatVariableAccess) {
-        auto access = static_cast<const program::IntOrNatVariableAccess*>(
+      if (casted->lhs->type() == program::Type::VariableAccess) {
+        auto access = static_cast<const program::VariableAccess*>(
             casted->lhs.get());
-        assignedVars.insert(access->var);
-      } else if (casted->lhs->type() == program::Type::PointerVariableAccess &&
-                 pointerVars) {
-        auto access = static_cast<const program::PointerVariableAccess*>(
-            casted->lhs.get());
-        assignedVars.insert(access->var);
+        if(casted->lhs->isPointerExpr() && pointerVars){
+          assignedVars.insert(access->var);
+        }
       } else if (casted->lhs->type() == program::Type::IntArrayApplication) {
         auto arrayAccess =
             static_cast<const program::IntArrayApplication*>(casted->lhs.get());
         assignedVars.insert(arrayAccess->array);
-      } /*else if(casted->lhs->type() == program::Type::Pointer2PointerDeref){
-          p2pDerefAssigned = true;
-      } else if(casted->lhs->type() == program::Type::Pointer2IntDeref){
-          p2iDerefAssigned = true;
-      }*/
+      }
       break;
     }
     case program::Statement::Type::IfElse: {
@@ -239,7 +232,7 @@ void AnalysisPreComputation::computeVariablesContainedInLoopCondition(
 }
 
 void AnalysisPreComputation::computeVariablesContainedInLoopCondition(
-    std::shared_ptr<const program::IntExpression> expr,
+    std::shared_ptr<const program::Expression> expr,
     std::unordered_set<std::shared_ptr<const program::Variable>>& variables) {
   assert(expr != nullptr);
   switch (expr->type()) {
@@ -269,9 +262,9 @@ void AnalysisPreComputation::computeVariablesContainedInLoopCondition(
       computeVariablesContainedInLoopCondition(castedExpr->child2, variables);
       break;
     }
-    case program::Type::IntOrNatVariableAccess: {
+    case program::Type::VariableAccess: {
       auto castedExpr =
-          std::static_pointer_cast<const program::IntOrNatVariableAccess>(expr);
+          std::static_pointer_cast<const program::VariableAccess>(expr);
       variables.insert(castedExpr->var);
       break;
     }
@@ -282,7 +275,7 @@ void AnalysisPreComputation::computeVariablesContainedInLoopCondition(
       computeVariablesContainedInLoopCondition(castedExpr->index, variables);
       break;
     }
-    case program::Type::ArithmeticConstant: {
+    case program::Type::IntegerConstant: {
       // do nothing
       break;
     }

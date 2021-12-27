@@ -78,7 +78,7 @@ class SemanticsInliner {
       std::shared_ptr<const program::Variable> arrayVar,
       std::shared_ptr<const logic::Term> position);
   std::shared_ptr<const logic::Term> toCachedTerm(
-      std::shared_ptr<const program::IntExpression> expr);
+      std::shared_ptr<const program::Expression> expr);
   std::shared_ptr<const logic::Formula> toCachedFormula(
       std::shared_ptr<const program::BoolExpression> expr);
 
@@ -182,7 +182,7 @@ class InlinedVariableValues {
   // WhileStatement.
   std::shared_ptr<const logic::Term> toInlinedTerm(
       const program::WhileStatement* whileStatement,
-      std::shared_ptr<const program::IntExpression> expr,
+      std::shared_ptr<const program::Expression> expr,
       std::shared_ptr<const logic::Term> timepoint,
       std::shared_ptr<const logic::Term> trace);
   std::shared_ptr<const logic::Formula> toInlinedFormula(

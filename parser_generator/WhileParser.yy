@@ -89,6 +89,8 @@ YY_DECL;
   NEQ           "!="
   OR            "||"
   REFERENCE     "#"
+  ARROW         "->"
+  DOT           "."
   AND           "&&"
   ANDSMTLIB     "and"
   ORSMTLIB      "or"
@@ -100,10 +102,12 @@ YY_DECL;
   LEMMA         "lemma"
   CONJECTURE    "conjecture"
   CONST         "const"
+  STRUCT        "struct"
   SETTRACES     "set-traces"
 ;
 %token <std::string> PROGRAM_ID "program identifier"
 %token <std::string> SMTLIB_ID "smtlib identifier"
+%token <std::string> STRUCT_NAME "struct name"
 %token <std::string> TYPE "type identifier"
 %token <int> INTEGER "number"
 
@@ -121,6 +125,9 @@ YY_DECL;
 %type < std::shared_ptr<const program::Program> > program
 %type < std::vector< std::shared_ptr<const program::Function>> > function_list
 %type < std::shared_ptr<const program::Function> > function
+%type < std::vector< std::shared_ptr<const program::ExprType>> > struct_decl_list
+%type < std::list< std::shared_ptr<const program::Variable>> > field_list
+%type < std::shared_ptr<const program::Variable> > field
 
 %type < std::shared_ptr<const program::Variable> > var_definition_head
 
@@ -134,6 +141,7 @@ YY_DECL;
 %type < std::shared_ptr<const program::SkipStatement> > skip_statement
 
 %type < std::shared_ptr<const program::ExprType>> type_dec
+%type < std::shared_ptr<const program::ExprType>> struct_dec
 
 %type < std::shared_ptr<const program::BoolExpression> > formula
 %type < std::shared_ptr<const program::Expression> > expr
@@ -148,6 +156,7 @@ YY_DECL;
 %left  EQ NEQ
 %left  GT GE LT LE
 %left  PLUS MINUS
+%left  ARROW DOT
 %left  MUL DIV MOD
 %right NOT UMINUS
 
@@ -185,9 +194,9 @@ problem:
 ;
 
 program:
-  function_list 
+  struct_decl_list function_list 
   { 
-    parsing_context.program = std::unique_ptr<const program::Program>(new program::Program($1)); 
+    parsing_context.program = std::unique_ptr<const program::Program>(new program::Program($2)); 
   }
 ;
 
@@ -446,6 +455,16 @@ SMTLIB_ID
 }
 ;
 
+struct_decl_list:
+  struct_dec               
+  {  
+    auto v = std::vector< std::shared_ptr<const program::ExprType>>(); 
+    v.push_back(std::move($1)); 
+    $$ = std::move(v);
+  }
+| struct_decl_list struct_dec  {$1.push_back(std::move($2)); $$ = std::move($1);}
+;
+
 function_list:
   function             	  {auto v = std::vector< std::shared_ptr<const program::Function>>(); v.push_back(std::move($1)); $$ = std::move(v);}
 | function_list function  {$1.push_back(std::move($2)); $$ = std::move($1);}
@@ -497,14 +516,7 @@ var_decl_statement:
   {
     // declare var
     parsing_context.addProgramVar($1);
-    declareSymbolForProgramVar($1.get());
-
-/*    std::shared_ptr<const program::Expression> variable;
-    if(!$1->isPointer()){
-      variable = std::shared_ptr<const program::IntOrNatVariableAccess>(new IntOrNatVariableAccess(std::move($1)));
-    } else {
-      variable = std::shared_ptr<const program::PointerVariableAccess>(new PointerVariableAccess(std::move($1)));
-    }*/
+    declareSymbolsForProgramVar($1.get());
 
     $$ = std::shared_ptr<const program::VarDecl>(new program::VarDecl(@1.begin.line, std::move($1)));        
   }
@@ -531,7 +543,7 @@ assignment_statement:
   {
     // declare var
     parsing_context.addProgramVar($1);
-    declareSymbolForProgramVar($1.get());
+    declareSymbolsForProgramVar($1.get());
 
     // construct location
     if($1->isArray())
@@ -539,12 +551,7 @@ assignment_statement:
       error(@1, "Combined declaration and assignment not allowed, since " + $1->name + " is array variable");
     }
 
-    std::shared_ptr<const program::Expression> variable;
-    if(!$1->isPointer()){
-      variable = std::shared_ptr<const program::IntOrNatVariableAccess>(new IntOrNatVariableAccess(std::move($1)));
-    } else {
-      variable = std::shared_ptr<const program::PointerVariableAccess>(new PointerVariableAccess(std::move($1)));
-    }
+    auto variable = std::shared_ptr<const program::VariableAccess>(new VariableAccess(std::move($1)));
 
     if(*(variable->exprType()) != *($3->exprType()) ){
       error(@1, "Invalid assignments. Type mismatch.");
@@ -614,17 +621,38 @@ var_definition_head:
   }
 ;
 
-type_dec:
-  TYPE
+field:
+  var_definition_head SCOL
   {
-    program::BasicType vt = program::BasicType::INTEGER;
-    if($1 == "Int"){}
-    else if($1 == "Nat"){
-      vt = program::BasicType::NAT;
-    } else {
-      error(@1, "Only program variables of type Nat and Int are currently supported");
+    $$ = std::move($1);        
+  }
+;
+
+field_list:
+  field            
+  {
+    auto v = std::list< std::shared_ptr<const program::Variable>>(); 
+    v.push_back(std::move($1)); 
+    $$ = std::move(v);
+  }
+| field_list field  {$1.push_back(std::move($2)); $$ = std::move($1);}
+;
+
+
+type_dec:
+  STRUCT_NAME
+  {
+    if(!parsing_context.validTypeName($1)){
+      error(@1, "Not a valid type identifier");
     }
-    $$ = std::shared_ptr<const program::ExprType>(new program::ExprType(vt));
+    $$ = parsing_context.getExprType($1);
+  }
+| TYPE
+  {
+    if(!parsing_context.validTypeName($1)){
+      error(@1, "Not a valid type identifier");
+    }
+    $$ = parsing_context.getExprType($1);
   }
 | TYPE LBRA RBRA
   {
@@ -638,6 +666,18 @@ type_dec:
   }
 ;
 
+struct_dec:
+  STRUCT STRUCT_NAME LCUR
+  {
+    parsing_context.addTypeName($2);
+  }
+  field_list RCUR SCOL
+  {
+    auto structType = std::shared_ptr<const program::ExprType>(new program::StructType($2, std::move($5))); 
+    parsing_context.addStructType($2, structType);
+    $$ = structType;    
+  }
+;
 
 formula:
   LPAR formula RPAR        { $$ = std::move($2); }
@@ -645,57 +685,69 @@ formula:
 | FALSE                    { $$ = std::shared_ptr<const program::BooleanConstant>(new program::BooleanConstant(false)); }
 | expr GT expr             
   { 
-    if($1->isPointerExpr() || $3->isPointerExpr()){
-      error(@1, "Cannot carry out arithmetic operation on pointer expression");
+    if(!$1->isArithmeticExpr()){
+      error(@1, "Cannot carry out arithmetic operation on non-arithmetic expression");
     }
-    auto asIntExpr1 = std::static_pointer_cast<const program::IntExpression>($1);
-    auto asIntExpr3 = std::static_pointer_cast<const program::IntExpression>($3);
-    $$ = std::shared_ptr<const program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::GT, std::move(asIntExpr1), std::move(asIntExpr3)));
+    if(!$3->isArithmeticExpr()){
+      error(@3, "Cannot carry out arithmetic operation on non-arithmetic expression");
+    }    
+    $$ = std::shared_ptr<const program::ArithmeticComparison>
+         (new program::ArithmeticComparison(program::ArithmeticComparison::Kind::GT, std::move($1), std::move($3)));
   }
 | expr GE expr             
   {     
-    if($1->isPointerExpr() || $3->isPointerExpr()){
-      error(@1, "Cannot carry out arithmetic operation on pointer expression");
+    if(!$1->isArithmeticExpr()){
+      error(@1, "Cannot carry out arithmetic operation on non-arithmetic expression");
     }
-    auto asIntExpr1 = std::static_pointer_cast<const program::IntExpression>($1);
-    auto asIntExpr3 = std::static_pointer_cast<const program::IntExpression>($3);
-    $$ = std::shared_ptr<const program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::GE, std::move(asIntExpr1), std::move(asIntExpr3)));
+    if(!$3->isArithmeticExpr()){
+      error(@3, "Cannot carry out arithmetic operation on non-arithmetic expression");
+    } 
+    $$ = std::shared_ptr<const program::ArithmeticComparison>
+         (new program::ArithmeticComparison(program::ArithmeticComparison::Kind::GE, std::move($1), std::move($3)));
   }
 | expr LT expr             
   { 
-    if($1->isPointerExpr() || $3->isPointerExpr()){
-      error(@1, "Cannot carry out arithmetic operation on pointer expression");
+    if(!$1->isArithmeticExpr()){
+      error(@1, "Cannot carry out arithmetic operation on non-arithmetic expression");
     }
-    auto asIntExpr1 = std::static_pointer_cast<const program::IntExpression>($1);
-    auto asIntExpr3 = std::static_pointer_cast<const program::IntExpression>($3);
-    $$ = std::shared_ptr<const program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::LT, std::move(asIntExpr1), std::move(asIntExpr3)));
+    if(!$3->isArithmeticExpr()){
+      error(@3, "Cannot carry out arithmetic operation on non-arithmetic expression");
+    } 
+    $$ = std::shared_ptr<const program::ArithmeticComparison>
+         (new program::ArithmeticComparison(program::ArithmeticComparison::Kind::LT, std::move($1), std::move($3)));
   }
 | expr LE expr             
   { 
-    if($1->isPointerExpr() || $3->isPointerExpr()){
-      error(@1, "Cannot carry out arithmetic operation on pointer expression");
+    if(!$1->isArithmeticExpr()){
+      error(@1, "Cannot carry out arithmetic operation on non-arithmetic expression");
     }
-    auto asIntExpr1 = std::static_pointer_cast<const program::IntExpression>($1);
-    auto asIntExpr3 = std::static_pointer_cast<const program::IntExpression>($3);
-    $$ = std::shared_ptr<const program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::LE, std::move(asIntExpr1), std::move(asIntExpr3)));
+    if(!$3->isArithmeticExpr()){
+      error(@3, "Cannot carry out arithmetic operation on non-arithmetic expression");
+    } 
+    $$ = std::shared_ptr<const program::ArithmeticComparison>
+         (new program::ArithmeticComparison(program::ArithmeticComparison::Kind::LE, std::move($1), std::move($3)));
   }
 | expr EQ expr             
   { 
-    if($1->isPointerExpr() || $3->isPointerExpr()){
-      error(@1, "Cannot carry out arithmetic operation on pointer expression");
+    if(!$1->isArithmeticExpr()){
+      error(@1, "Cannot carry out arithmetic operation on non-arithmetic expression");
     }
-    auto asIntExpr1 = std::static_pointer_cast<const program::IntExpression>($1);
-    auto asIntExpr3 = std::static_pointer_cast<const program::IntExpression>($3);
-    $$ = std::shared_ptr<const program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::EQ, std::move(asIntExpr1), std::move(asIntExpr3)));
+    if(!$3->isArithmeticExpr()){
+      error(@3, "Cannot carry out arithmetic operation on non-arithmetic expression");
+    }
+    $$ = std::shared_ptr<const program::ArithmeticComparison>
+         (new program::ArithmeticComparison(program::ArithmeticComparison::Kind::EQ, std::move($1), std::move($3)));
   }
 | expr NEQ expr            
   { 
-    if($1->isPointerExpr() || $3->isPointerExpr()){
-      error(@1, "Cannot carry out arithmetic operation on pointer expression");
+    if(!$1->isArithmeticExpr()){
+      error(@1, "Cannot carry out arithmetic operation on non-arithmetic expression");
     }
-    auto asIntExpr1 = std::static_pointer_cast<const program::IntExpression>($1);
-    auto asIntExpr3 = std::static_pointer_cast<const program::IntExpression>($3);
-    auto formula = std::shared_ptr<const program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::EQ, std::move(asIntExpr1), std::move(asIntExpr3)));
+    if(!$3->isArithmeticExpr()){
+      error(@3, "Cannot carry out arithmetic operation on non-arithmetic expression");
+    }
+    auto formula = std::shared_ptr<const program::ArithmeticComparison>
+         (new program::ArithmeticComparison(program::ArithmeticComparison::Kind::EQ, std::move($1), std::move($3)));
     $$ = std::shared_ptr<const program::BooleanNot>(new program::BooleanNot(std::move(formula)));
   }
 | formula AND formula      
@@ -719,39 +771,43 @@ expr:
 | INTEGER                  { $$ = std::shared_ptr<const program::ArithmeticConstant>(new program::ArithmeticConstant(std::move($1)));}
 | expr MUL expr    
   { 
-    if($1->isPointerExpr() || $3->isPointerExpr()){
-      error(@2, "Cannot carry out arithmetic operation on pointer expression");
+    if(!$1->isArithmeticExpr()){
+      error(@1, "Cannot carry out arithmetic operation on non-arithmetic expression");
     }
-    auto asIntExpr1 = std::static_pointer_cast<const program::IntExpression>($1);
-    auto asIntExpr3 = std::static_pointer_cast<const program::IntExpression>($3);
-    $$ = std::shared_ptr<const program::Multiplication>(new program::Multiplication(std::move(asIntExpr1),std::move(asIntExpr3)));
+    if(!$3->isArithmeticExpr()){
+      error(@3, "Cannot carry out arithmetic operation on non-arithmetic expression");
+    }
+    $$ = std::shared_ptr<const program::Multiplication>(new program::Multiplication(std::move($1),std::move($3)));
   }
 | expr PLUS expr   
   { 
-    if($1->isPointerExpr() || $3->isPointerExpr()){
-      error(@2, "Cannot carry out arithmetic operation on pointer expression");
-    } 
-    auto asIntExpr1 = std::static_pointer_cast<const program::IntExpression>($1);
-    auto asIntExpr3 = std::static_pointer_cast<const program::IntExpression>($3);       
-    $$ = std::shared_ptr<const program::Addition>(new program::Addition(std::move(asIntExpr1),std::move(asIntExpr3)));
+    if(!$1->isArithmeticExpr()){
+      error(@1, "Cannot carry out arithmetic operation on non-arithmetic expression");
+    }
+    if(!$3->isArithmeticExpr()){
+      error(@3, "Cannot carry out arithmetic operation on non-arithmetic expression");
+    }
+    $$ = std::shared_ptr<const program::Addition>(new program::Addition(std::move($1),std::move($3)));
   }
 | expr MINUS expr  
   { 
-    if($1->isPointerExpr() || $3->isPointerExpr()){
-      error(@2, "Cannot carry out arithmetic operation on pointer expression");
-    } 
-    auto asIntExpr1 = std::static_pointer_cast<const program::IntExpression>($1);
-    auto asIntExpr3 = std::static_pointer_cast<const program::IntExpression>($3);       
-    $$ = std::shared_ptr<const program::Subtraction>(new program::Subtraction(std::move(asIntExpr1),std::move(asIntExpr3)));
+    if(!$1->isArithmeticExpr()){
+      error(@1, "Cannot carry out arithmetic operation on non-arithmetic expression");
+    }
+    if(!$3->isArithmeticExpr()){
+      error(@3, "Cannot carry out arithmetic operation on non-arithmetic expression");
+    }      
+    $$ = std::shared_ptr<const program::Subtraction>(new program::Subtraction(std::move($1),std::move($3)));
   }
 | expr MOD expr    
   { 
-    if($1->isPointerExpr() || $3->isPointerExpr()){
-      error(@2, "Cannot carry out arithmetic operation on pointer expression");
-    } 
-    auto asIntExpr1 = std::static_pointer_cast<const program::IntExpression>($1);
-    auto asIntExpr3 = std::static_pointer_cast<const program::IntExpression>($3);
-    $$ = std::shared_ptr<const program::Modulo>(new program::Modulo(std::move(asIntExpr1),std::move(asIntExpr3)));
+    if(!$1->isArithmeticExpr()){
+      error(@1, "Cannot carry out arithmetic operation on non-arithmetic expression");
+    }
+    if(!$3->isArithmeticExpr()){
+      error(@3, "Cannot carry out arithmetic operation on non-arithmetic expression");
+    }
+    $$ = std::shared_ptr<const program::Modulo>(new program::Modulo(std::move($1),std::move($3)));
   }
 ;
 
@@ -764,11 +820,41 @@ location:
     {
       error(@1, "Array variable " + var->name + " needs index for access");
     }
-    if(var->isPointer()){
-      $$ = std::shared_ptr<const program::PointerVariableAccess>(new PointerVariableAccess(std::move(var)));      
-    } else {
-      $$ = std::shared_ptr<const program::IntOrNatVariableAccess>(new IntOrNatVariableAccess(std::move(var)));
+    $$ = std::shared_ptr<const program::VariableAccess>(new VariableAccess(std::move(var)));      
+  }
+| location ARROW PROGRAM_ID
+  {
+    if(!$1->isPointerExpr()){
+      error(@1, $1->toString() + " is not of pointer type. Did you mean to use . ?");
     }
+    if($1->exprType()->getChild()->type() != program::BasicType::STRUCT)
+    {
+      error(@1, $1->toString() + " is not a pointer to a struct. Cannot access members with ->");        
+    }
+    auto type = $1->exprType()->getChild();
+    auto asStructType = std::static_pointer_cast<const program::StructType>(type);
+    auto field = asStructType->getField($3);
+    if(!field){
+      error(@1, "Struct " + asStructType->toString() + " contains no field named " + $3);      
+    }  
+    $$ = std::shared_ptr<const program::StructFieldAccess>(new StructFieldAccess(std::move(field), std::move($1)));      
+  }
+| location DOT PROGRAM_ID
+  {
+    if($1->isPointerExpr()){
+      error(@1, "Is of pointer type. Did you mean to use -> ?" + $1->toString());
+    }
+    if($1->exprType()->type() != program::BasicType::STRUCT)
+    {
+      error(@1, $1->toString() + " is not of type struct. Cannot access members with .");        
+    }
+    auto type = $1->exprType();
+    auto asStructType = std::static_pointer_cast<const program::StructType>(type);
+    auto field = asStructType->getField($3);
+    if(!field){
+      error(@1, "Struct " + asStructType->toString() + " contains no field named " + $3);      
+    }  
+    $$ = std::shared_ptr<const program::StructFieldAccess>(new StructFieldAccess(std::move(field), std::move($1)));      
   }
 | PROGRAM_ID LBRA expr RBRA 
   {
@@ -777,11 +863,10 @@ location:
     {
       error(@1, "Variable " + var->name + " is not an array");
     }
-    if($3->isPointerExpr()){
-      error(@3, "Cannot use a pointer expression as an array reference " + $3->toString());      
+    if(!$3->isArithmeticExpr()){
+      error(@3, "Cannot use a non-arithmetic expression as an array reference " + $3->toString());      
     }
-    auto asIntExpr = std::static_pointer_cast<const program::IntExpression>($3);     
-	  $$ = std::shared_ptr<const program::IntArrayApplication>(new IntArrayApplication(std::move(var), std::move(asIntExpr)));
+	  $$ = std::shared_ptr<const program::IntArrayApplication>(new IntArrayApplication(std::move(var), std::move($3)));
   }
 | REFERENCE PROGRAM_ID
   {
@@ -800,13 +885,7 @@ location:
     if(!$2->isPointerExpr()){
       error(@2, "cannot derefence non-pointer expression " + $2->toString());
     }
-    auto asPointExpr = std::static_pointer_cast<const program::PointerExpression>($2);
-    if($2->exprType()->getChild()->type() == program::BasicType::INTEGER)
-    {
-      $$ = std::shared_ptr<const program::DerefP2IExpression>(new DerefP2IExpression(std::move(asPointExpr)));
-    } else {
-      $$ = std::shared_ptr<const program::DerefP2PExpression>(new DerefP2PExpression(std::move(asPointExpr)));
-    }
+    $$ = std::shared_ptr<const program::DerefExpression>(new DerefExpression(std::move($2)));
   }
 ;
 

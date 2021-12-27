@@ -68,8 +68,18 @@ class FuncTerm : public Term {
   bool isDerefAt() const { return symbol->name == "deref"; }
   bool isValueAt() const { return symbol->name == "value_int"; }
   bool isArrayAt() const { return symbol->name == "value_arr"; }
-  bool isConstValueAt() const { return symbol->name == "value_const_int"; }
-  bool isConstArrayAt() const { return symbol->name == "value_const_arr"; }
+  bool isStructAt(std::string& structName) const {
+    std::string symName = symbol->name;
+    if(symName.starts_with("value_") && !isValueAt() && !isArrayAt() &&
+       !isConstMemoryArray()){
+      structName = symName.substr(symName.find('_')); 
+      return true;
+    }
+    return false;
+  }
+  bool isConstMemoryArray() const { 
+    return (symbol->name).starts_with("value_const"); 
+  }
 
   Type type() const override { return Term::Type::FuncTerm; }
   std::string toSMTLIB() const override;
