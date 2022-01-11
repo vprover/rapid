@@ -4,7 +4,7 @@
 
 func main()
 {
-	const Int length = nondet_int();
+	Const Int length = nondet_int();
 	Int* a = (Int*)malloc(sizeof(Int) * length);
 	Int* b = (Int*)malloc(sizeof(Int) * length);
 	assume(0 <= length);

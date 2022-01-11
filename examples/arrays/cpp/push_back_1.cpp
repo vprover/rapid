@@ -6,7 +6,7 @@
 func main()
 {
 	Const Int blength = nondet_int();
-	Const Int* b = (const Int*)malloc(sizeof(const Int) * blength);
+	Const Int* b = (Const Int*)malloc(sizeof(Const Int) * blength);
 	assume(0 <= blength);
 	for (Int __i = 0; __i < blength; __i++) {
 		b[__i] = nondet_int();

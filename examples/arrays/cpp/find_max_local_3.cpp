@@ -4,8 +4,8 @@
 
 func main()
 {
-	const Int alength = nondet_int();
-	const Int* a = (Const Int*)malloc(sizeof(Const Int) * alength);
+	Const Int alength = nondet_int();
+	Const Int* a = (Const Int*)malloc(sizeof(Const Int) * alength);
 	assume(1 <= alength);
 	for (Int __i = 0; __i < alength; __i++) {
 		a[__i] = nondet_int();
