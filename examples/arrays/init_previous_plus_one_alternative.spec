@@ -1,5 +1,5 @@
 // initialize each position in the array to the value of the previous position + 1, starting with value v for the first element
-// similar to https://github.com/sosy-lab/sv-benchmarks/blob/master/c/array-examples/standard_seq_init_true-unreach-call_ground.c
+// similar to https://github.com/sosy-lab/sv-benchmarks/blob/master/c/array-examples/standard_seq_init_ground.c
 
 func main()
 {

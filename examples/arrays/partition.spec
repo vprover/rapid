@@ -11,12 +11,10 @@ func main()
 {
   const Int[] a;
   const Int alength;
-
   Int[] b;
   Int blength = 0;
   Int[] c;
   Int clength = 0;
-
 	Int i = 0;
 	while(i < alength)
 	{
