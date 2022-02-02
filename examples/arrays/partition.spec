@@ -143,3 +143,23 @@ func main()
     )
   )
 )
+
+(conjecture
+  (forall ((pos Int))
+    (=>
+      (and
+        (<= 0 alength)
+        (<= 0 pos)
+        (< pos alength)
+      )
+      (or
+        (exists ((pos2 Int))
+          (or
+            (= (b main_end pos2) (a pos))
+            (= (c main_end pos2) (a pos))
+          )
+        )
+      )
+    )
+  )
+)
