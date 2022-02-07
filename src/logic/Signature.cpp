@@ -176,6 +176,8 @@ std::unordered_map<std::string, std::shared_ptr<const Symbol>>
     Signature::_signature;
 std::vector<std::shared_ptr<const Symbol>>
     Signature::_signatureOrderedByInsertion;
+std::vector<std::shared_ptr<const Symbol>>
+    Signature::_memoryArraySymbols;
 
 bool Signature::isDeclared(std::string name) {
   auto it = _signature.find(name);
@@ -227,8 +229,11 @@ std::shared_ptr<const Symbol> Signature::fetchOrAdd(
       std::make_pair(name, std::shared_ptr<Symbol>(new Symbol(
                                name, argSorts, rngSort, noDeclaration, typ))));
   auto symbol = pair.first->second;
-  
+
   if (pair.second) {
+    if(typ == Symbol::SymbolType::MemoryArray){
+      _memoryArraySymbols.push_back(symbol);
+    }
     _signatureOrderedByInsertion.push_back(symbol);
   }
   // if a symbol with the name already exist, make sure it has the same sorts

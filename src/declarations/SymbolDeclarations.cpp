@@ -82,40 +82,46 @@ std::shared_ptr<const logic::Symbol> traceSymbol(unsigned traceNumber) {
 void declareSymbolsForProgramVar(const program::Variable* var) {
   // variables are now constants of sort location
 
-  //TODO get rid of code duplication
-  /*auto toLower = [](std::string s){
-    std::transform(s.begin(), s.begin() + 1, s.begin(), ::tolower);
-    return s;
-  };*/
-
   logic::Symbol::SymbolType typ = logic::Symbol::SymbolType::ProgramVar;
   if (var->isConstant) {
     typ = logic::Symbol::SymbolType::ConstProgramVar;
   }
+  
+  //declare variable (constant of type location)
+  logic::Signature::add(var->name, {}, logic::Sorts::locSort(), false, typ);
 
+  // deref array is declared in Theory
+  if(var->vt->isPointerToPointer()){
+    return;
+  }
+
+  // declare the memory arrays    
+  auto sort =  var->vt->isPointerType() ? analysis::toSort(var->vt->getChild()) : 
+                                          analysis::toSort(var->vt);
   std::vector<const logic::Sort*> subtermSorts;
   if(!var->isConstant){
     subtermSorts.push_back(logic::Sorts::timeSort());
   }
   subtermSorts.push_back(logic::Sorts::locSort());
   
-  auto sort = analysis::toSort(var->vt);
-  // Add selectors as function symbols
-  if(sort->isAlgebraicSort()){
-    for(const auto& selector : sort->selectors){
-      auto resSort = logic::Sorts::fetch(selector.second);
-      auto name = selector.first;
-      //true means do not declare. We don't want these output separately in the SMTLIB file
-      logic::Signature::fetchOrAdd(name, {sort}, resSort, true);
-    }
-  }
-
   std::string str = var->isConstant ? "const_" : "";
   std::string arrName = "value_" + str + logic::toLower(sort->name);
 
-  // declare the memory arrays
-  logic::Signature::fetchOrAdd(arrName, subtermSorts, sort, false, logic::Symbol::SymbolType::Selector);
-  logic::Signature::add(var->name, {}, logic::Sorts::locSort(), false, typ);
+  logic::Signature::fetchOrAdd(arrName, subtermSorts, sort, false,
+    logic::Symbol::SymbolType::MemoryArray);
+}
+
+void declareSymbolsForStructType(std::shared_ptr<const program::ExprType> type) {
+  auto sort = analysis::toSort(type);
+  // Add selectors as function symbols
+  assert(sort->isAlgebraicSort());
+
+  for(const auto& selector : sort->selectors){
+    //auto resSort = logic::Sorts::fetch(selector.second);
+    auto name = selector.first;
+    //true means do not declare. We don't want these output separately in the SMTLIB file
+    logic::Signature::fetchOrAdd(name, {sort}, logic::Sorts::locSort(), true, logic::Symbol::SymbolType::Selector);
+  }
 }
 
 // TODO no need for two functions?

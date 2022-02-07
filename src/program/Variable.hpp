@@ -44,6 +44,8 @@ class Variable {
 
   bool isNat() const { return vt->type() == program::BasicType::NAT; }
 
+  bool isInt() const { return vt->type() == program::BasicType::INTEGER; }
+
   // sanity-assertion: if two variables have the same name, they agree on all
   // other properties.
   bool operator==(const Variable& rhs) const {
@@ -124,7 +126,9 @@ class StructFieldAccess : public Expression {
   StructFieldAccess(std::shared_ptr<const Variable> field,
                     std::shared_ptr<const Expression> struc) :
   Expression(field->vt), field(std::move(field)), struc(std::move(struc)){
-    assert(this->struc->isStructExpr());
+    //TODO check that if it is a pointer, it points to a struc
+    assert(this->struc->isStructExpr() ||
+           this->struc->isPointerExpr());
   }
 
   program::Type type() const override {

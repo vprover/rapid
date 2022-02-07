@@ -113,7 +113,7 @@ void MemConjectureGenerator::generateConjectures(
         logic::Formulas::disequality(lhs, logic::Theory::nullLoc());
 
     // false means use existential quantification
-    // we hypothesise that these exists and iteration such
+    // we hypothesise that these exists an iteration such
     // that the dereference at that reference is invalid
     memSafetyDisjuncts.push_back(quantifyAndGuard(eq, assignment, false));
     memSafetyConjuncts.push_back(quantifyAndGuard(diseq, assignment));

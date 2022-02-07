@@ -22,7 +22,9 @@ class VarDecl;
 
 class ExprType {
  public:
-  ExprType(BasicType bt) : bt(bt) {}
+  ExprType(BasicType bt) : bt(bt) {
+//    assert(bt != BasicType::POINTER);
+  }
   ExprType(std::shared_ptr<const ExprType> child)
       : bt(program::BasicType::POINTER), child(child) {}
   ExprType(std::shared_ptr<const ExprType> child, BasicType bt)
@@ -71,8 +73,12 @@ class ExprType {
   }
 
   // recursive equality def
+  // NullPtr and malloc() expression are of POINTER
+  // type but don't contain information regarding pointed 
+  // to type (since they can be polymorphic)
   bool operator==(const ExprType& other) const {
-    return other.bt == bt && (other.child == child || *child == *other.child);
+    return other.bt == bt && (other.child == child || !child || 
+          !other.child || *child == *other.child);
   }
 
   bool operator!=(const ExprType& other) const { return !(*this == other); }
@@ -100,6 +106,8 @@ enum class Type {
   IntArrayApplication,
   VarReference,
   FieldAccess,
+  MallocFunc,
+  NullPtr
 };
 
 class Expression {
@@ -143,6 +151,27 @@ class Expression {
   std::shared_ptr<const ExprType> exprtype;
 };
 std::ostream& operator<<(std::ostream& ostr, const Expression& e);
+
+// we model malloc as a function that returns a pointer. 
+// The type of the pointer can be varied
+// At the moment Rapid does not handle function calls,
+// so this is just a special expression. Afterwards,
+// this should become a special member of the functionExpr class
+class MallocFunc : public Expression {
+ public:
+  MallocFunc() : Expression(BasicType::POINTER) {}
+
+  Type type() const override { return program::Type::MallocFunc; }
+  std::string toString() const override;  
+};
+
+class NullPtr : public Expression {
+ public:
+  NullPtr() : Expression(BasicType::POINTER) {}
+
+  Type type() const override { return program::Type::NullPtr; }
+  std::string toString() const override;  
+};
 
 class ArithmeticConstant : public Expression {
  public:

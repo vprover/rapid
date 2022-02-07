@@ -49,6 +49,7 @@ void declareSymbolsForProgramVar(const program::Variable* var);
 void declareSymbolsForTraces(unsigned numberOfTraces);
 void declareSymbolsForFunction(const program::Function* function,
                                unsigned numberOfTraces);
+void declareSymbolsForStructType(std::shared_ptr<const program::ExprType> type);
 // helper method for declareSymbolsForFunction
 void declareSymbolsForStatements(const program::Statement* statement,
                                  unsigned numberOfTraces);

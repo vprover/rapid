@@ -52,7 +52,8 @@ std::string declareSortSMTLIB(const Sort& s) {
   } else if (s.isAlgebraicSort()){    
     std::string res = "(declare-datatype " + s.toSMTLIB() + " ((" + s.constructor + " ";
     for(const auto& sel : s.selectors){
-      res = res + "(" + sel.first + " " + sel.second + ")";
+      //TODO hack below. Change code so that sort IS location
+      res = res + "(" + sel.first + " Location)";
     }
     res = res + ")))\n";
     return res;
@@ -93,7 +94,7 @@ std::map<std::string, std::unique_ptr<Sort>> Sorts::_sorts;
 Sort* Sorts::structSort(std::string name,
     std::vector<std::pair<std::string, std::string>> selectors) {
   
-  std::string constructor = toLower(name);
+  std::string constructor = toLower(name) + "Con";
 
   auto it = _sorts.find(name);
 

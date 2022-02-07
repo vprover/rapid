@@ -63,7 +63,7 @@ std::vector<std::shared_ptr<const logic::Axiom>> Semantics::generateBounds() {
   std::vector<std::shared_ptr<const logic::Axiom>> axioms;
 
   auto locSymbol = locationSymbol("tp", 0);
-  auto lVar = locVar();
+  auto lVar = logic::Terms::var(locSymbol);
   auto z = logic::Theory::intConstant(0);
 
   for (const auto& var : allVars) {
@@ -161,12 +161,22 @@ Semantics::generateSemantics() {
   }
 
   std::vector<std::shared_ptr<const logic::Formula>> uniqueVars;
+
+  auto tp = locationSymbol("tp", 0);
+  auto tp2 = locationSymbol("tp2", 0);
+  auto tpVar = logic::Terms::var(tp);  
+  auto tpVar2 = logic::Terms::var(tp2);
+
   for (int i = 0; i < allVars.size(); i++) {
     auto var = allVars[i];
     auto varAsTerm = logic::Terms::func(logic::Signature::fetch(var->name), {});
     auto notNull =
         logic::Formulas::disequality(varAsTerm, logic::Theory::nullLoc());
     uniqueVars.push_back(notNull);
+
+    auto notMalloc = 
+        logic::Formulas::disequality(varAsTerm, logic::Theory::mallocFun(tpVar));
+    uniqueVars.push_back(logic::Formulas::universal({tp},notMalloc));
 
     for (int j = i + 1; j < allVars.size(); j++) {
       auto var2 = allVars[j];
@@ -177,16 +187,53 @@ Semantics::generateSemantics() {
     }
   }
 
-  auto tp = locationSymbol("tp", 0);
   auto memLocSymbol = locVarSymbol();
-  auto tpVar = locVar();
   auto memLocVariable = memLocVar();
+
+  {
+    auto frameAxiom = logic::Theory::frameAxiom(memLocVariable, tpVar, tpVar2);
+    std::vector<std::shared_ptr<const logic::Formula>> forms;
+    auto loc = logic::Signature::varSymbol("m-loc", logic::Sorts::locSort());
+    auto locVar = logic::Terms::var(loc); 
+
+    for (const auto& memArraySym : logic::Signature::memoryArraySymbols()){
+      if (!memArraySym->isConstMemoryArray()) {
+        auto arrayAtL2 = logic::Terms::func(memArraySym, {tpVar, locVar});
+        auto arrayAtL1 = logic::Terms::func(memArraySym, {tpVar2, locVar});
+        auto equality = logic::Formulas::equality(arrayAtL2, arrayAtL1);
+        forms.push_back(equality);
+      }
+    }
+    forms.push_back(logic::Formulas::equality(
+      logic::Theory::deref(tpVar, locVar),
+      logic::Theory::deref(tpVar2, locVar)
+    ));
+
+    auto notEqual = logic::Formulas::disequality(memLocVariable, locVar);
+    auto rhs = logic::Formulas::conjunctionSimp(forms);
+    rhs =  logic::Formulas::implicationSimp(notEqual, rhs);
+    rhs =  logic::Formulas::universal({loc}, rhs);
+
+    auto frameDefinition = logic::Formulas::universal({memLocSymbol,tp, tp2 },
+      logic::Formulas::equivalenceSimp(frameAxiom, rhs));
+    axioms.push_back(std::make_shared<logic::Axiom>(
+      frameDefinition, "Definition of the frame axiom",
+      logic::ProblemItem::Visibility::Implicit));
+  }
 
   auto deref = logic::Theory::deref(tpVar, memLocVariable);
   auto derefFormula = logic::Formulas::disequality(memLocVariable, deref);
   auto derefNotIdentity =
       logic::Formulas::universal({tp, memLocSymbol}, derefFormula);
   uniqueVars.push_back(derefNotIdentity);
+
+  //TODO only add if a malloc present?
+  auto timePointDifferent = logic::Formulas::disequality(tpVar, tpVar2);
+  auto mallocAtTp = logic::Theory::mallocFun(tpVar);
+  auto mallocAtTp2 = logic::Theory::mallocFun(tpVar2);
+  auto mallocDifferent = logic::Formulas::disequality(mallocAtTp, mallocAtTp2);
+  auto mallocFormula = logic::Formulas::implication(timePointDifferent, mallocDifferent);
+  uniqueVars.push_back(logic::Formulas::universal({tp, tp2 },mallocFormula));
 
   auto memSemantics = logic::Formulas::conjunctionSimp(uniqueVars);
 
@@ -224,7 +271,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
 std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     const program::VarDecl* varDecl, SemanticsInliner& inliner,
     std::shared_ptr<const logic::Term> trace) {
-  //TODO jsut ignore declarations that are at the end of scope?
+  //TODO just ignore declarations that are at the end of scope?
   if (util::Configuration::instance().memSafetyMode()) {
     auto var = varDecl->var;
     if (var->isPointer()) {
@@ -316,8 +363,6 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     //  *...*x = #y
     //  x[expr] = expr
 
-    std::cout << assignment->toString(0) << std::endl;
-
     auto lhs = assignment->lhs;
     auto rhs = assignment->rhs;
 
@@ -377,60 +422,77 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     }
 
     // lhs(l2) = rhs(l1);
+    // We have a problem here
+    // Parser sensibly allows the following: 
+    //   const Int a = 10;
+    // however, the code below assums non-const ness
     auto eq = logic::Formulas::equality(lhsTerm, rhsTerm);
+    auto lhsAsFunc = std::static_pointer_cast<const logic::FuncTerm>(lhsTerm);
+    auto array = lhsAsFunc;
 
     conjuncts.push_back(eq);
 
-    auto lhsAsFunc = std::static_pointer_cast<const logic::FuncTerm>(lhsTerm);
+    // all other fields of the struct remain the same
+    /*if(lhsAsFunc->symbol->isSelectorSymbol()){
+      assert(lhsAsFunc->subterms.size() == 1);
+      auto structTermL2 = (*lhsAsFunc)[0];
+      assert(structTermL2->sort()->isAlgebraicSort());
+      array = structTermL2;
 
-    auto locSymbol = locVarSymbol();
-    auto loc = memLocVar();
+      auto tm = std::static_pointer_cast<const logic::FuncTerm>(toTerm(lhs, l1, trace));
+      auto structTermL1  = (*tm)[0];
 
+      for(auto sel : structTermL2->sort()->selectors){
+        if(sel.first != lhsAsFunc->symbol->name){
+          auto selSymbol = logic::Signature::fetch(sel.first);
+          auto l = logic::Terms::func(selSymbol, {structTermL2});
+          auto r = logic::Terms::func(selSymbol, {structTermL1});
+          conjuncts.push_back(logic::Formulas::equality(l, r));
+        }
+      }
+    } else {
+      array = lhsAsFunc;
+    }*/
+
+    auto arrayAccessedAt = (*std::static_pointer_cast<const logic::FuncTerm>(array))[1];
+    //auto locSymbol = locVarSymbol();
+   // auto loc = memLocVar();
+ 
     bool activeVarsContainsPointerVars = false;
-    auto premise = logic::Formulas::disequality(loc, lhsAsFunc->subterms[1]);
+    //auto premise = logic::Formulas::disequality(loc, arrayAccessedAt);
 
     std::vector<std::shared_ptr<const logic::Formula>> forms;
 
     //false means that loc does not represent a constant variable
-    auto lhs3 = logic::Theory::valueAt(l2, loc, "Int", false);
+    /*auto lhs3 = logic::Theory::valueAt(l2, loc, "Int", false);
     auto rhs3 = logic::Theory::valueAt(l1, loc, "Int", false);
     auto eq3 = logic::Formulas::equality(lhs3, rhs3);
     forms.push_back(lhsAsFunc->isValueAt()
                         ? logic::Formulas::implication(premise, eq3)
-                        : eq3);
+                        : eq3);*/
+ 
 
-    std::set<std::string> sortsSeen;
-    for (auto var : activeVars) {
-      std::string sortName = "Arr";
-      if (var->isStruct()) {
-        auto structType = std::static_pointer_cast<const program::StructType>(var->vt);
-        sortName = structType->getName();
-      } else if (var->isPointer()) {
-        activeVarsContainsPointerVars = true;
-        continue;
-      } else if(var->isNat()){
-        //TODO deal with this case
-        assert(false);
-      }
-      if(!sortsSeen.insert(sortName).second){
-        //already dealt with this sort
-        continue;
-      }
+    forms.push_back(logic::Theory::frameAxiom(arrayAccessedAt, l1, l2));
 
-      auto lhs4 = logic::Theory::valueAt(l2, loc, sortName, false);
-      auto rhs4 = logic::Theory::valueAt(l1, loc, sortName, false);
-      auto eq4 = logic::Formulas::equality(lhs4, rhs4);
-      if(var->isArray()){
-        forms.push_back(lhsAsFunc->isArrayAt() ? logic::Formulas::implication(premise, eq4) : eq4);
-      }
-      if(var->isStruct()){
-        std::string structName;
-        if(lhsAsFunc->isStructAt(structName) && structName == sortName){
-          forms.push_back(logic::Formulas::implication(premise, eq4));
+    //auto arrayName = array->symbol->name;
+
+    /*for (const auto& memArraySym : logic::Signature::memoryArraySymbols()) {
+      if (!memArraySym->isConstMemoryArray()) {
+        auto arrayAtL2 = logic::Terms::func(memArraySym, {l2, loc});
+        auto arrayAtL1 = logic::Terms::func(memArraySym, {l1, loc});
+        auto equality = logic::Formulas::equality(arrayAtL2, arrayAtL1);
+        if(memArraySym->name != arrayName){
+          forms.push_back(equality);
         } else {
-          forms.push_back(eq4);          
+          forms.push_back(logic::Formulas::implicationSimp(premise, equality));          
         }
-      }                          
+      }
+    }*/
+
+    /*for (auto var : activeVars) {
+      if (var->isPointer()) {
+        activeVarsContainsPointerVars = true;
+      }                        
     }
 
     if (activeVarsContainsPointerVars) {
@@ -464,12 +526,12 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
       auto conjForm = logic::Formulas::conjunctionSimp(conjs);
       auto eq6 = logic::Formulas::equality(lhs2, rhs2);
       forms.push_back(logic::Formulas::implicationSimp(conjForm, eq6));
-    }
+    }*/
 
     auto conj = logic::Formulas::conjunctionSimp(forms);
-    auto conjunct = logic::Formulas::universal({locSymbol}, conj);
+    //auto conjunct = logic::Formulas::universal({locSymbol}, conj);
 
-    conjuncts.push_back(conjunct);
+    conjuncts.push_back(conj);
 
     return logic::Formulas::conjunction(
         conjuncts, "Update variable " + lhs->toString() + " at location " +
@@ -610,10 +672,10 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     auto activeVars = locationToActiveVars.at(lStart->symbol->name);
 
     auto implicationIfBranch = logic::Formulas::implication(
-        condition, allVarEqual(activeVars, lLeftStart, lStart, trace),
+        condition, allVarEqual(lLeftStart, lStart, trace),
         "Jumping into the left branch doesn't change the variable values");
     auto implicationElseBranch = logic::Formulas::implication(
-        negatedCondition, allVarEqual(activeVars, lRightStart, lStart, trace),
+        negatedCondition, allVarEqual(lRightStart, lStart, trace),
         "Jumping into the right branch doesn't change the variable values");
 
     conjuncts.push_back(implicationIfBranch);
@@ -801,7 +863,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
         {itSymbol},
         logic::Formulas::implication(
             logic::Theory::less(it, n),
-            allVarEqual(activeVars, lBodyStartIt, lStartIt, trace)),
+            allVarEqual(lBodyStartIt, lStartIt, trace)),
         "Jumping into the loop body doesn't change the variable values");
 
     if (util::Configuration::instance().integerIterations()) {
@@ -811,7 +873,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
               logic::Formulas::conjunctionSimp(
                   {logic::Theory::lessEq(logic::Theory::intZero(), it),
                    logic::Theory::less(it, n)}),
-              allVarEqual(activeVars, lBodyStartIt, lStartIt, trace)),
+              allVarEqual(lBodyStartIt, lStartIt, trace)),
           "Jumping into the loop body doesn't change the variable values");
     }
     conjuncts.push_back(part1);
@@ -870,7 +932,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
 
     // Part 4: The values after the while-loop are the values from the timepoint
     // with location lStart and iteration n
-    auto part4 = allVarEqual(activeVars, lEnd, lStartN, trace,
+    auto part4 = allVarEqual(lEnd, lStartN, trace,
                              "The values after the while-loop are the values "
                              "from the last iteration");
     conjuncts.push_back(part4);
@@ -904,67 +966,42 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
       auto locSymbol = locVarSymbol();
       auto loc = memLocVar();
 
-      bool activeVarsContainsPointerVars = false;
       std::vector<std::shared_ptr<const logic::Formula>> forms;
-
-      auto lhs1 = logic::Theory::valueAt(l2, loc, "Int", false);
-      auto rhs1 = logic::Theory::valueAt(l1, loc, "Int", false);
-      auto eq1 = logic::Formulas::equality(lhs1, rhs1);
-
-      forms.push_back(eq1);
-
-      std::set<std::string> sortsSeen;
-      for (auto var : activeVars) {
-        std::string sortName = "Arr";
-        if (var->isStruct()) {
-          auto structType = std::static_pointer_cast<const program::StructType>(var->vt);
-          sortName = structType->getName();
-        } else if (var->isPointer()) {
-          activeVarsContainsPointerVars = true;
-          continue;
-        } else if(var->isNat()){
-          //TODO deal with this case
-          assert(false);
+      for (const auto& memArraySym : logic::Signature::memoryArraySymbols()) {
+        if (!memArraySym->isConstMemoryArray()) {
+          auto arrayAtL2 = logic::Terms::func(memArraySym, {l2, loc});
+          auto arrayAtL1 = logic::Terms::func(memArraySym, {l1, loc});
+          auto equality = logic::Formulas::equality(arrayAtL2, arrayAtL1);
+          forms.push_back(equality);
         }
-        if(!sortsSeen.insert(sortName).second){
-          //already dealt with this sort
-          continue;
-        }
-
-        auto lhs4 = logic::Theory::valueAt(l2, loc, sortName, false);
-        auto rhs4 = logic::Theory::valueAt(l1, loc, sortName, false);
-        auto eq4 = logic::Formulas::equality(lhs1, rhs1);
-        forms.push_back(eq4);                 
       }
 
-      if (activeVarsContainsPointerVars) {
-        auto lhs2 = logic::Theory::deref(l2, loc);
-        auto rhs2 = logic::Theory::deref(l1, loc);
+      auto lhs2 = logic::Theory::deref(l2, loc);
+      auto rhs2 = logic::Theory::deref(l1, loc);
 
-        std::vector<std::shared_ptr<const logic::Formula>> disjs;
-        std::vector<std::shared_ptr<const logic::Formula>> conjs;
+      std::vector<std::shared_ptr<const logic::Formula>> disjs;
+      std::vector<std::shared_ptr<const logic::Formula>> conjs;
 
-        if(util::Configuration::instance().memSafetyMode()){
-          for(auto var : varsGoingOutOfScope){
-            auto f1 =
-              logic::Formulas::equality(rhs2, logic::Terms::locConstant(var->name));
-            auto f2 =
-              logic::Formulas::disequality(rhs2, logic::Terms::locConstant(var->name));          
-            disjs.push_back(f1);  
-            conjs.push_back(f2);  
-          }
+      if(util::Configuration::instance().memSafetyMode()){
+        for(auto var : varsGoingOutOfScope){
+          auto f1 =
+            logic::Formulas::equality(rhs2, logic::Terms::locConstant(var->name));
+          auto f2 =
+            logic::Formulas::disequality(rhs2, logic::Terms::locConstant(var->name));          
+          disjs.push_back(f1);  
+          conjs.push_back(f2);  
         }
-
-        if(util::Configuration::instance().memSafetyMode()){
-          auto disjForm = logic::Formulas::disjunctionSimp(disjs);
-          auto eq2 = logic::Formulas::equality(lhs2, logic::Theory::nullLoc());
-          forms.push_back(logic::Formulas::implicationSimp(disjForm, eq2));
-        }
-
-        auto conjForm = logic::Formulas::conjunctionSimp(conjs);
-        auto eq3 = logic::Formulas::equality(lhs2, rhs2);
-        forms.push_back(logic::Formulas::implicationSimp(conjForm, eq3));
       }
+
+      if(util::Configuration::instance().memSafetyMode()){
+        auto disjForm = logic::Formulas::disjunctionSimp(disjs);
+        auto eq2 = logic::Formulas::equality(lhs2, logic::Theory::nullLoc());
+        forms.push_back(logic::Formulas::implicationSimp(disjForm, eq2));
+      }
+
+      auto conjForm = logic::Formulas::conjunctionSimp(conjs);
+      auto eq3 = logic::Formulas::equality(lhs2, rhs2);
+      forms.push_back(logic::Formulas::implicationSimp(conjForm, eq3));
 
       auto conj = logic::Formulas::conjunctionSimp(forms);
       auto conjunct = logic::Formulas::universal({locSymbol}, conj, 

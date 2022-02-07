@@ -180,7 +180,7 @@ std::shared_ptr<const FuncTerm> Theory::arbitraryTP() {
 }
 
 std::shared_ptr<const FuncTerm> Theory::nullLoc() {
-  return Terms::func("null-loc", {}, Sorts::locSort(), false);
+  return Terms::func("null_loc", {}, Sorts::locSort(), false);
 }
 
 std::shared_ptr<const FuncTerm> Theory::valueAt(
@@ -212,6 +212,20 @@ std::shared_ptr<const FuncTerm> Theory::deref(
     term = Terms::func("deref", {timePoint, term}, Sorts::locSort(), false);
   }
   return term;
+}
+
+std::shared_ptr<const Formula> Theory::frameAxiom(
+      std::shared_ptr<const Term> location,
+      std::shared_ptr<const Term> t1,
+      std::shared_ptr<const Term> t2) {
+  return Formulas::predicate("frame_axiom", {location, t1, t2});
+}
+
+std::shared_ptr<const FuncTerm> Theory::mallocFun(
+    std::shared_ptr<const Term> timePoint) {
+
+  return Terms::func("malloc", {timePoint}, Sorts::locSort(), false, 
+    logic::Symbol::SymbolType::MallocFunc);
 }
 
 std::tuple<std::shared_ptr<logic::Definition>,

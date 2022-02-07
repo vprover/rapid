@@ -73,7 +73,13 @@ class Theory {
   static std::shared_ptr<const FuncTerm> deref(
       std::shared_ptr<const Term> timePoint,
       std::shared_ptr<const Term> location, unsigned level = 1);
-
+  static std::shared_ptr<const FuncTerm> mallocFun(
+      std::shared_ptr<const Term> timePoint);
+  static std::shared_ptr<const Formula> frameAxiom(
+      std::shared_ptr<const Term> location,
+      std::shared_ptr<const Term> t1,
+      std::shared_ptr<const Term> t2);  
+  
   static std::shared_ptr<const FuncTerm> zero();
   static std::shared_ptr<const FuncTerm> succ(std::shared_ptr<const Term> t);
   static std::shared_ptr<const Formula> less(std::shared_ptr<const Term> t1,

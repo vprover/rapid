@@ -24,6 +24,8 @@ class Term {
     Variable,
     FuncTerm,
   };
+
+  const Sort* sort() const { return symbol->rngSort; }
   virtual Type type() const = 0;
 
   virtual std::string toSMTLIB() const = 0;
@@ -68,17 +70,15 @@ class FuncTerm : public Term {
   bool isDerefAt() const { return symbol->name == "deref"; }
   bool isValueAt() const { return symbol->name == "value_int"; }
   bool isArrayAt() const { return symbol->name == "value_arr"; }
-  bool isStructAt(std::string& structName) const {
-    std::string symName = symbol->name;
-    if(symName.starts_with("value_") && !isValueAt() && !isArrayAt() &&
-       !isConstMemoryArray()){
-      structName = symName.substr(symName.find('_')); 
-      return true;
-    }
-    return false;
+  bool isSelectorFor(std::string& algebraicSortName) const {
+    return symbol->isSelectorSymbol() && symbol->argSorts[0]->name == algebraicSortName; 
   }
   bool isConstMemoryArray() const { 
     return (symbol->name).starts_with("value_const"); 
+  }
+
+  std::shared_ptr<const Term> operator[](unsigned i) const {
+    return subterms[i];
   }
 
   Type type() const override { return Term::Type::FuncTerm; }

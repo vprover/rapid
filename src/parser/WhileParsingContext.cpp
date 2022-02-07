@@ -113,7 +113,7 @@ std::shared_ptr<const program::Variable> WhileParsingContext::getProgramVar(
   if (programVarsDeclarations.count(name) > 0) {
     return programVarsDeclarations[name];
   } else {
-    std::cout << "program var " << name << " has not been declared!";
+    std::cout << "program var " << name << " has not been declared!" << std::endl;
     assert(false);
     return nullptr;
   }

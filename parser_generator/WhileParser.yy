@@ -90,6 +90,8 @@ YY_DECL;
   OR            "||"
   REFERENCE     "#"
   ARROW         "->"
+  MALLOC        "malloc()"
+  NULL          "NULL"
   DOT           "."
   AND           "&&"
   ANDSMTLIB     "and"
@@ -146,7 +148,7 @@ YY_DECL;
 %type < std::shared_ptr<const program::BoolExpression> > formula
 %type < std::shared_ptr<const program::Expression> > expr
 %type < std::shared_ptr<const program::Expression> > location
-
+%type < std::shared_ptr<const program::Expression> > malloc_or_null
 
 %printer { yyoutput << $$; } <*>;
 
@@ -522,6 +524,17 @@ var_decl_statement:
   }
 ;
 
+malloc_or_null:
+  MALLOC
+  {
+    $$ = std::shared_ptr<const program::MallocFunc>(new program::MallocFunc());
+  }
+| NULL
+  {
+    $$ = std::shared_ptr<const program::NullPtr>(new program::NullPtr());
+  }
+;
+
 assignment_statement:
   location ASSIGN expr SCOL 
   {
@@ -535,9 +548,27 @@ assignment_statement:
     }
    
     if(*($1->exprType()) != *($3->exprType()) ){
-      error(@1, "Invalid assignments. Type mismatch.");
+      error(@1, "Invalid assignment. Type mismatch.");
     }
+
     $$ = std::shared_ptr<const program::Assignment>(new program::Assignment(@2.begin.line, std::move($1), std::move($3)));
+  }
+| location ASSIGN malloc_or_null SCOL
+  {
+    if($1->isConstVar())
+    {
+      error(@1, "Assignment to const var " + $1->toString());
+    }
+
+    if($1->containsReference()){
+      error(@1, $1->toString() + " contains a reference and therefore is not a valid lvalue");      
+    }
+
+    //TODO Malloc returns a pointer, so we should also check that the lhs is not a pointer to a pointer
+    if(!$1->exprType()->isPointerType()){
+      error(@1, "Invalid assignment. Type mismatch.");
+    }
+    $$ = std::shared_ptr<const program::Assignment>(new program::Assignment(@2.begin.line, std::move($1), std::move($3) ));        
   }
 | var_definition_head ASSIGN expr SCOL
   {
@@ -559,6 +590,24 @@ assignment_statement:
     // build assignment
     $$ = std::shared_ptr<const program::Assignment>(new program::Assignment(@2.begin.line, std::move(variable), std::move($3)));
   }
+| var_definition_head ASSIGN malloc_or_null SCOL
+  {
+    // declare var
+    parsing_context.addProgramVar($1);
+    declareSymbolsForProgramVar($1.get());
+
+    // construct location
+    //TODO Malloc returns a pointer, so we should also check that the lhs is not a pointer to a pointer    
+    if(!$1->isPointer())
+    {
+      error(@1, "Invalid assignment. Type mismatch.");
+    }
+
+    auto variable = std::shared_ptr<const program::VariableAccess>(new VariableAccess(std::move($1)));
+
+    // build assignment
+    $$ = std::shared_ptr<const program::Assignment>(new program::Assignment(@2.begin.line, std::move(variable), std::move($3)));
+  }    
 ;
 
 if_else_statement:
@@ -675,6 +724,7 @@ struct_dec:
   {
     auto structType = std::shared_ptr<const program::ExprType>(new program::StructType($2, std::move($5))); 
     parsing_context.addStructType($2, structType);
+    declareSymbolsForStructType(structType);
     $$ = structType;    
   }
 ;

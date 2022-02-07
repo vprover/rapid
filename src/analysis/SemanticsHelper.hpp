@@ -19,7 +19,6 @@ bool getDiff(std::shared_ptr<const program::Variable> v,
 
 #pragma mark - Methods for generating most used variables
 std::shared_ptr<const logic::LVariable> posVar();
-std::shared_ptr<const logic::LVariable> locVar();
 std::shared_ptr<const logic::LVariable> memLocVar();
 
 #pragma mark - Methods for generating most used trace terms
@@ -191,7 +190,6 @@ std::shared_ptr<const logic::Formula> varEqual(
  * activeVars which is constant.
  */
 std::shared_ptr<const logic::Formula> allVarEqual(
-    const std::vector<std::shared_ptr<const program::Variable>>& activeVars,
     std::shared_ptr<const logic::Term> timePoint1,
     std::shared_ptr<const logic::Term> timePoint2,
     std::shared_ptr<const logic::Term> trace, std::string label = "");

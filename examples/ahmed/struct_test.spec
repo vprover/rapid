@@ -1,6 +1,6 @@
 struct Test1 {
   Int member;
-  Nat member2;
+  Int member2;
 };
 
 func main() {
@@ -8,6 +8,8 @@ func main() {
   Int rc = 0;
   Int result;
   Int x;
+  Int* y;
+  y = malloc();
   a.member = 2;
   x = a.member + x + x + x;
   if(x < 0){

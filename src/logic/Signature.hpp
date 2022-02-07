@@ -38,6 +38,8 @@ class Symbol {
     FinalLoopCount,
     TimePoint,
     Selector,
+    MemoryArray,
+    MallocFunc,
     Other
   };
 
@@ -100,6 +102,14 @@ class Symbol {
 
   bool isPredicateSymbol() const { return rngSort == Sorts::boolSort(); }
   bool isSelectorSymbol() const { return symbolType == SymbolType::Selector; }
+  const Sort* selectorStructSort() const {
+    assert(isSelectorSymbol());
+    assert(argSorts.size() == 1);
+    return argSorts[0];
+  }
+  bool isConstMemoryArray() const {
+    return (symbolType == SymbolType::MemoryArray) && (argSorts.size() == 0);
+  }
 
   std::string toSMTLIB() const;
   std::string toTPTP() const;
@@ -176,11 +186,20 @@ class Signature {
   signatureOrderedByInsertion() {
     return _signatureOrderedByInsertion;
   }
+  static const std::vector<std::shared_ptr<const Symbol>>&  
+  memoryArraySymbols() {
+    return _memoryArraySymbols;
+  }
 
  private:
   // _signature collects all symbols used so far.
   static std::unordered_map<std::string, std::shared_ptr<const Symbol>>
       _signature;
+
+  // symbols for memory arrays
+  static std::vector<std::shared_ptr<const Symbol>>
+      _memoryArraySymbols;
+
   // symbols of signature, in the order of insertion.
   static std::vector<std::shared_ptr<const Symbol>>
       _signatureOrderedByInsertion;
