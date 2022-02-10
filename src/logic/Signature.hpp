@@ -156,16 +156,18 @@ namespace logic {
 class Signature {
  public:
   static bool isDeclared(std::string name);
+  typedef Symbol::SymbolType SyS;
 
   // construct new symbols
   static std::shared_ptr<const Symbol> add(std::string name,
                                            std::vector<const Sort*> argSorts,
                                            const Sort* rngSort,
-                                           bool noDeclaration = false);
+                                           bool noDeclaration = false, 
+                                           Symbol::SymbolType sym = Symbol::SymbolType::Other);
   static std::shared_ptr<const Symbol> fetch(std::string name);
   static std::shared_ptr<const Symbol> fetchOrAdd(
       std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort,
-      bool isLemmaPredicate = false, bool noDeclaration = false);
+      bool noDeclaration = false, SyS sym = SyS::Other);
   static std::shared_ptr<const Symbol> densityPredicate(std::string name,
                                                         std::string var,
                                                         std::string tp);

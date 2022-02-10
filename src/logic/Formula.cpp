@@ -424,7 +424,7 @@ std::shared_ptr<const Term> Formulas::predicate(
     subtermSorts.push_back(subterm->symbol->rngSort);
   }
   auto symbol = Signature::fetchOrAdd(name, subtermSorts, Sorts::boolSort(),
-                                      false, noDeclaration);
+                                      noDeclaration);
   return std::make_shared<const PredicateFormula>(symbol, subterms, label);
 }
 
