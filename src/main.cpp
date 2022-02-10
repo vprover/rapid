@@ -75,19 +75,19 @@ int main(int argc, char *argv[]) {
         problemItems.insert(problemItems.end(), semantics.begin(),
                             semantics.end());
 
-        if (util::Configuration::instance().outputTraceLemmas()) {
-          
+        if (util::Configuration::instance().lemmaless()) {
+           // perhaps we want to add in conjunction with trace lemmas?
+          auto lemmas = analysis::generateNonTraceLemmas(
+              *parserResult.program, parserResult.locationToActiveVars,
+              parserResult.numberOfTraces, semantics, inlinedVarValues);
+          problemItems.insert(problemItems.end(), lemmas.begin(), lemmas.end());
+        } else {
+          // default mode
           auto traceLemmas = analysis::generateTraceLemmas(
               *parserResult.program, parserResult.locationToActiveVars,
               parserResult.numberOfTraces, semantics, inlinedVarValues);
           problemItems.insert(problemItems.end(), traceLemmas.begin(),
                               traceLemmas.end());
-        } else {
-          // perhaps we want to add in conjunction with trace lemmas?
-          auto lemmas = analysis::generateNonTraceLemmas(
-              *parserResult.program, parserResult.locationToActiveVars,
-              parserResult.numberOfTraces, semantics, inlinedVarValues);
-          problemItems.insert(problemItems.end(), lemmas.begin(), lemmas.end());
         }
 
         problemItems.insert(problemItems.end(),

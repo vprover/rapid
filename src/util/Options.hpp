@@ -76,10 +76,10 @@ class Configuration {
         _integerIterations("-integerIterations", false),
         _inlineLemmas("-inlineLemmas", false),
         _postcondition("-postcondition", false),
-        _outputTraceLemmas("-outputTraceLemmas", false),
+        _lemmaless("-lemmaless", false),
         _tptp("-tptp", false),
         _hol("-hol", false),
-        _overwriteExisting("-overwriteExisting", false),
+        _overwriteExisting("-overwriteExisting", true),
         _allOptions() {
     registerOption(&_outputDir);
 
@@ -106,7 +106,7 @@ class Configuration {
 
     // outputs trace lemmas. With Vampire's new support for induction
     // these are not required
-    registerOption(&_outputTraceLemmas);
+    registerOption(&_lemmaless);
 
     // tptp outputs formula in TPTP syntax
     registerOption(&_tptp);
@@ -129,7 +129,7 @@ class Configuration {
   bool integerIterations() { return _integerIterations.getValue(); }
   bool inlineLemmas() { return _inlineLemmas.getValue(); }
   bool postcondition() { return _postcondition.getValue(); }
-  bool outputTraceLemmas() { return _outputTraceLemmas.getValue(); }
+  bool lemmaless() { return _lemmaless.getValue(); }
   bool tptp() { return _tptp.getValue(); }
   bool hol() { return _hol.getValue(); }
   bool overwriteExisting() { return _overwriteExisting.getValue(); }
@@ -146,7 +146,7 @@ class Configuration {
   BooleanOption _integerIterations;
   BooleanOption _inlineLemmas;
   BooleanOption _postcondition;
-  BooleanOption _outputTraceLemmas;
+  BooleanOption _lemmaless;
   BooleanOption _tptp;
   BooleanOption _hol;
   BooleanOption _overwriteExisting;
