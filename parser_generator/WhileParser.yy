@@ -182,7 +182,7 @@ problem:
 program:
   function_list 
   { 
-    parsing_context.program = std::unique_ptr<const program::Program>(new program::Program($1)); 
+    parsing_context.program = std::unique_ptr<program::Program>(new program::Program($1)); 
   }
 ;
 
@@ -393,7 +393,7 @@ SMTLIB_ID
     // TODO: propagate existing-var-error to parser and raise error
     parsing_context.pushQuantifiedVars($4);
   } 
-  smtlib_formula RPAR 
+  smtlib_term RPAR 
   { 
     parsing_context.popQuantifiedVars();
     $$ = logic::Formulas::universal(std::move($4), std::move($7));
@@ -403,7 +403,7 @@ SMTLIB_ID
     // TODO: propagate existing-var-error to parser and raise error
     parsing_context.pushQuantifiedVars($4);
   } 
-  smtlib_formula RPAR 
+  smtlib_term RPAR 
   { 
     parsing_context.popQuantifiedVars();
     $$ = logic::Formulas::existential(std::move($4), std::move($7));
