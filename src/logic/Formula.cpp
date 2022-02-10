@@ -9,28 +9,28 @@ namespace logic {
 
 // hack needed for bison: std::vector has no overload for ostream, but these
 // overloads are needed for bison
-std::ostream& operator<<(
-    std::ostream& ostr,
-    const std::vector<std::shared_ptr<const logic::Formula>>& f) {
-  ostr << "not implemented";
-  return ostr;
-}
+// std::ostream& operator<<(
+//     std::ostream& ostr,
+//     const std::vector<std::shared_ptr<const logic::Term>>& f) {
+//   ostr << "not implemented";
+//   return ostr;
+// }
 
-std::string Formula::stringForLabel(unsigned indentation) const {
-  std::string str = "";
-  if (!label.empty()) {
-    str += std::string(indentation, ' ') + ";" + label + "\n";
-  }
-  return str;
-}
+// std::string Formula::stringForLabel(unsigned indentation) const {
+//   std::string str = "";
+//   if (!label.empty()) {
+//     str += std::string(indentation, ' ') + ";" + label + "\n";
+//   }
+//   return str;
+// }
 
-std::string Formula::stringForLabelTPTP(unsigned indentation) const {
-  std::string str = "";
-  if (!label.empty()) {
-    str += std::string(indentation, ' ') + "%" + label + "\n";
-  }
-  return str;
-}
+// std::string Formula::stringForLabelTPTP(unsigned indentation) const {
+//   std::string str = "";
+//   if (!label.empty()) {
+//     str += std::string(indentation, ' ') + "%" + label + "\n";
+//   }
+//   return str;
+// }
 
 #pragma - Methods to generate SMTLIB output
 
