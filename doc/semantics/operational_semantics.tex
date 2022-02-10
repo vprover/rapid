@@ -1,0 +1,217 @@
+
+\section{Small-step operational semantics} \label{sec:sos-semantics}
+
+Here, we give a small-step operational semantics of $\whilelang$. 
+%
+Our presentation is semantically equivalent to standard small-step operational semantics, but differs syntactically in several points, in order to simplify later definitions and theorems:
+(i) we annotate while-statements with counters to ensure the uniqueness of timepoints during the execution,
+(ii) we reference nodes in the program-tree to keep track of the
+current location during the execution instead of using strings to
+denote the remaining program, 
+(iii) we avoid additional constructs like states or configurations, 
+(iv) we keep the timepoints in the execution separated from the values of the program variables at these timepoints, and
+(v) we evaluate expressions on the fly.
+%
+% We first introduce notation related to the syntactic structure of the program.
+% %
+% We consider so called \emph{program trees}. Such directed trees abstract from the program to the statements and contexts contained in the program as follows: (i) the root of the tree is the (single) function statement (ii) the function statement and all \whileStatement-statements have as only child-node their context (iii) the \ifThenElseStatement-statements have both contexts as their only two child-nodes (iv) each context has all its statements as only child-nodes (v) each leaf is either \texttt{skip}, an integer assignement \texttt{asg} or an array assignment \texttt{asg-arr}.
+% %
+% A \emph{top-level context} is the (single) child-node of the function statements
+% A \emph{top-level statement} is any child-node of the toplevel context. For a context $c := \{ s_1,\dots,s_k\}$, we (i) say that $s_j$ \emph{follows} $s_i$ for any $1\leq i < j \leq k$, (ii) say that $s_i$ \emph{occurs} in $c$, and (iii) define the \emph{last statement} as $s_k$. For any subprogram $s$, the set of \emph{enclosing loops} consists of all while-statements $w$, such that $w$ is a transitive parent of $s$.
+We start by formalizing single steps of the execution of the program as transition rules, as defined in Figure~\ref{fig:operational-semantics}.
+%
+Intuitively, the rules describe 
+(i) how we move the location-pointer around on the program-tree and 
+(ii) how the state changes while moving the location-pointer around.
+%
+Each rule consists of 
+(i) a premise $\mathit{Reach}(tp_1)$ for some timepoint $tp_1$, 
+(ii) an additional premise $F$ (omitted if $F$ is $\top$), the so-called \emph{side-condition}, which is an arbitrary trace-logic formula referencing only the timepoint $tp_1$, 
+(iii) the first conjunct of the conclusion of the form $\mathit{Reach}(tp_2)$ for some timepoint $tp_2$, and 
+(iv) the second conjunct of the conclusion, which again is an arbitrary trace-logic formula $G$ referencing only the timepoints $tp_1$ and $tp_2$.
+
+Next, we formalize the possible executions of the program as a set of first-order interpretations, so-called \emph{execution interpretations}.
+%
+In a nutshell, execution interpretations can be described as follows.
+%
+Each possible execution of the program induces an interpretation. 
+For each such execution, the predicate symbol $\mathit{Reach}$ is interpreted as the set of timepoints which are reached during the execution. 
+%
+The function symbols denoting values of program variables are interpreted according to the transition rules at the timepoints which are reached during the execution, and are interpreted arbitrarily at all other timepoints.
+
+
+We construct execution interpretation iteratively, as follows: 
+We move around the program as defined by the transition rules. 
+Whenever we reach a new timepoint, we choose a program state $J'$,
+such that the side-conditions of the transition rule are fulfilled,
+and extend the current interpretation $J$ with $J'$. We furthermore collect all timepoints that we already reached in $I$. We stop as soon as we reach $\mathit{end}$. We then construct an execution interpretation as follows: we interpret $Reach$ as $I$, extend $J$ to an interpretation of $\pvsig$ by choosing an arbitrary state at any timepoint which we did not reach, and choose an arbitrary interpretation of the theory symbols according to the background theory.
+%that is we assign arbitrary values of the background theory to program variables at unreachable timepoints. 
+
+\begin{definition}[Program state]
+	A \emph{program state at timepoint $tp$} is a partial interpretation, which exactly contains (i) for each non-array variable $\pv{v}$ an interpretation of $v(tp)$ and (ii) for each array variable $\pv{a}$ and for each element $pos$ of the domain $\intsig$ an interpretation of $a(tp,pos)$.
+\end{definition}
+
+\begin{definition}[Execution interpretation]
+	\label{def:execution-interpretation} 
+	Let $p_0$ be a fixed program.
+	Let $I,J$ be any possible result returned by the algorithm in Algorithm~\ref{alg:execution-interpretation}.
+	Let $M$ be any interpretation, such that 
+	(i) $\mathit{Reach}(tp)$ is true iff $tp \in I$, 
+	(ii) $M$ is an extension of $J$, and 
+	(iii) $M$ interprets the symbols of the background theory according to the theory. 
+	%
+	Then $M$ is called an \emph{execution interpretation of $p_0$}.
+\end{definition}
+
+
+
+\begin{figure}[]
+	\begin{prooftree}
+		\AxiomC{}
+		\LeftLabel{[\sos{init}]}
+		\UnaryInfC{$\mathit{Reach}(\mathit{start})$}
+	\end{prooftree}
+	
+	Let $s$ be a \while{skip}.
+	\begin{prooftree}
+		\AxiomC{$\mathit{Reach}(\mathit{start}_{s})$}
+		\LeftLabel{[$\mathit{skip}^{sos}$]}
+		\UnaryInfC{$\mathit{Reach}(\mathit{end}_{s}) \land \mathit{EqAll}(\mathit{start}_{s}, \mathit{end}_{s})$ }
+	\end{prooftree}
+	
+	Let $s$ be an assignment \while{v = e}.
+	\begin{prooftree}
+		\AxiomC{$\mathit{Reach}(\mathit{start}_{s})$}
+		\LeftLabel{[\sos{asg}]}
+		\UnaryInfC{$\mathit{Reach}(\mathit{end}_{s}) \land \mathit{Update}(v,e,\mathit{start}_{s}, \mathit{end}_{s})$ }
+	\end{prooftree}
+	
+	Let $s$ be an array-assignment \while{v[e$_1$] = e$_2$}.
+	\begin{prooftree}
+		\AxiomC{$\mathit{Reach}(\mathit{start}_{s})$}
+		\LeftLabel{[\sos{asg_{arr}}]}
+		\UnaryInfC{$\mathit{Reach}(\mathit{end}_{s}) \land \mathit{UpdateArr}(v,e_1,e_2,\mathit{start}_{s}, \mathit{end}_{s})$ }
+	\end{prooftree}
+	
+	Let $\pv{s}$ be \while{if(Cond)\{c}$_1$\while{\}else\{c}$_2$\while{\}}.
+	\begin{prooftree}
+		\AxiomC{$\mathit{Reach}(\mathit{start}_{s})$}
+		\AxiomC{$ \llbracket \mathit{Cond} \rrbracket (\mathit{start}_{s}) $}
+		\LeftLabel{[\sos{ite_T}]}
+		\BinaryInfC{$\mathit{Reach}(\mathit{start}_{c_1}) \land \mathit{EqAll}(\mathit{start}_{s}, \mathit{start}_{c_1})$}
+	\end{prooftree}
+	\begin{prooftree}
+		\AxiomC{$\mathit{Reach}(\mathit{start}_{s})$}
+		\AxiomC{$ \neg \llbracket \mathit{Cond} \rrbracket (\mathit{start}_{s}) $}
+		\LeftLabel{[\sos{ite_F}]}
+		\BinaryInfC{$\mathit{Reach}(\mathit{start}_{c_2}) \land \mathit{EqAll}(\mathit{start}_{s}, \mathit{start}_{c_2})$}
+	\end{prooftree}
+	
+	Let $\pv{s}$ be \while{while(Cond)\{c\}}.
+	\begin{prooftree}
+		\AxiomC{$\mathit{Reach}(tp_{s}(it^{s}))$}
+		\AxiomC{$\llbracket \mathit{Cond} \rrbracket (tp_{s}(it^{s})) $}
+		\LeftLabel{[\sos{while_T}]}
+		\BinaryInfC{$\mathit{Reach}(\mathit{start}_{c}) \land \mathit{EqAll}(tp_{s}(it^{s}), \mathit{start}_{c})$}
+	\end{prooftree}
+	\begin{prooftree}
+		\AxiomC{$\mathit{Reach}(tp_{s}(it^{s}))$}
+		\AxiomC{$ \neg \llbracket \mathit{Cond} \rrbracket (tp_{s}(it^{s})) $}
+		\LeftLabel{[\sos{while_F}]}
+		\BinaryInfC{$\mathit{Reach}(\mathit{end}_{s}) \land \mathit{EqAll}(tp_{s}(it^{s}), \mathit{end}_s)$}
+	\end{prooftree}
+	\caption{Small-step operational semantics using $\mathit{tp}$, $\mathit{start}$, $\mathit{end}$.}
+	\label{fig:operational-semantics}
+\end{figure}
+
+
+
+\begin{algorithm}
+	\caption{Algorithm to compute execution interpretation.}
+	\label{alg:execution-interpretation}
+	\begin{algorithmic}
+		\State $\mathit{curr} = \mathit{start}$
+		\State $I = \{ curr \}$
+		\State $J = $ choose program state at $\mathit{curr}$
+		\While{$\mathit{curr} \neq \mathit{end}$}
+		\State choose $r :=$
+		\AxiomC{$\sigma\mathit{Reach}(\mathit{curr})$}
+		\AxiomC{$\sigma F$}
+		\BinaryInfC{$\sigma\mathit{Reach}(\mathit{next}) \land \sigma G$}\DisplayProof, with $J \vDash \sigma F$
+		\If{$r$ is [\sos{while_F}] for some statement $s$}
+		\State $J = J \cup \{ \sigma\mathit{lastIt}_s \mapsto \sigma it^s\}$
+		\EndIf
+		\State choose a program state $J'$ such that $J \cup J' \vDash \sigma G$.
+		\State $J = J \cup J'$
+		\State $I = I \cup \{\mathit{next}\}$
+		\State $\mathit{curr} = \mathit{next}$ 
+		\EndWhile
+		\State\Return $I, J$
+	\end{algorithmic}
+\end{algorithm}
+
+With the definition of execution interpretations at hand, we are now able to define the valid properties of a program as the properties which hold in each execution interpretation.
+\begin{definition}
+	Let $p_0$ be a fixed program. Let $F$ be a trace logic formula. Then $F$ is called \emph{valid} with respect to $p_0$, if $F$ holds in each execution interpretation of $p_0$.
+\end{definition}
+
+We conclude this subsection with stating simple properties of executions. 
+%
+The (i) first property states that whenever we reach the start of the execution of a subprogram \pv{p}, we also reach the end of the execution of \pv{p}. 
+%
+The (ii) second property states that whenever we reach the start of the execution of a context \pv{c}, we also reach the start of the execution of each statement occurring in \pv{c}. 
+%
+The (iii) third property states that whenever we reach the start of the execution of a \whileStatement-statement \pv{s}, then 
+(a) we also reach the loop-condition check of \pv{s} in each iteration up to and including the last iteration, and 
+(b) we also reach the start of the execution of the context of the loop body of \pv{s} in each iteration before the last iteration.
+Formally, we have the following result.
+
+\begin{lemma}\label{lemma:reach}
+	Let $\pv{p}_0$ be a fixed program and let $M$ be an execution interpretation of $\pv{p}_0$. Let further $\pv{p}$ be an arbitrary subprogram of $\pv{p}_0$ and $\sigma$ be an arbitrary grounding of the enclosing iterations of $\pv{p}$ such that $\sigma\mathit{Reach}(\mathit{start}_p)$ holds. Then:
+	\begin{enumerate}
+		\item \label{lemma:reach1} $\sigma\mathit{Reach}(\mathit{end}_p)$ holds in $M$.
+		\item \label{lemma:reach-context} 
+		If \pv{p} is a context, $\sigma\mathit{Reach}(\mathit{start}_{s_i})$ holds in $M$ for any statement \pv{s}\pvi{i} occurring in \pv{p}.
+		\item \label{lemma:reach2} If \pv{p} is a \whileStatement-statement \while{while(Cond)\{c\}}, then
+		\begin{enumerate}[label={\alph*.}]
+			\item $\sigma \mathit{Reach}(tp_p(it^p))$ holds in $M$ for any iteration $it^p \leq \sigma(\mathit{lastIt}_p)$.\label{lemma:reach2a}
+			\item $\sigma\sigma' \mathit{Reach}(start_c)$ holds in $M$ for any iteration with $\sigma'it^p<\sigma(\mathit{lastIt}_p)$, where $\sigma'$ is any grounding of $it^p$.\label{lemma:reach2b}
+		\end{enumerate}
+	\end{enumerate}
+\end{lemma}
+\begin{proof}
+	We prove all three properties using a single induction proof.
+	We proceed by structural induction over the program structure with the induction hypothesis $$\forall \mathit{enclIts}. \big(\mathit{Reach}(\mathit{start}_p) \limp \mathit{Reach}(\mathit{end}_p)\big).$$
+	Let $\pv{p}$ be an arbitrary subprogram of $\pv{p}_0$. For an arbitrary grounding $\sigma$ of the enclosing iterations assume that $\sigma \mathit{Reach}(\mathit{start}_p)$ holds in $M$. 
+	In order to show that $\sigma \mathit{Reach}(\mathit{end}_p)$ holds in $M$, 
+	we perform a case distinction on the type of $\pv{p}$:
+	\begin{itemize}
+		\item Assume $\pv{p}$ is \while{skip}, or an integer- or array-assignment: Since $\sigma \mathit{Reach}(\mathit{start}_p)$ holds in $M$, the rule \sos{skip} resp. \sos{asg} resp. \sos{asg_{arr}} applies, so $\sigma \mathit{Reach}(\mathit{end}_p)$ holds in $M$ too.
+		\item Assume $\pv{p}$ is a context $s_1;\dots;s_k$. By definition $\mathit{start_p}=\mathit{start_{s_1}}$, therefore $\sigma \mathit{Reach}(\mathit{start}_{s_1})$ holds in $M$. By the induction hypothesis, we know that
+		$\sigma \mathit{Reach}(\mathit{start}_{s_i}) \limp \sigma \mathit{Reach}(\mathit{end}_{s_i})$ holds in $M$ for any $1\leq i \leq k$. Using a trivial induction, we conclude that $\sigma \mathit{Reach}(\mathit{end}_{s_i})$ holds in $M$ for any $1 \leq i \leq k$.
+		\item Assume $\pv{p}$ is \while{if(Cond)\{c$_1$\} else \{c$_2$\}}. Assume w.l.o.g. that $\sigma\llbracket \mathit{Cond} \rrbracket(\mathit{start}_p)$ holds in $M$. Then the rule \sos{ite_T} applies, so $\sigma \mathit{Reach}(\mathit{start}_{c_1})$ holds in $M$. Using the induction hypothesis, we get $\sigma \mathit{Reach}(\mathit{start}_{c_1}) \limp \sigma \mathit{Reach}(\mathit{end}_{c_1})$, so $\sigma \mathit{Reach}(\mathit{end}_{c_1})$ holds in $M$. By definition, $\mathit{end}_c=\mathit{end}_p$, so $\sigma\mathit{Reach(\mathit{end}_p)}$ holds in $M$.
+		\item Assume $\pv{p}$ is \while{while(Cond)\{c\}}. 
+		%
+		We perform  bounded induction over $it^p$ from $\zero$ to $\sigma(\mathit{lastIt}_p)$ with the induction hypothesis $P(it^p) = \zero \leq \sigma(it^p) < \sigma(\mathit{lastIt}_p) \rightarrow \sigma\mathit{Reach}(tp_p(it^p))$. 
+		
+		The base case holds, since $\sigma\mathit{Reach}(\mathit{start}_p)$ is the same as $\sigma\mathit{Reach}(tp_p(\zero))$. 
+		
+		For the inductive case, assume that both $\sigma\sigma' \mathit{Reach}(tp_p(it^p))$ and $\sigma'(it^p) < \sigma(\mathit{lastIt}_p)$ holds for some grounding $\sigma'$ of $it^p$ with the goal of deriving $\sigma\sigma'\mathit{Reach}(tp_p(\suc(it^p)))$. Then rule \sos{while_T} applies, so $\sigma\sigma' \mathit{Reach}(\mathit{start}_c)$ holds in $M$. From the induction hypothesis, we conclude $\sigma\sigma' \mathit{Reach}(\mathit{start}_c)\limp \sigma\sigma' \mathit{Reach}(\mathit{end}_c)$, so $\sigma\sigma' \mathit{Reach}(\mathit{end}_c)$ holds. By definition, $\mathit{end}_c = \mathit{tp}_p(\suc(it^p))$, so we conclude that $\sigma\sigma' \mathit{Reach}(\mathit{tp}_p(\suc(it^p)))$ holds in $M$.
+		
+		We have established the base case and the inductive case, so we apply bounded induction to derive that 
+		$$
+		\forall it^p. 
+		\big( 
+		\sigma(it^p) \leq \sigma(\mathit{lastIt}_p) \limp \sigma\mathit{Reach}(tp_p(it^p))
+		\big)
+		$$
+		holds in $M$.
+		In particular,
+		$\sigma\mathit{Reach}(\mathit{lastIt}_p)$ holds in
+		$M$. Since by definition also $\sigma \neg \llbracket
+		\mathit{Cond}\rrbracket(\mathit{lastIt}_p)$ holds in
+		$M$, we deduce that \sos{while_F} applies, so
+		$\sigma\mathit{Reach}(\mathit{end}_p)$ holds.
+		\qed
+	\end{itemize}
+\end{proof}

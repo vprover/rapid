@@ -1,10 +1,10 @@
 #include "Sort.hpp"
 
-#include <iostream>
 #include <map>
 #include <memory>
 #include <string>
 #include <utility>
+#include <cassert>
 
 #include "Options.hpp"
 

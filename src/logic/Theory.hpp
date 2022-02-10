@@ -31,40 +31,40 @@ class Theory {
       std::shared_ptr<const Term> t);
   static std::shared_ptr<const FuncTerm> intSucc(std::shared_ptr<const Term> t);
 
-  static std::shared_ptr<const Formula> intLess(std::shared_ptr<const Term> t1,
+  static std::shared_ptr<const Term> intLess(std::shared_ptr<const Term> t1,
+                                             std::shared_ptr<const Term> t2,
+                                             std::string label = "");
+  static std::shared_ptr<const Term> intLessEqual(
+      std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2,
+      std::string label = "");
+  static std::shared_ptr<const Term> intGreater(std::shared_ptr<const Term> t1,
                                                 std::shared_ptr<const Term> t2,
                                                 std::string label = "");
-  static std::shared_ptr<const Formula> intLessEqual(
-      std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2,
-      std::string label = "");
-  static std::shared_ptr<const Formula> intGreater(
-      std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2,
-      std::string label = "");
-  static std::shared_ptr<const Formula> intGreaterEqual(
+  static std::shared_ptr<const Term> intGreaterEqual(
       std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2,
       std::string label = "");
 
-  static std::shared_ptr<const Formula> boolTrue(std::string label = "");
-  static std::shared_ptr<const Formula> boolFalse(std::string label = "");
+  static std::shared_ptr<const Term> boolTrue(std::string label = "");
+  static std::shared_ptr<const Term> boolFalse(std::string label = "");
 
   static std::shared_ptr<const FuncTerm> natZero();
   static std::shared_ptr<const FuncTerm> natSucc(
       std::shared_ptr<const Term> term);
   static std::shared_ptr<const FuncTerm> natPre(
       std::shared_ptr<const Term> term);
-  static std::shared_ptr<const Formula> natSub(std::shared_ptr<const Term> t1,
+  static std::shared_ptr<const Term> natSub(std::shared_ptr<const Term> t1,
                                                std::shared_ptr<const Term> t2,
                                                std::string label = "");
-  static std::shared_ptr<const Formula> natSubEq(std::shared_ptr<const Term> t1,
+  static std::shared_ptr<const Term> natSubEq(std::shared_ptr<const Term> t1,
                                                  std::shared_ptr<const Term> t2,
                                                  std::string label = "");
 
   static std::shared_ptr<const FuncTerm> zero();
   static std::shared_ptr<const FuncTerm> succ(std::shared_ptr<const Term> t);
-  static std::shared_ptr<const Formula> less(std::shared_ptr<const Term> t1,
+  static std::shared_ptr<const Term> less(std::shared_ptr<const Term> t1,
                                              std::shared_ptr<const Term> t2,
                                              std::string label = "");
-  static std::shared_ptr<const Formula> lessEq(std::shared_ptr<const Term> t1,
+  static std::shared_ptr<const Term> lessEq(std::shared_ptr<const Term> t1,
                                                std::shared_ptr<const Term> t2,
                                                std::string label = "");
 };
@@ -103,7 +103,7 @@ std::tuple<std::shared_ptr<logic::Definition>,
            std::shared_ptr<logic::Definition>, std::shared_ptr<logic::Axiom>>
 inductionAxiom1(
     std::string name, std::string shortName,
-    std::function<std::shared_ptr<const Formula>(std::shared_ptr<const Term>)>
+    std::function<std::shared_ptr<const Term>(std::shared_ptr<const Term>)>
         inductionHypothesis,
     std::vector<std::shared_ptr<const Symbol>> freeVarSymbols,
     ProblemItem::Visibility visibility = ProblemItem::Visibility::None);
@@ -180,7 +180,7 @@ std::tuple<std::shared_ptr<logic::Definition>,
            std::shared_ptr<logic::Definition>, std::shared_ptr<logic::Axiom>>
 inductionAxiom2(
     std::string name, std::string shortName,
-    std::function<std::shared_ptr<const Formula>(std::shared_ptr<const Term>)>
+    std::function<std::shared_ptr<const Term>(std::shared_ptr<const Term>)>
         inductionHypothesis,
     std::shared_ptr<const logic::Term> nt1,
     std::shared_ptr<const logic::Term> nt2,

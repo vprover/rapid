@@ -1,6 +1,6 @@
 // for each position, subtract the element of array b from the element of array a and save the result in array c.
 // similar to https://github.com/sosy-lab/sv-benchmarks/blob/master/c/array-examples/standard_seq_init_true-unreach-call_ground.c,
-// but subtraction replaced by addition
+// https://github.com/sosy-lab/sv-benchmarks/blob/master/c/array-examples/standard_vector_difference_ground.c
 
 func main()
 {

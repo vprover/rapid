@@ -38,7 +38,11 @@ class AtLeastOneIterationLemmas
   AtLeastOneIterationLemmas(
       const program::Program& program,
       std::unordered_map<std::string,
+<<<<<<< HEAD
                          std::vector<std::shared_ptr<const program::Variable>>>
+=======
+                         std::vector<std::shared_ptr<program::Variable>>>
+>>>>>>> main
           locationToActiveVars,
       unsigned numberOfTraces,
       std::vector<std::shared_ptr<const logic::Axiom>> programSemantics,
@@ -54,6 +58,7 @@ class AtLeastOneIterationLemmas
   InlinedVariableValues& inlinedVarValues;
 
   virtual void generateOutputFor(
+<<<<<<< HEAD
       const program::WhileStatement* statement,
       std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
   virtual void generateOutputForInteger(
@@ -92,6 +97,15 @@ class LoopConditionAnalysisLemmas
   // statement, std::vector<std::shared_ptr<const logic::ProblemItem>>& items);
 };
 
+=======
+      program::WhileStatement* statement,
+      std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
+  virtual void generateOutputForInteger(
+      program::WhileStatement* statement,
+      std::vector<std::shared_ptr<const logic::ProblemItem>>& items);
+};
+
+>>>>>>> main
 /*
  * LEMMA 2
  * TODO: not used currently, since implementation unsound
@@ -107,7 +121,11 @@ class OrderingSynchronizationLemmas
 
  private:
   virtual void generateOutputFor(
+<<<<<<< HEAD
       const program::WhileStatement* statement,
+=======
+      program::WhileStatement* statement,
+>>>>>>> main
       std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
 };
 }  // namespace analysis

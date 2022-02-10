@@ -1,0 +1,35 @@
+\usepackage{listings}
+\usepackage{xcolor}
+
+% For custom keyword color:
+\definecolor{keywords} {rgb}{0.34,0.55,0.33}
+% For custom comment coloring:
+\definecolor{comment}  {rgb}{0.27, 0.48, 0.34}
+
+\lstdefinelanguage{while} {
+    morekeywords = {if, else, while, const, Int, func, skip},
+    morecomment=[l]{//},
+    morestring=[b]",
+}
+
+\lstdefinestyle{while} {
+    language            = while,
+    basicstyle          = \small\ttfamily,
+    commentstyle        = \color{comment},
+    keywordstyle        = \bfseries\color{keywords},
+    tabsize             = 2,
+    captionpos          = b,
+    keepspaces          = true,
+    breaklines          = true,
+    framesep            = 3.5mm,
+    framexleftmargin    = 2.5mm,
+    numberstyle         = \ttfamily\small
+}
+
+\lstset{
+    style               = while,
+    numbers             = left,
+    xleftmargin         = 2.5em,
+    framexleftmargin    = 1.5em,
+    frame               = line
+}

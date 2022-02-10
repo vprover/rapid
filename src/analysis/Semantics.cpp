@@ -15,10 +15,10 @@
 
 namespace analysis {
 
-std::vector<std::shared_ptr<const program::Variable>> intersection(
-    std::vector<std::shared_ptr<const program::Variable>> v1,
-    std::vector<std::shared_ptr<const program::Variable>> v2) {
-  std::vector<std::shared_ptr<const program::Variable>> v3;
+std::vector<std::shared_ptr<program::Variable>> intersection(
+    std::vector<std::shared_ptr<program::Variable>> v1,
+    std::vector<std::shared_ptr<program::Variable>> v2) {
+  std::vector<std::shared_ptr<program::Variable>> v3;
 
   std::sort(v1.begin(), v1.end());
   std::sort(v2.begin(), v2.end());
@@ -28,19 +28,31 @@ std::vector<std::shared_ptr<const program::Variable>> intersection(
   return v3;
 }
 
+void Semantics::applyTransformations(
+    std::vector<std::shared_ptr<program::Function>> &functions,
+    std::unordered_map<std::string,
+                       std::vector<std::shared_ptr<program::Variable>>>
+        &locationToActiveVars,
+    unsigned traces) {
+  for (auto &function : functions) {
+    program::Statement::transformBlock(function->statements,
+                                       locationToActiveVars, traces);
+  }
+}
+
 std::pair<std::vector<std::shared_ptr<const logic::Axiom>>,
           InlinedVariableValues>
 Semantics::generateSemantics() {
   // generate semantics compositionally
   std::vector<std::shared_ptr<const logic::Axiom>> axioms;
-  for (const auto& function : program.functions) {
-    std::vector<std::shared_ptr<const logic::Formula>> conjunctsFunction;
+  for (const auto &function : program.functions) {
+    std::vector<std::shared_ptr<const logic::Term>> conjunctsFunction;
 
-    for (const auto& trace : traceTerms(numberOfTraces)) {
-      std::vector<std::shared_ptr<const logic::Formula>> conjunctsTrace;
+    for (const auto &trace : traceTerms(numberOfTraces)) {
+      std::vector<std::shared_ptr<const logic::Term>> conjunctsTrace;
 
       SemanticsInliner inliner(problemItems, trace);
-      for (const auto& statement : function->statements) {
+      for (const auto &statement : function->statements) {
         auto semantics = generateSemantics(statement.get(), inliner, trace);
         conjunctsTrace.push_back(semantics);
       }
@@ -64,13 +76,12 @@ Semantics::generateSemantics() {
         conjunctsFunction = conjunctsTrace;
       }
 
-      std::vector<std::shared_ptr<const logic::Formula>> targetSymbolAxioms;
+      std::vector<std::shared_ptr<const logic::Term>> targetSymbolAxioms;
 
       // postcondition mode
       // TODO: handling for multiple traces
       if (util::Configuration::instance().postcondition()) {
         for (auto i = coloredSymbols.begin(); i != coloredSymbols.end(); ++i) {
-          auto name = i->first;
           auto var = i->second;
           auto variable = var.get();
 
@@ -106,48 +117,44 @@ Semantics::generateSemantics() {
   return std::make_pair(axioms, inlinedVariableValues);
 }
 
-std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
-    const program::Statement* statement, SemanticsInliner& inliner,
+std::shared_ptr<const logic::Term> Semantics::generateSemantics(
+    program::Statement *statement, SemanticsInliner &inliner,
     std::shared_ptr<const logic::Term> trace) {
-  if (statement->type() == program::Statement::Type::IntAssignment) {
-    auto castedStatement =
-        static_cast<const program::IntAssignment*>(statement);
+  if (typeid(*statement) == typeid(program::Assignment)) {
+    auto castedStatement = static_cast<program::Assignment *>(statement);
     return generateSemantics(castedStatement, inliner, trace);
-  } else if (statement->type() == program::Statement::Type::IfElse) {
-    auto castedStatement = static_cast<const program::IfElse*>(statement);
+  } else if (typeid(*statement) == typeid(program::IfElseStatement)) {
+    auto castedStatement = static_cast<program::IfElseStatement *>(statement);
     return generateSemantics(castedStatement, inliner, trace);
-  } else if (statement->type() == program::Statement::Type::WhileStatement) {
-    auto castedStatement =
-        static_cast<const program::WhileStatement*>(statement);
+  } else if (typeid(*statement) == typeid(program::WhileStatement)) {
+    auto castedStatement = static_cast<program::WhileStatement *>(statement);
     return generateSemantics(castedStatement, inliner, trace);
   } else {
-    assert(statement->type() == program::Statement::Type::SkipStatement);
-    auto castedStatement =
-        static_cast<const program::SkipStatement*>(statement);
+    assert(typeid(*statement) == typeid(program::SkipStatement));
+    auto castedStatement = static_cast<program::SkipStatement *>(statement);
     return generateSemantics(castedStatement, inliner, trace);
   }
 }
 
-std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
-    const program::IntAssignment* intAssignment, SemanticsInliner& inliner,
+std::shared_ptr<const logic::Term> Semantics::generateSemantics(
+    program::Assignment *assignment, SemanticsInliner &inliner,
     std::shared_ptr<const logic::Term> trace) {
-  std::vector<std::shared_ptr<const logic::Formula>> conjuncts;
+  std::vector<std::shared_ptr<const logic::Term>> conjuncts;
 
-  auto l1 = startTimepointForStatement(intAssignment);
-  auto l2 = endTimePointMap.at(intAssignment);
+  auto l1 = startTimepointForStatement(assignment);
+  auto l2 = endTimePointMap.at(assignment);
   auto l1Name = l1->symbol->name;
   auto l2Name = l2->symbol->name;
   auto activeVars = intersection(locationToActiveVars.at(l1Name),
                                  locationToActiveVars.at(l2Name));
 
   // case 1: assignment to int var
-  if (intAssignment->lhs->type() ==
-      program::IntExpression::Type::IntVariableAccess) {
-    auto castedLhs = std::static_pointer_cast<const program::IntVariableAccess>(
-        intAssignment->lhs);
+  if (typeid(*assignment->lhs) == typeid(program::VariableAccess)) {
+    auto castedLhs =
+        std::static_pointer_cast<program::VariableAccess>(assignment->lhs);
 
     // add integer symbols for coloring
-    coloredSymbols.insert_or_assign(intAssignment->lhs->toString(),
+    coloredSymbols.insert_or_assign(assignment->lhs->toString(),
                                     castedLhs->var);
 
     if (util::Configuration::instance().inlineSemantics()) {
@@ -155,20 +162,20 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
       auto f1 = inliner.handlePersistence(l1, locationToActiveVars.at(l1Name));
       conjuncts.push_back(f1);
 
-      auto f2 = inliner.setIntVarValue(
-          castedLhs->var, inliner.toCachedTerm(intAssignment->rhs));
+      auto f2 = inliner.setVarValue(castedLhs->var,
+                                    inliner.toCachedTerm(assignment->rhs));
       conjuncts.push_back(f2);
 
       return logic::Formulas::conjunctionSimp(
           conjuncts, "Update variable " + castedLhs->var->name +
-                         " at location " + intAssignment->location);
+                         " at location " + assignment->location);
     } else {
       // lhs(l2) = rhs(l1)
-      auto eq = logic::Formulas::equality(
-          toTerm(castedLhs, l2, trace), toTerm(intAssignment->rhs, l1, trace));
+      auto eq = logic::Formulas::equality(toTerm(castedLhs, l2, trace),
+                                          toTerm(assignment->rhs, l1, trace));
       conjuncts.push_back(eq);
 
-      for (const auto& var : activeVars) {
+      for (const auto &var : activeVars) {
         if (!var->isConstant) {
           if (!var->isArray) {
             // forall other active non-const int-variables: v(l2) = v(l1)
@@ -193,16 +200,14 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
 
       return logic::Formulas::conjunction(
           conjuncts, "Update variable " + castedLhs->var->name +
-                         " at location " + intAssignment->location);
+                         " at location " + assignment->location);
     }
   }
   // case 2: assignment to int-array var
   else {
-    assert(intAssignment->lhs->type() ==
-           program::IntExpression::Type::IntArrayApplication);
+    assert(typeid(*assignment->lhs) == typeid(program::ArrayApplication));
     auto application =
-        std::static_pointer_cast<const program::IntArrayApplication>(
-            intAssignment->lhs);
+        std::static_pointer_cast<program::ArrayApplication>(assignment->lhs);
 
     // add array symbols for coloring
     coloredSymbols.insert_or_assign(application->array->name,
@@ -216,7 +221,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
       // a(l2, cached(e)) = cached(rhs)
       auto eq1Lhs = toTerm(application->array, l2,
                            inliner.toCachedTerm(application->index), trace);
-      auto eq1Rhs = inliner.toCachedTerm(intAssignment->rhs);
+      auto eq1Rhs = inliner.toCachedTerm(assignment->rhs);
       auto eq1 = logic::Formulas::equality(eq1Lhs, eq1Rhs);
       conjuncts.push_back(eq1);
 
@@ -238,12 +243,12 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
 
       return logic::Formulas::conjunctionSimp(
           conjuncts, "Update array variable " + application->array->name +
-                         " at location " + intAssignment->location);
+                         " at location " + assignment->location);
     } else {
       // a(l2, e(l1)) = rhs(l1)
       auto eq1Lhs = toTerm(application->array, l2,
                            toTerm(application->index, l1, trace), trace);
-      auto eq1Rhs = toTerm(intAssignment->rhs, l1, trace);
+      auto eq1Rhs = toTerm(assignment->rhs, l1, trace);
       auto eq1 = logic::Formulas::equality(eq1Lhs, eq1Rhs);
       conjuncts.push_back(eq1);
 
@@ -260,7 +265,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
           {posSymbol}, logic::Formulas::implication(premise, eq2));
       conjuncts.push_back(conjunct);
 
-      for (const auto& var : activeVars) {
+      for (const auto &var : activeVars) {
         if (!var->isConstant) {
           if (!var->isArray) {
             // forall active non-const int-variables: v(l2) = v(l1)
@@ -284,15 +289,15 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
       }
       return logic::Formulas::conjunction(
           conjuncts, "Update array variable " + application->array->name +
-                         " at location " + intAssignment->location);
+                         " at location " + assignment->location);
     }
   }
 }
 
-std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
-    const program::IfElse* ifElse, SemanticsInliner& inliner,
+std::shared_ptr<const logic::Term> Semantics::generateSemantics(
+    program::IfElseStatement *ifElse, SemanticsInliner &inliner,
     std::shared_ptr<const logic::Term> trace) {
-  std::vector<std::shared_ptr<const logic::Formula>> conjuncts;
+  std::vector<std::shared_ptr<const logic::Term>> conjuncts;
 
   auto lStart = startTimepointForStatement(ifElse);
   auto lEnd = endTimePointMap.at(ifElse);
@@ -314,37 +319,37 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     // branches and assert them conditionally note: we need to generate
     // condition and negatedCondition here, since they depend on the state of
     // the inliner.
-    auto condition = inliner.toCachedFormula(ifElse->condition);
+    auto condition = inliner.toCachedTerm(ifElse->condition);
     auto negatedCondition = logic::Formulas::negation(condition);
 
-    std::vector<std::shared_ptr<const logic::Formula>> conjunctsLeft;
-    std::vector<std::shared_ptr<const logic::Formula>> conjunctsRight;
+    std::vector<std::shared_ptr<const logic::Term>> conjunctsLeft;
+    std::vector<std::shared_ptr<const logic::Term>> conjunctsRight;
     SemanticsInliner inlinerLeft(inliner);
     SemanticsInliner inlinerRight(inliner);
 
-    for (const auto& statement : ifElse->ifStatements) {
+    for (const auto &statement : ifElse->ifStatements) {
       auto semanticsOfStatement =
           generateSemantics(statement.get(), inlinerLeft, trace);
       conjunctsLeft.push_back(semanticsOfStatement);
     }
-    for (const auto& statement : ifElse->elseStatements) {
+    for (const auto &statement : ifElse->elseStatements) {
       auto semanticsOfStatement =
           generateSemantics(statement.get(), inlinerRight, trace);
       conjunctsRight.push_back(semanticsOfStatement);
     }
 
     // Part 3: define variable values at the merge of branches
-    auto cachedIntVarValues = inliner.getCachedIntVarValues();
+    auto cachedIntVarValues = inliner.getCachedVarValues();
     auto cachedArrayVarTimepoints = inliner.getCachedArrayVarTimepoints();
-    auto cachedIntVarValuesLeft = inlinerLeft.getCachedIntVarValues();
+    auto cachedIntVarValuesLeft = inlinerLeft.getCachedVarValues();
     auto cachedArrayVarTimepointsLeft =
         inlinerLeft.getCachedArrayVarTimepoints();
-    auto cachedIntVarValuesRight = inlinerRight.getCachedIntVarValues();
+    auto cachedIntVarValuesRight = inlinerRight.getCachedVarValues();
     auto cachedArrayVarTimepointsRight =
         inlinerRight.getCachedArrayVarTimepoints();
 
-    std::unordered_set<std::shared_ptr<const program::Variable>> mergeVars;
-    for (const auto& pair : cachedIntVarValuesLeft) {
+    std::unordered_set<std::shared_ptr<program::Variable>> mergeVars;
+    for (const auto &pair : cachedIntVarValuesLeft) {
       auto var = pair.first;
       if (cachedIntVarValues.find(var) == cachedIntVarValues.end() ||
           *cachedIntVarValues[var] != *pair.second) {
@@ -353,7 +358,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
         }
       }
     }
-    for (const auto& pair : cachedIntVarValuesRight) {
+    for (const auto &pair : cachedIntVarValuesRight) {
       auto var = pair.first;
       if (cachedIntVarValues.find(var) == cachedIntVarValues.end() ||
           *cachedIntVarValues[var] != *pair.second) {
@@ -362,17 +367,13 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
         }
       }
     }
-    for (const auto& pair : cachedArrayVarTimepointsLeft) {
-      auto var = pair.first;
-      if (cachedArrayVarTimepoints.find(var) ==
               cachedArrayVarTimepoints.end() ||
-          *cachedArrayVarTimepoints[var] != *pair.second) {
         if (!var->isConstant) {
           mergeVars.insert(var);
         }
       }
     }
-    for (const auto& pair : cachedArrayVarTimepointsRight) {
+    for (const auto &pair : cachedArrayVarTimepointsRight) {
       auto var = pair.first;
       if (cachedArrayVarTimepoints.find(var) ==
               cachedArrayVarTimepoints.end() ||
@@ -383,7 +384,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
       }
     }
 
-    for (const auto& var : mergeVars) {
+    for (const auto &var : mergeVars) {
       if (!var->isArray) {
         auto varLEnd = toTerm(var, lEnd, trace);
 
@@ -396,7 +397,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
 
         // remember that lEnd is the last timepoint where var was set
         assert(!var->isConstant);
-        auto result = inliner.setIntVarValue(var, varLEnd);
+        auto result = inliner.setVarValue(var, varLEnd);
       } else {
         assert(cachedArrayVarTimepointsLeft.find(var) !=
                cachedArrayVarTimepointsLeft.end());
@@ -433,7 +434,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     return logic::Formulas::conjunctionSimp(
         conjuncts, "Semantics of IfElse at location " + ifElse->location);
   } else {
-    auto condition = toFormula(ifElse->condition, lStart, trace);
+    auto condition = toTerm(ifElse->condition, lStart, trace);
     auto negatedCondition = logic::Formulas::negation(condition);
 
     // Part 1: values at the beginning of any branch are the same as at the
@@ -454,14 +455,14 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
 
     // Part 2: collect all formulas describing semantics of branches and assert
     // them conditionally
-    for (const auto& statement : ifElse->ifStatements) {
+    for (const auto &statement : ifElse->ifStatements) {
       auto semanticsOfStatement =
           generateSemantics(statement.get(), inliner, trace);
       auto implication = logic::Formulas::implication(
           condition, semanticsOfStatement, "Semantics of left branch");
       conjuncts.push_back(implication);
     }
-    for (const auto& statement : ifElse->elseStatements) {
+    for (const auto &statement : ifElse->elseStatements) {
       auto semanticsOfStatement =
           generateSemantics(statement.get(), inliner, trace);
       auto implication = logic::Formulas::implication(
@@ -474,10 +475,10 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
   }
 }
 
-std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
-    const program::WhileStatement* whileStatement, SemanticsInliner& inliner,
+std::shared_ptr<const logic::Term> Semantics::generateSemantics(
+    program::WhileStatement *whileStatement, SemanticsInliner &inliner,
     std::shared_ptr<const logic::Term> trace) {
-  std::vector<std::shared_ptr<const logic::Formula>> conjuncts;
+  std::vector<std::shared_ptr<const logic::Term>> conjuncts;
 
   auto itSymbol = iteratorSymbol(whileStatement);
   auto it = logic::Terms::var(itSymbol);
@@ -509,8 +510,8 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     // Condition 4) does not lead to incompleteness of the formalization, since
     // the value of variables, which change their value in the loop, will be
     // defined afterwards anyway.
-    std::vector<std::shared_ptr<const program::Variable>> vars;
-    for (const auto& var : activeVars) {
+    std::vector<std::shared_ptr<program::Variable>> vars;
+    for (const auto &var : activeVars) {
       if (assignedVars.find(var) == assignedVars.end() && !var->isConstant) {
         vars.push_back(var);
       }
@@ -524,18 +525,49 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
             whileStatement->location));
 
     // Part 1: define values of assignedVars at iteration zero
-    std::vector<std::shared_ptr<const logic::Formula>> conjPart1;
+    std::vector<std::shared_ptr<const logic::Term>> conjPart1;
 
     inliner.currTimepoint = lStart0;
-    for (const auto& var : assignedVars) {
+    for (const auto &var : assignedVars) {
       if (!var->isArray) {
         conjPart1.push_back(logic::Formulas::equalitySimp(
             toTerm(var, lStart0, trace), inliner.toCachedTermFull(var)));
       } else {
-        conjPart1.push_back(logic::Formulas::universalSimp(
+        auto cachedArrayTerm = inliner.toCachedTermFull(var, pos);
+
+        auto f = logic::Formulas::universalSimp(
             {posSymbol},
             logic::Formulas::equalitySimp(toTerm(var, lStart0, pos, trace),
-                                          inliner.toCachedTermFull(var, pos))));
+                                          cachedArrayTerm));
+
+        // Special inlining case: derefencering constant program variables when
+        // defined as mutable. When a timepoint is used with a quantified
+        // variable such as Itl9 instead of nl9 when dereferencing terms for
+        // main_end, f needs to universally quantify over Itl9 as well. This
+        // might occur when non-constant program variables are not changed
+        // throughout a loop, hence they are not propagated throughout all
+        // timepoints of the loop with inline semantics. This variable will only
+        // have cached timepoints from where its values were used, but not from
+        // the end of the loop. Essentially these values are equal for all
+        // iterations Itl9 of the loop.
+        auto tps = inliner.getCachedArrayVarTimepoints();
+        auto cachedTimepoint = tps[var];
+        if (cachedTimepoint.get()->prettyString(0).find("nl") ==
+                std::string::npos &&
+            cachedTimepoint.get()->prettyString(0).find("Itl") !=
+                std::string::npos) {
+          auto cachedTimepointTerm =
+              std::static_pointer_cast<const logic::FuncTerm>(cachedTimepoint);
+          auto quantifiedSym =
+              cachedTimepointTerm->subterms.back().get()->symbol;
+          f = logic::Formulas::universalSimp(
+              {posSymbol, quantifiedSym},
+              logic::Formulas::equalitySimp(
+                  toTerm(var, lStart0, pos, trace),
+                  toTerm(var, cachedTimepoint, pos, trace)));
+        }
+
+        conjPart1.push_back(f);
       }
     }
 
@@ -545,10 +577,10 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     // Part 2a: Loop condition holds at main-loop-location for all iterations
     // before n
     inliner.currTimepoint = lStartIt;
-    for (const auto& var : assignedVars) {
+    for (const auto &var : assignedVars) {
       if (!var->isArray) {
         assert(!var->isConstant);
-        auto result = inliner.setIntVarValue(var, toTerm(var, lStartIt, trace));
+        auto result = inliner.setVarValue(var, toTerm(var, lStartIt, trace));
       } else {
         inliner.setArrayVarTimepoint(var, lStartIt);
       }
@@ -561,35 +593,33 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
               logic::Formulas::conjunction(
                   {logic::Theory::lessEq(logic::Theory::intZero(), it),
                    logic::Theory::less(it, n)}),
-              inliner.toCachedFormula(whileStatement->condition)),
+              inliner.toCachedTerm(whileStatement->condition)),
           "The loop-condition holds always before the last iteration"));
     } else {
       conjuncts.push_back(logic::Formulas::universal(
           {itSymbol},
           logic::Formulas::implication(
               logic::Theory::less(it, n),
-              inliner.toCachedFormula(whileStatement->condition)),
+              inliner.toCachedTerm(whileStatement->condition)),
           "The loop-condition holds always before the last iteration"));
     }
 
     // Extra part: collect in inlinedVarValues the values of all variables,
     // which occur in the loop condition but are not assigned to.
     inlinedVariableValues.initializeWhileStatement(whileStatement);
-    std::unordered_set<std::shared_ptr<const program::Variable>>
-        loopConditionVars;
+    std::unordered_set<std::shared_ptr<program::Variable>> loopConditionVars;
     AnalysisPreComputation::computeVariablesContainedInLoopCondition(
         whileStatement->condition, loopConditionVars);
 
-    for (const auto& var : loopConditionVars) {
+    for (const auto &var : loopConditionVars) {
       if (assignedVars.find(var) == assignedVars.end()) {
         if (var->isArray) {
           inlinedVariableValues.setArrayTimepoint(
               whileStatement, var, trace,
               inliner.getCachedArrayVarTimepoints().at(var));
         } else {
-          inlinedVariableValues.setValue(
-              whileStatement, var, trace,
-              inliner.getCachedIntVarValues().at(var));
+          inlinedVariableValues.setValue(whileStatement, var, trace,
+                                         inliner.getCachedVarValues().at(var));
         }
       }
     }
@@ -598,15 +628,15 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     // values of assignedVars at all iterations s(it)
     assert(*inliner.currTimepoint == *lStartIt);
 
-    std::vector<std::shared_ptr<const logic::Formula>> conjunctsBody;
-    for (const auto& statement : whileStatement->bodyStatements) {
+    std::vector<std::shared_ptr<const logic::Term>> conjunctsBody;
+    for (const auto &statement : whileStatement->bodyStatements) {
       auto semanticsOfStatement =
           generateSemantics(statement.get(), inliner, trace);
       conjunctsBody.push_back(semanticsOfStatement);
     }
 
     inliner.currTimepoint = lStartSuccOfIt;
-    for (const auto& var : assignedVars) {
+    for (const auto &var : assignedVars) {
       if (!var->isArray) {
         conjunctsBody.push_back(logic::Formulas::equalitySimp(
             toTerm(var, lStartSuccOfIt, trace), inliner.toCachedTermFull(var),
@@ -644,10 +674,10 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
 
     // Part 4: define values of assignedVars after the execution of the loop
     inliner.currTimepoint = lStartN;
-    for (const auto& var : assignedVars) {
+    for (const auto &var : assignedVars) {
       if (!var->isArray) {
         assert(!var->isConstant);
-        auto result = inliner.setIntVarValue(var, toTerm(var, lStartN, trace));
+        auto result = inliner.setVarValue(var, toTerm(var, lStartN, trace));
       } else {
         inliner.setArrayVarTimepoint(var, lStartN);
       }
@@ -656,7 +686,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     // Part 2b: loop condition doesn't hold at n
     assert(*inliner.currTimepoint == *lStartN);
     conjuncts.push_back(logic::Formulas::negation(
-        inliner.toCachedFormula(whileStatement->condition),
+        inliner.toCachedTerm(whileStatement->condition),
         "The loop-condition doesn't hold in the last iteration"));
 
     // for iterations of sort integer, assert last iteration nl >= 0
@@ -690,8 +720,8 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     conjuncts.push_back(part1);
 
     // Part 2: collect all formulas describing semantics of body
-    std::vector<std::shared_ptr<const logic::Formula>> conjunctsBody;
-    for (const auto& statement : whileStatement->bodyStatements) {
+    std::vector<std::shared_ptr<const logic::Term>> conjunctsBody;
+    for (const auto &statement : whileStatement->bodyStatements) {
       auto conjunct = generateSemantics(statement.get(), inliner, trace);
       conjunctsBody.push_back(conjunct);
     }
@@ -719,7 +749,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
         {itSymbol},
         logic::Formulas::implication(
             logic::Theory::less(it, n),
-            toFormula(whileStatement->condition, lStartIt, trace)),
+            toTerm(whileStatement->condition, lStartIt, trace)),
         "The loop-condition holds always before the last iteration");
 
     if (util::Configuration::instance().integerIterations()) {
@@ -729,14 +759,14 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
               logic::Formulas::conjunctionSimp(
                   {logic::Theory::lessEq(logic::Theory::intZero(), it),
                    logic::Theory::less(it, n)}),
-              toFormula(whileStatement->condition, lStartIt, trace)),
+              toTerm(whileStatement->condition, lStartIt, trace)),
           "The loop-condition holds always before the last iteration");
     }
     conjuncts.push_back(universal);
 
     // loop condition doesn't hold at n
     auto negConditionAtN = logic::Formulas::negation(
-        toFormula(whileStatement->condition, lStartN, trace),
+        toTerm(whileStatement->condition, lStartN, trace),
         "The loop-condition doesn't hold in the last iteration");
     conjuncts.push_back(negConditionAtN);
 
@@ -752,8 +782,8 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
   }
 }
 
-std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
-    const program::SkipStatement* skipStatement, SemanticsInliner& inliner,
+std::shared_ptr<const logic::Term> Semantics::generateSemantics(
+    program::SkipStatement *skipStatement, SemanticsInliner &inliner,
     std::shared_ptr<const logic::Term> trace) {
   auto l1 = startTimepointForStatement(skipStatement);
 

@@ -1,0 +1,175 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% FMCAD STYLE
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% !BIB TS-program = biber
+% !BIB program = biber
+
+\newif\iffmcad
+\newif\ifnotfmcad
+%\fmcadtrue
+ \fmcadfalse
+\iffmcad\notfmcadfalse\else\notfmcadtrue\fi
+
+\iffmcad
+\documentclass[10pt,conference,letterpaper]{IEEEtran}
+% \interdisplaylinepenalty=2500
+\newtheorem{example}{\textbf{Example}}{\itshape}{\rmfamily}
+\newtheorem{theorem}{\textbf{Theorem}}{\itshape}{\rmfamily}
+\newtheorem{definition}{\textbf{Definition}}{\itshape}{\rmfamily}
+ \newtheorem{proof}{\textbf{Proof}}{\itshape}{\rmfamily}
+  \newtheorem{lemma}{\textbf{Lemma}}{\itshape}{\rmfamily}
+\else
+\documentclass{llncs}
+\fi
+
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\pagestyle{plain}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% DEVELOPMENT
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage{xcolor}
+\definecolor{mygreen}{RGB}{0,159,57}
+\definecolor{myyellow}{RGB}{255,200,0}
+\definecolor{myorange}{RGB}{255,140,0}
+\definecolor{myblue}{RGB}{0,50,255}
+\colorlet{myred}{red!90}
+
+\newcommand{\bg}[1]{{\color{myblue}{BG: #1}}}
+\newcommand{\lk}[1]{{\color{red}{LK: #1}}}
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{TODO:} #1}\\}
+\newcommand{\todoIn}[1]{\textcolor{red}{\textbf{TODO:} #1}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% GENERAL
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% tikz pictures
+\usepackage{tikz}
+\usetikzlibrary{calc}
+
+% more options to for item-symbols of enumerations: e.g. abc instead of 123 (for i, ii, iii use [label=\roman*)]
+\usepackage{enumitem}  
+% no vertical space after itemize,enumerate, description
+\setlist{nolistsep} 
+
+% no horizontal space at the beginning of paragraphs
+\setlength{\parindent}{0pt} 
+
+% being able to use \FloatBarrier to restrict the placement of floating elements
+\usepackage{placeins} 
+
+% long comments
+\usepackage{comment}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% PROGRAMMING
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% names of sos rules
+\newcommand{\sos}[1]{$\mathit{#1^{sos}}$}
+
+
+\newcommand{\whilelang}{\mathcal{W}}
+
+% refering to an arbitrary if-else/while/skip statement
+\newcommand{\ifThenElseStatement}{\text{if-then-else}}
+\newcommand{\whileStatement}{\text{while}}
+\newcommand{\skipStatement}{\text{skip}}
+
+
+% support for writing nicely formatted while-programs
+\usepackage{while}
+\newcommand{\while}[1]{\lstinline[mathescape]!#1!}
+
+% typewriter font, use for denoting program variables and program expressions in prose.
+\newcommand{\pv}[1]{\texttt{#1}}
+\newcommand{\pvi}[1]{$\mathtt{_{#1}}$}
+
+% for llbracket and rrbracket
+\usepackage{ stmaryrd }
+
+% Operational Semantics
+\newcommand{\weirdarrow}[1]{= \hspace{-0.5em}\gg_{#1}}
+\newcommand{\whileOp}[3][]{\texttt{while}^{#1} \texttt{(} #2 \texttt{)do\{} #3 \texttt{\}}}
+\newcommand{\iteOp}[3]{\texttt{if(} #1 \texttt{)then\{} #2 \texttt{\}else\{} #3 \texttt{\}}}
+\newcommand{\skipOp}{\texttt{skip}}
+
+% Translating from Hoare Logic to Trace Logic
+\newcommand{\trans}[1]{[#1]}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% LOGIC
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newcommand{\limp}{\rightarrow}
+\newcommand{\Limp}{\Rightarrow}
+\newcommand{\liff}{\leftrightarrow}
+\newcommand{\Liff}{\Leftrightarrow}
+
+\newcommand{\Land}{\bigwedge}
+\newcommand{\Lor}{\bigvee}
+\newcommand{\Union}{\bigcup}
+\newcommand{\union}{\cup}
+
+% Theory Symbols
+\newcommand{\eql}{{\,\simeq\,}}
+\newcommand{\neql}{\not\simeq}
+\newcommand{\zero}{{\tt 0}}
+\newcommand{\suc}{{\tt s}}
+\newcommand{\pred}{{\tt pred}}
+
+\newcommand{\Nat}{\mathbb{N}}
+\newcommand{\Int}{\mathbb{I}}
+\newcommand{\natsort}{\mathbb{N}}
+\newcommand{\intsort}{\mathbb{I}}
+\newcommand{\natsig}{S_{\Nat}}
+\newcommand{\intsig}{S_{\Int}}
+
+% support for writing proofs
+\usepackage{bussproofs} 
+
+
+% Trace-Logic-specific symbols
+\newcommand{\tracelogic}{\mathcal{L}}
+
+\newcommand{\tpsort}{\mathbb{L}}
+\newcommand{\tracesort}{\mathbb{T}}
+
+\newcommand{\tpsig}{S_{Tp}}
+\newcommand{\lastsig}{S_n}
+\newcommand{\pvsig}{S_V}
+\newcommand{\tracesig}{S_{Tr}}
+
+\newcommand{\combTheory}{{\Nat\cup\Int}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% PSEUDOCODE
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TOOLS AND EXPERIMENTS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\rapid}{\textsc{Rapid}}
+\newcommand{\vampire}{\textsc{Vampire}}
+\newcommand{\avatar}{\textsc{Avatar}}
+\newcommand{\smtlib}{\textsc{smt-lib}}
+
+% adding urls, usually pointing to github repos
+\usepackage{url}
+
+\usepackage{rotating}
+\usepackage{multirow}
+\usepackage{graphicx}
+
+

@@ -41,10 +41,10 @@ class WhileParsingContext {
   bool errorFlag;
 
   // output
-  std::unique_ptr<const program::Program> program;
+  std::unique_ptr<program::Program> program;
   std::vector<std::shared_ptr<const logic::ProblemItem>> problemItems;
   std::unordered_map<std::string,
-                     std::vector<std::shared_ptr<const program::Variable>>>
+                     std::vector<std::shared_ptr<program::Variable>>>
       locationToActiveVars;
   unsigned numberOfTraces;
   int numberOfAxioms;
@@ -57,7 +57,7 @@ class WhileParsingContext {
       quantifiedVarsDeclarations;
   std::vector<std::vector<std::string>> quantifiedVarsStack;
 
-  std::unordered_map<std::string, std::shared_ptr<const program::Variable>>
+  std::unordered_map<std::string, std::shared_ptr<program::Variable>>
       programVarsDeclarations;
   std::vector<std::vector<std::string>> programVarsStack;
 
@@ -73,9 +73,9 @@ class WhileParsingContext {
 
   void pushProgramVars();
   void popProgramVars();
-  bool addProgramVar(std::shared_ptr<const program::Variable> programVar);
-  std::shared_ptr<const program::Variable> getProgramVar(std::string name);
-  std::vector<std::shared_ptr<const program::Variable>> getActiveProgramVars();
+  bool addProgramVar(std::shared_ptr<program::Variable> programVar);
+  std::shared_ptr<program::Variable> getProgramVar(std::string name);
+  std::vector<std::shared_ptr<program::Variable>> getActiveProgramVars();
 
   /*
    * we need to know for each statement in which loops it is nested in.
@@ -85,12 +85,12 @@ class WhileParsingContext {
    * enclosing loop is only constructed after the statement is constructed.
    */
  public:
-  void addEnclosingLoops(const program::Function& function);
+  void addEnclosingLoops(const program::Function &function);
 
  private:
   static void addEnclosingLoopsForStatement(
-      const program::Statement* statement,
-      std::vector<const program::WhileStatement*> enclosingLoops);
+      program::Statement *statement,
+      std::vector<program::WhileStatement *> enclosingLoops);
 };
 }  // namespace parser
 

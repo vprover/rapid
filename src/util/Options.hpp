@@ -79,6 +79,7 @@ class Configuration {
         _outputTraceLemmas("-outputTraceLemmas", false),
         _tptp("-tptp", false),
         _hol("-hol", false),
+        _overwriteExisting("-overwriteExisting", false),
         _allOptions() {
     registerOption(&_outputDir);
 
@@ -112,6 +113,8 @@ class Configuration {
 
     // hol outputs formula in TPTP HOL syntax
     registerOption(&_hol);
+    // overwrite existing smt-files
+    registerOption(&_overwriteExisting);
   }
 
   bool setAllValues(int argc, char* argv[]);
@@ -129,6 +132,8 @@ class Configuration {
   bool outputTraceLemmas() { return _outputTraceLemmas.getValue(); }
   bool tptp() { return _tptp.getValue(); }
   bool hol() { return _hol.getValue(); }
+  bool overwriteExisting() { return _overwriteExisting.getValue(); }
+
 
   static Configuration instance() { return _instance; }
 
@@ -144,6 +149,7 @@ class Configuration {
   BooleanOption _outputTraceLemmas;
   BooleanOption _tptp;
   BooleanOption _hol;
+  BooleanOption _overwriteExisting;
 
   std::map<std::string, Option*> _allOptions;
 

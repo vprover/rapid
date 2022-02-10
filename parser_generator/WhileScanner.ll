@@ -8,6 +8,12 @@
 #include "WhileParser.hpp"
 #include "WhileParsingContext.hpp"
 
+#ifdef _MSC_VER
+#define YY_NO_UNISTD_H
+// circumvent unistd.h
+#include <io.h>
+#endif
+
 // Work around an incompatibility in flex (at least versions
 // 2.5.31 through 2.5.33): it generates code that does
 // not conform to C89.  See Debian bug 333231
@@ -26,7 +32,9 @@ void error(const parser::Location& l,
 }
 
 %}
+
 %option noyywrap nounput batch debug noinput
+
 IDENT [a-z][a-zA-Z_0-9]*
 NUM   [0-9]+
 BLANK [ \t]
@@ -56,13 +64,20 @@ YY_DECL;
 
 "//".*       { loc.step(); }
 {BLANK}+     { loc.step(); }
-[\n]+        { loc.lines(yyleng); loc.step(); }
+(\r?\n)+     { loc.lines(yyleng); loc.step(); }
+
+%{
+// Will parse Windows line-breaks \r\n. However, the internal flex line-counting will consider it as 2 line breaks...
+%}
 
 "set-traces" { return parser::WhileParser::make_SETTRACES(loc); }
 "="          { return parser::WhileParser::make_ASSIGN(loc); }
 if           { return parser::WhileParser::make_IF(loc); }
 else         { return parser::WhileParser::make_ELSE(loc); }
 while        { return parser::WhileParser::make_WHILE(loc); }
+break        { return parser::WhileParser::make_BREAK(loc); }
+continue     { return parser::WhileParser::make_CONTINUE(loc); }
+return       { return parser::WhileParser::make_RETURN(loc); }
 skip         { return parser::WhileParser::make_SKIP(loc); }
 func         { BEGIN(programstate); return parser::WhileParser::make_FUNC(loc);}
 const        { return parser::WhileParser::make_CONST(loc); }

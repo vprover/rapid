@@ -22,7 +22,7 @@ class ProblemItem {
   enum class Type { Program, Axiom, Definition, Lemma, Conjecture };
   enum class Visibility { All, Implicit, None };
 
-  ProblemItem(Type type, std::shared_ptr<const logic::Formula> formula,
+  ProblemItem(Type type, std::shared_ptr<const logic::Term> formula,
               std::string name, Visibility visibility,
               std::vector<std::string> fromItems)
       : type(type),
@@ -51,7 +51,7 @@ class ProblemItem {
   virtual ~ProblemItem() = default;
 
   const Type type;
-  std::shared_ptr<const logic::Formula> formula;
+  std::shared_ptr<const logic::Term> formula;
   const std::string name;
   const Visibility visibility;
   const std::vector<std::string> fromItems;
@@ -65,7 +65,7 @@ std::ostream& operator<<(
 
 class Axiom : public ProblemItem {
  public:
-  Axiom(std::shared_ptr<const logic::Formula> axiom, std::string name = "",
+  Axiom(std::shared_ptr<const logic::Term> axiom, std::string name = "",
         ProblemItem::Visibility visibility = ProblemItem::Visibility::All)
       : ProblemItem(ProblemItem::Type::Axiom, axiom, name, visibility, {}) {}
 };
@@ -73,7 +73,7 @@ class Axiom : public ProblemItem {
 // a definition is a special case of an axiom.
 class Definition : public ProblemItem {
  public:
-  Definition(std::shared_ptr<const logic::Formula> definition,
+  Definition(std::shared_ptr<const logic::Term> definition,
              std::string name = "",
              ProblemItem::Visibility visibility = ProblemItem::Visibility::All)
       : ProblemItem(ProblemItem::Type::Definition, definition, name, visibility,
@@ -82,7 +82,7 @@ class Definition : public ProblemItem {
 
 class Lemma : public ProblemItem {
  public:
-  Lemma(std::shared_ptr<const logic::Formula> lemma, std::string name = "",
+  Lemma(std::shared_ptr<const logic::Term> lemma, std::string name = "",
         ProblemItem::Visibility visibility = ProblemItem::Visibility::All,
         std::vector<std::string> fromItems = {})
       : ProblemItem(ProblemItem::Type::Lemma, lemma, name, visibility,
@@ -91,7 +91,7 @@ class Lemma : public ProblemItem {
 
 class Conjecture : public ProblemItem {
  public:
-  Conjecture(std::shared_ptr<const logic::Formula> conjecture,
+  Conjecture(std::shared_ptr<const logic::Term> conjecture,
              std::string name = "", std::vector<std::string> fromItems = {})
       : ProblemItem(ProblemItem::Type::Conjecture, conjecture, name,
                     ProblemItem::Visibility::All, fromItems) {}

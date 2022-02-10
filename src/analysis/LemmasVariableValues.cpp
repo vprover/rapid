@@ -13,8 +13,8 @@
 namespace analysis {
 
 void ValueEvolutionLemmas::generateOutputFor(
-    const program::WhileStatement* whileStatement,
-    std::vector<std::shared_ptr<const logic::ProblemItem>>& items) {
+    program::WhileStatement *whileStatement,
+    std::vector<std::shared_ptr<const logic::ProblemItem>> &items) {
   if (util::Configuration::instance().integerIterations()) {
     ValueEvolutionLemmas::generateOutputForInteger(whileStatement, items);
   } else {
@@ -45,9 +45,9 @@ void ValueEvolutionLemmas::generateOutputFor(
         AnalysisPreComputation::computeAssignedVars(whileStatement);
 
     // add lemma for each intVar and each intArrayVar, for each variant
-    for (const auto& v : locationToActiveVars.at(
-             locationSymbolForStatement(whileStatement)->name)) {
-      if (!(v->isConstant) && assignedVars.find(v) != assignedVars.end()) {
+    for (const auto &v : locationToActiveVars.at(
+        locationSymbolForStatement(whileStatement)->name)) {
+      if (!(v->isConstant) && v->type() != program::ValueType::Bool && assignedVars.find(v) != assignedVars.end()) {
         for (const auto predicate : predicates) {
           auto predicateFunctor = predicate.first;
           auto predicateString = predicate.second;
@@ -87,10 +87,10 @@ void ValueEvolutionLemmas::generateOutputFor(
               freeVars.push_back(posSymbol);
             }
 
-            auto [inductionAxBCDef, inductionAxICDef, inductionAxiomConDef,
-                  inductionAxiom] =
-                inductionAxiom1(inductionAxiomName, inductionAxiomNameShort,
-                                inductionHypothesis, freeVars);
+            auto[inductionAxBCDef, inductionAxICDef, inductionAxiomConDef,
+            inductionAxiom] =
+            inductionAxiom1(inductionAxiomName, inductionAxiomNameShort,
+                            inductionHypothesis, freeVars);
             items.push_back(inductionAxBCDef);
             items.push_back(inductionAxICDef);
             items.push_back(inductionAxiomConDef);
@@ -102,7 +102,7 @@ void ValueEvolutionLemmas::generateOutputFor(
             argSymbols.push_back(boundRSymbol);
 
             std::vector<std::shared_ptr<const logic::Term>> args = {};
-            for (const auto& symbol : argSymbols) {
+            for (const auto &symbol : argSymbols) {
               args.push_back(logic::Terms::var(symbol));
             }
 
@@ -177,8 +177,8 @@ void ValueEvolutionLemmas::generateOutputFor(
 }
 
 void ValueEvolutionLemmas::generateOutputForInteger(
-    const program::WhileStatement* whileStatement,
-    std::vector<std::shared_ptr<const logic::ProblemItem>>& items) {
+    program::WhileStatement *whileStatement,
+    std::vector<std::shared_ptr<const logic::ProblemItem>> &items) {
   auto boundLSymbol =
       logic::Signature::varSymbol("boundL", logic::Sorts::intSort());
   auto boundRSymbol =
@@ -206,9 +206,10 @@ void ValueEvolutionLemmas::generateOutputForInteger(
       AnalysisPreComputation::computeAssignedVars(whileStatement);
 
   // add lemma for each intVar and each intArrayVar, for each variant
-  for (const auto& v : locationToActiveVars.at(
-           locationSymbolForStatement(whileStatement)->name)) {
-    if (!(v->isConstant) && assignedVars.find(v) != assignedVars.end()) {
+  for (const auto &v : locationToActiveVars.at(
+      locationSymbolForStatement(whileStatement)->name)) {
+    if (!(v->isConstant) && v->type() != program::ValueType::Bool &&
+        assignedVars.find(v) != assignedVars.end()) {
       for (const auto predicate : predicates) {
         auto predicateFunctor = predicate.first;
         auto predicateString = predicate.second;
@@ -247,10 +248,10 @@ void ValueEvolutionLemmas::generateOutputForInteger(
             freeVars.push_back(posSymbol);
           }
 
-          auto [inductionAxBCDef, inductionAxICDef, inductionAxiomConDef,
-                inductionAxiom] =
-              inductionAxiom1(inductionAxiomName, inductionAxiomNameShort,
-                              inductionHypothesis, freeVars);
+          auto[inductionAxBCDef, inductionAxICDef, inductionAxiomConDef,
+          inductionAxiom] =
+          inductionAxiom1(inductionAxiomName, inductionAxiomNameShort,
+                          inductionHypothesis, freeVars);
           items.push_back(inductionAxBCDef);
           items.push_back(inductionAxICDef);
           items.push_back(inductionAxiomConDef);
@@ -262,7 +263,7 @@ void ValueEvolutionLemmas::generateOutputForInteger(
           argSymbols.push_back(boundRSymbol);
 
           std::vector<std::shared_ptr<const logic::Term>> args = {};
-          for (const auto& symbol : argSymbols) {
+          for (const auto &symbol : argSymbols) {
             args.push_back(logic::Terms::var(symbol));
           }
 
@@ -339,8 +340,8 @@ void ValueEvolutionLemmas::generateOutputForInteger(
 }
 
 void StaticAnalysisLemmas::generateOutputFor(
-    const program::WhileStatement* statement,
-    std::vector<std::shared_ptr<const logic::ProblemItem>>& items) {
+    program::WhileStatement *statement,
+    std::vector<std::shared_ptr<const logic::ProblemItem>> &items) {
   if (util::Configuration::instance().integerIterations()) {
     StaticAnalysisLemmas::generateOutputForInteger(statement, items);
   } else {
@@ -360,7 +361,7 @@ void StaticAnalysisLemmas::generateOutputFor(
     // for each active var, which is not constant but not assigned to in any
     // statement of the loop, add a lemma asserting that var is the same in each
     // iteration as in the first iteration.
-    for (const auto& v : activeVars) {
+    for (const auto &v : activeVars) {
       if (!v->isConstant && assignedVars.find(v) == assignedVars.end()) {
         for (unsigned traceNumber = 1; traceNumber < numberOfTraces + 1;
              traceNumber++) {
@@ -395,11 +396,11 @@ void StaticAnalysisLemmas::generateOutputFor(
             freeVars.push_back(posSymbol);
           }
 
-          auto [inductionAxBCDef, inductionAxICDef, inductionAxiomConDef,
-                inductionAxiom] =
-              logic::inductionAxiom1(inductionAxiomName,
-                                     inductionAxiomNameShort,
-                                     inductionHypothesis, freeVars);
+          auto[inductionAxBCDef, inductionAxICDef, inductionAxiomConDef,
+          inductionAxiom] =
+          logic::inductionAxiom1(inductionAxiomName,
+                                 inductionAxiomNameShort,
+                                 inductionHypothesis, freeVars);
           items.push_back(inductionAxBCDef);
           items.push_back(inductionAxICDef);
           items.push_back(inductionAxiomConDef);
@@ -419,7 +420,7 @@ void StaticAnalysisLemmas::generateOutputFor(
           std::vector<std::string> fromItems = {
               inductionAxBCDef->name, inductionAxICDef->name,
               inductionAxiomConDef->name, inductionAxiom->name};
-          for (auto& item : programSemantics) {
+          for (auto &item : programSemantics) {
             fromItems.push_back(item->name);
           }
 
@@ -433,8 +434,8 @@ void StaticAnalysisLemmas::generateOutputFor(
 }
 
 void StaticAnalysisLemmas::generateOutputForInteger(
-    const program::WhileStatement* statement,
-    std::vector<std::shared_ptr<const logic::ProblemItem>>& items) {
+    program::WhileStatement *statement,
+    std::vector<std::shared_ptr<const logic::ProblemItem>> &items) {
   auto itSymbol = iteratorSymbol(statement);
   auto it = iteratorTermForLoop(statement);
 
@@ -451,7 +452,7 @@ void StaticAnalysisLemmas::generateOutputForInteger(
   // for each active var, which is not constant but not assigned to in any
   // statement of the loop, add a lemma asserting that var is the same in each
   // iteration as in the first iteration.
-  for (const auto& v : activeVars) {
+  for (const auto &v : activeVars) {
     if (!v->isConstant && assignedVars.find(v) == assignedVars.end()) {
       for (unsigned traceNumber = 1; traceNumber < numberOfTraces + 1;
            traceNumber++) {
@@ -485,10 +486,10 @@ void StaticAnalysisLemmas::generateOutputForInteger(
           freeVars.push_back(posSymbol);
         }
 
-        auto [inductionAxBCDef, inductionAxICDef, inductionAxiomConDef,
-              inductionAxiom] =
-            logic::inductionAxiom1(inductionAxiomName, inductionAxiomNameShort,
-                                   inductionHypothesis, freeVars);
+        auto[inductionAxBCDef, inductionAxICDef, inductionAxiomConDef,
+        inductionAxiom] =
+        logic::inductionAxiom1(inductionAxiomName, inductionAxiomNameShort,
+                               inductionHypothesis, freeVars);
         items.push_back(inductionAxBCDef);
         items.push_back(inductionAxICDef);
         items.push_back(inductionAxiomConDef);
@@ -508,7 +509,7 @@ void StaticAnalysisLemmas::generateOutputForInteger(
         std::vector<std::string> fromItems = {
             inductionAxBCDef->name, inductionAxICDef->name,
             inductionAxiomConDef->name, inductionAxiom->name};
-        for (auto& item : programSemantics) {
+        for (auto &item : programSemantics) {
           fromItems.push_back(item->name);
         }
 
@@ -520,55 +521,46 @@ void StaticAnalysisLemmas::generateOutputForInteger(
 }
 
 std::unordered_set<std::shared_ptr<const program::Variable>>
-StaticAnalysisLemmas::computeAssignedVars(const program::Statement* statement) {
+StaticAnalysisLemmas::computeAssignedVars(const program::Statement *statement) {
   std::unordered_set<std::shared_ptr<const program::Variable>> assignedVars;
 
-  switch (statement->type()) {
-    case program::Statement::Type::IntAssignment: {
-      auto castedStatement =
-          static_cast<const program::IntAssignment*>(statement);
-      // add variable on lhs to assignedVars, independently from whether those
-      // vars are simple ones or arrays.
-      if (castedStatement->lhs->type() ==
-          program::IntExpression::Type::IntVariableAccess) {
-        auto access = static_cast<const program::IntVariableAccess*>(
-            castedStatement->lhs.get());
-        assignedVars.insert(access->var);
-      } else {
-        assert(castedStatement->lhs->type() ==
-               program::IntExpression::Type::IntArrayApplication);
-        auto arrayAccess = static_cast<const program::IntArrayApplication*>(
-            castedStatement->lhs.get());
-        assignedVars.insert(arrayAccess->array);
-      }
-      break;
+  if (typeid(*statement) == typeid(program::Assignment)) {
+    auto castedStatement =
+        static_cast<const program::Assignment *>(statement);
+    // add variable on lhs to assignedVars, independently from whether those
+    // vars are simple ones or arrays.
+    if (typeid(*castedStatement->lhs) == typeid(program::VariableAccess)) {
+      auto access = static_cast<const program::VariableAccess *>(
+          castedStatement->lhs.get());
+      assignedVars.insert(access->var);
+    } else {
+      assert(typeid(*castedStatement->lhs) == typeid(program::ArrayApplication));
+      auto arrayAccess = static_cast<const program::ArrayApplication *>(
+          castedStatement->lhs.get());
+      assignedVars.insert(arrayAccess->array);
     }
-    case program::Statement::Type::IfElse: {
-      auto castedStatement = static_cast<const program::IfElse*>(statement);
-      // collect assignedVars from both branches
-      for (const auto& statement : castedStatement->ifStatements) {
-        auto res = computeAssignedVars(statement.get());
-        assignedVars.insert(res.begin(), res.end());
-      }
-      for (const auto& statement : castedStatement->elseStatements) {
-        auto res = computeAssignedVars(statement.get());
-        assignedVars.insert(res.begin(), res.end());
-      }
-      break;
+  } else if (typeid(*statement) == typeid(program::IfElseStatement)) {
+    auto castedStatement = static_cast<const program::IfElseStatement *>(statement);
+    // collect assignedVars from both branches
+    for (const auto &statement : castedStatement->ifStatements) {
+      auto res = computeAssignedVars(statement.get());
+      assignedVars.insert(res.begin(), res.end());
     }
-    case program::Statement::Type::WhileStatement: {
-      auto castedStatement =
-          static_cast<const program::WhileStatement*>(statement);
-      // collect assignedVars from body
-      for (const auto& statement : castedStatement->bodyStatements) {
-        auto res = computeAssignedVars(statement.get());
-        assignedVars.insert(res.begin(), res.end());
-      }
-      break;
+    for (const auto &statement : castedStatement->elseStatements) {
+      auto res = computeAssignedVars(statement.get());
+      assignedVars.insert(res.begin(), res.end());
     }
-    case program::Statement::Type::SkipStatement: {
-      break;
+  } else if (typeid(*statement) == typeid(program::WhileStatement)) {
+    auto castedStatement =
+        static_cast<const program::WhileStatement *>(statement);
+    // collect assignedVars from body
+    for (const auto &statement : castedStatement->bodyStatements) {
+      auto res = computeAssignedVars(statement.get());
+      assignedVars.insert(res.begin(), res.end());
     }
+  } else if (typeid(*statement) == typeid(program::SkipStatement)) {
+  } else {
+    assert(0);
   }
   return assignedVars;
 }

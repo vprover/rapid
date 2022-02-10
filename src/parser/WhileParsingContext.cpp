@@ -61,7 +61,7 @@ void WhileParsingContext::popProgramVars() {
 }
 
 bool WhileParsingContext::addProgramVar(
-    std::shared_ptr<const program::Variable> programVar) {
+    std::shared_ptr<program::Variable> programVar) {
   if (programVarsDeclarations.count(programVar->name) > 0) {
     return false;
   }
@@ -71,7 +71,7 @@ bool WhileParsingContext::addProgramVar(
   return true;
 }
 
-std::shared_ptr<const program::Variable> WhileParsingContext::getProgramVar(
+std::shared_ptr<program::Variable> WhileParsingContext::getProgramVar(
     std::string name) {
   if (programVarsDeclarations.count(name) > 0) {
     return programVarsDeclarations[name];
@@ -82,12 +82,12 @@ std::shared_ptr<const program::Variable> WhileParsingContext::getProgramVar(
   }
 }
 
-std::vector<std::shared_ptr<const program::Variable>>
+std::vector<std::shared_ptr<program::Variable>>
 WhileParsingContext::getActiveProgramVars() {
   // sort active vars so that nonArrayVars occur before arrayVars
-  std::vector<std::shared_ptr<const program::Variable>> activeVars;
-  std::vector<std::shared_ptr<const program::Variable>> activeArrayVars;
-  for (const auto& pairNameVar : programVarsDeclarations) {
+  std::vector<std::shared_ptr<program::Variable>> activeVars;
+  std::vector<std::shared_ptr<program::Variable>> activeArrayVars;
+  for (auto &pairNameVar : programVarsDeclarations) {
     auto var = pairNameVar.second;
     if (!var->isArray) {
       activeVars.push_back(var);
@@ -110,25 +110,24 @@ void WhileParsingContext::addEnclosingLoops(const program::Function& function) {
 }
 
 void WhileParsingContext::addEnclosingLoopsForStatement(
-    const program::Statement* statement,
-    std::vector<const program::WhileStatement*> enclosingLoops) {
+    program::Statement *statement,
+    std::vector<program::WhileStatement *> enclosingLoops) {
   *statement->enclosingLoops = enclosingLoops;
 
-  if (statement->type() == program::Statement::Type::IfElse) {
-    auto castedStatement = static_cast<const program::IfElse*>(statement);
-    for (const auto& statementInBranch : castedStatement->ifStatements) {
+  if (typeid(*statement) == typeid(program::IfElseStatement)) {
+    auto castedStatement = static_cast<program::IfElseStatement *>(statement);
+    for (const auto &statementInBranch : castedStatement->ifStatements) {
       addEnclosingLoopsForStatement(statementInBranch.get(), enclosingLoops);
     }
-    for (const auto& statementInBranch : castedStatement->elseStatements) {
+    for (const auto &statementInBranch : castedStatement->elseStatements) {
       addEnclosingLoopsForStatement(statementInBranch.get(), enclosingLoops);
     }
-  } else if (statement->type() == program::Statement::Type::WhileStatement) {
-    auto castedStatement =
-        static_cast<const program::WhileStatement*>(statement);
+  } else if (typeid(*statement) == typeid(program::WhileStatement)) {
+    auto castedStatement = static_cast<program::WhileStatement *>(statement);
 
     auto enclosingLoopsCopy = enclosingLoops;
     enclosingLoopsCopy.push_back(castedStatement);
-    for (const auto& bodyStatement : castedStatement->bodyStatements) {
+    for (const auto &bodyStatement : castedStatement->bodyStatements) {
       addEnclosingLoopsForStatement(bodyStatement.get(), enclosingLoopsCopy);
     }
   }

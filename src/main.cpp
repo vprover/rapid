@@ -16,10 +16,20 @@
 #include "util/Output.hpp"
 
 void outputUsage() {
-  std::cout << "Usage: rapid -dir <outputDir> <filename>" << std::endl;
+  std::cout
+      << "Usage: rapid "
+      << "-dir <outputDir> "
+      << "[-inlineSemantics on|off] "
+      << "[-lemmaPredicates on|off] "
+      << "[-nat on|off] "
+      << "[-integerIterations on|off]"
+      << "[-inlineLemmas on|off]"
+      << "[-postcondition on|off]"
+      << "[-overwriteExisting on|off] "
+      << "<filename>" << std::endl;
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
   if (argc <= 1) {
     outputUsage();
   } else {
@@ -54,14 +64,19 @@ int main(int argc, char* argv[]) {
           problemItems.push_back(axiom);
         }
 
-        analysis::Semantics s(
-            *parserResult.program, parserResult.locationToActiveVars,
-            parserResult.problemItems, parserResult.numberOfTraces);
+        analysis::Semantics::applyTransformations(parserResult.program->functions,
+                                                  parserResult.locationToActiveVars,
+                                                  parserResult.numberOfTraces);
+        analysis::Semantics s(*parserResult.program,
+                              parserResult.locationToActiveVars,
+                              parserResult.problemItems,
+                              parserResult.numberOfTraces);
         auto [semantics, inlinedVarValues] = s.generateSemantics();
         problemItems.insert(problemItems.end(), semantics.begin(),
                             semantics.end());
 
         if (util::Configuration::instance().outputTraceLemmas()) {
+          
           auto traceLemmas = analysis::generateTraceLemmas(
               *parserResult.program, parserResult.locationToActiveVars,
               parserResult.numberOfTraces, semantics, inlinedVarValues);

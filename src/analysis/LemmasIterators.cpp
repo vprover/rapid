@@ -11,7 +11,7 @@
 namespace analysis {
 
 void IntermediateValueLemmas::generateOutputFor(
-    const program::WhileStatement* statement,
+    program::WhileStatement* statement,
     std::vector<std::shared_ptr<const logic::ProblemItem>>& items) {
   if (util::Configuration::instance().integerIterations()) {
     IntermediateValueLemmas::generateOutputForInteger(statement, items);
@@ -40,7 +40,7 @@ void IntermediateValueLemmas::generateOutputFor(
     // add lemma for each intVar and each intArrayVar
     for (const auto& v :
          locationToActiveVars.at(locationSymbolForStatement(statement)->name)) {
-      if (!v->isConstant && assignedVars.find(v) != assignedVars.end()) {
+      if (!v->isConstant && v->type() != program::ValueType::Bool && assignedVars.find(v) != assignedVars.end()) {
         if (!v->isArray)  // We assume that loop counters are not array elements
                           // and therefore only add iterator-lemmas for
                           // non-array-vars
@@ -190,7 +190,7 @@ void IntermediateValueLemmas::generateOutputFor(
 }
 
 void IntermediateValueLemmas::generateOutputForInteger(
-    const program::WhileStatement* statement,
+    program::WhileStatement* statement,
     std::vector<std::shared_ptr<const logic::ProblemItem>>& items) {
   auto itSymbol = iteratorSymbol(statement);
   auto it = iteratorTermForLoop(statement);
@@ -216,7 +216,8 @@ void IntermediateValueLemmas::generateOutputForInteger(
   // add lemma for each intVar and each intArrayVar
   for (const auto& v :
        locationToActiveVars.at(locationSymbolForStatement(statement)->name)) {
-    if (!v->isConstant && assignedVars.find(v) != assignedVars.end()) {
+    if (!v->isConstant && v->type() != program::ValueType::Bool &&
+        assignedVars.find(v) != assignedVars.end()) {
       if (!v->isArray)  // We assume that loop counters are not array elements
                         // and therefore only add iterator-lemmas for
                         // non-array-vars
@@ -409,8 +410,8 @@ void IntermediateValueLemmas::generateOutputForInteger(
                           v->isArray ? toTerm(v, lStartIt, pos, trace)
                                      : toTerm(v, lStartIt, trace),
                           logic::Theory::intAddition(
-                              v->isArray ? toTerm(v, lStartIt, pos, trace)
-                                         : toTerm(v, lStartIt, trace),
+                              v->isArray ? toTerm(v, lStartZero, pos, trace)
+                                         : toTerm(v, lStartZero, trace),
                               it)))));
 
           items.push_back(std::make_shared<logic::Definition>(
@@ -423,7 +424,7 @@ void IntermediateValueLemmas::generateOutputForInteger(
 }
 
 void IterationInjectivityLemmas::generateOutputFor(
-    const program::WhileStatement* statement,
+    program::WhileStatement* statement,
     std::vector<std::shared_ptr<const logic::ProblemItem>>& items) {
   if (util::Configuration::instance().integerIterations()) {
     IterationInjectivityLemmas::generateOutputForInteger(statement, items);
@@ -450,7 +451,7 @@ void IterationInjectivityLemmas::generateOutputFor(
     // add lemma for each intVar
     for (const auto& v :
          locationToActiveVars.at(locationSymbolForStatement(statement)->name)) {
-      if (!v->isConstant && assignedVars.find(v) != assignedVars.end()) {
+      if (!v->isConstant && v->type() != program::ValueType::Bool && assignedVars.find(v) != assignedVars.end()) {
         if (!v->isArray)  // We assume that loop counters are not array elements
                           // and therefore only add iterator-lemmas for
                           // non-array-vars
@@ -548,7 +549,7 @@ void IterationInjectivityLemmas::generateOutputFor(
 }
 
 void IterationInjectivityLemmas::generateOutputForInteger(
-    const program::WhileStatement* statement,
+    program::WhileStatement* statement,
     std::vector<std::shared_ptr<const logic::ProblemItem>>& items) {
   auto itSymbol = iteratorSymbol(statement);
   auto it = iteratorTermForLoop(statement);
@@ -570,7 +571,8 @@ void IterationInjectivityLemmas::generateOutputForInteger(
   // add lemma for each intVar
   for (const auto& v :
        locationToActiveVars.at(locationSymbolForStatement(statement)->name)) {
-    if (!v->isConstant && assignedVars.find(v) != assignedVars.end()) {
+    if (!v->isConstant && v->type() != program::ValueType::Bool &&
+        assignedVars.find(v) != assignedVars.end()) {
       if (!v->isArray)  // We assume that loop counters are not array elements
                         // and therefore only add iterator-lemmas for
                         // non-array-vars

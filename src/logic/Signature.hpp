@@ -155,19 +155,17 @@ namespace logic {
 // We use Signature as a manager-class for Symbol-instances
 class Signature {
  public:
-  typedef Symbol::SymbolType SyS;
-
   static bool isDeclared(std::string name);
 
   // construct new symbols
-  static std::shared_ptr<const Symbol> add(
-      std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort,
-      bool noDeclaration = false,
-      Symbol::SymbolType sym = Symbol::SymbolType::Other);
+  static std::shared_ptr<const Symbol> add(std::string name,
+                                           std::vector<const Sort*> argSorts,
+                                           const Sort* rngSort,
+                                           bool noDeclaration = false);
   static std::shared_ptr<const Symbol> fetch(std::string name);
   static std::shared_ptr<const Symbol> fetchOrAdd(
       std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort,
-      bool noDeclaration = false, SyS sym = SyS::Other);
+      bool isLemmaPredicate = false, bool noDeclaration = false);
   static std::shared_ptr<const Symbol> densityPredicate(std::string name,
                                                         std::string var,
                                                         std::string tp);
@@ -183,6 +181,11 @@ class Signature {
   static const std::vector<std::shared_ptr<const Symbol>>&
   signatureOrderedByInsertion() {
     return _signatureOrderedByInsertion;
+  }
+
+  static void reset() {
+    _signature.clear();
+    _signatureOrderedByInsertion.clear();
   }
 
  private:

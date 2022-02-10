@@ -11,12 +11,10 @@ func main()
 {
   const Int[] a;
   const Int alength;
-
   Int[] b;
   Int blength = 0;
   Int[] c;
   Int clength = 0;
-
 	Int i = 0;
 	while(i < alength)
 	{
@@ -140,6 +138,26 @@ func main()
         )
         (exists ((pos2 Int))
           (= (c main_end pos2) (a pos))
+        )
+      )
+    )
+  )
+)
+
+(conjecture
+  (forall ((pos Int))
+    (=>
+      (and
+        (<= 0 alength)
+        (<= 0 pos)
+        (< pos alength)
+      )
+      (or
+        (exists ((pos2 Int))
+          (or
+            (= (b main_end pos2) (a pos))
+            (= (c main_end pos2) (a pos))
+          )
         )
       )
     )

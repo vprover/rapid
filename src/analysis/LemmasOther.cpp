@@ -11,7 +11,11 @@
 namespace analysis {
 
 void AtLeastOneIterationLemmas::generateOutputFor(
+<<<<<<< HEAD
     const program::WhileStatement* statement,
+=======
+    program::WhileStatement* statement,
+>>>>>>> main
     std::vector<std::shared_ptr<const logic::ProblemItem>>& items) {
   if (util::Configuration::instance().integerIterations()) {
     AtLeastOneIterationLemmas::generateOutputForInteger(statement, items);
@@ -35,9 +39,15 @@ void AtLeastOneIterationLemmas::generateOutputFor(
           enclosingIteratorsSymbols(statement),
           logic::Formulas::implication(
               util::Configuration::instance().inlineSemantics()
+<<<<<<< HEAD
                   ? inlinedVarValues.toInlinedFormula(
                         statement, statement->condition, lStartZero, trace)
                   : toFormula(statement->condition, lStartZero, trace),
+=======
+                  ? inlinedVarValues.toInlinedTerm(
+                        statement, statement->condition, lStartZero, trace)
+                  : toTerm(statement->condition, lStartZero, trace),
+>>>>>>> main
               logic::Formulas::existential(
                   {itSymbol},
                   logic::Formulas::equality(logic::Theory::natSucc(it), n))));
@@ -49,6 +59,7 @@ void AtLeastOneIterationLemmas::generateOutputFor(
       items.push_back(std::make_shared<logic::Lemma>(
           bareLemma, name, logic::ProblemItem::Visibility::Implicit,
           fromItems));
+<<<<<<< HEAD
     }
   }
 }
@@ -258,11 +269,59 @@ void LoopConditionAnalysisLemmas::generateOutputFor(
         }
       }
     }
+=======
+    }
+  }
+}
+
+void AtLeastOneIterationLemmas::generateOutputForInteger(
+    program::WhileStatement* statement,
+    std::vector<std::shared_ptr<const logic::ProblemItem>>& items) {
+  auto itSymbol = iteratorSymbol(statement);
+  auto it = iteratorTermForLoop(statement);
+
+  auto lStartZero =
+      timepointForLoopStatement(statement, logic::Theory::intZero());
+
+  for (unsigned traceNumber = 1; traceNumber < numberOfTraces + 1;
+       traceNumber++) {
+    auto trace = traceTerm(traceNumber);
+    auto n = lastIterationTermForLoop(statement, numberOfTraces, trace);
+
+    auto name = "atLeastOneIteration-" + statement->location +
+                (numberOfTraces > 1 ? ("-" + trace->symbol->name) : "");
+
+    // forall enclosingIterators. (Cond(l(0)) => exists it. s(it)=n)
+    auto bareLemma = logic::Formulas::universal(
+        enclosingIteratorsSymbols(statement),
+        logic::Formulas::implication(
+            util::Configuration::instance().inlineSemantics()
+                ? inlinedVarValues.toInlinedTerm(
+                      statement, statement->condition, lStartZero, trace)
+                : toTerm(statement->condition, lStartZero, trace),
+            logic::Formulas::existential(
+                {itSymbol},
+                logic::Formulas::conjunction(
+                    {logic::Theory::intLessEqual(logic::Theory::intZero(), it),
+                     logic::Formulas::equality(logic::Theory::intSucc(it),
+                                               n)}))));
+
+    std::vector<std::string> fromItems;
+    for (auto& item : programSemantics) {
+      fromItems.push_back(item->name);
+    }
+    items.push_back(std::make_shared<logic::Lemma>(
+        bareLemma, name, logic::ProblemItem::Visibility::Implicit, fromItems));
+>>>>>>> main
   }
 }
 
 void OrderingSynchronizationLemmas::generateOutputFor(
+<<<<<<< HEAD
     const program::WhileStatement* statement,
+=======
+    program::WhileStatement* statement,
+>>>>>>> main
     std::vector<std::shared_ptr<const logic::ProblemItem>>& items) {
   // assert(numberOfTraces > 1);
 
