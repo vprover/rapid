@@ -38,8 +38,8 @@ void Theory::declareMemoryArrays() {
   auto sel = Signature::fetchArraySelect();
   auto store = Signature::fetchArrayStore();
 
-  //valueAt(tp, null, "Int", false);
-  deref(tp, null);
+  valueAt(tp, null, false);
+  valueAt(tp, null, true);  
 }
 
 std::shared_ptr<const FuncTerm> Theory::intConstant(int i) {
@@ -180,13 +180,12 @@ std::shared_ptr<const FuncTerm> Theory::arbitraryTP() {
 }
 
 std::shared_ptr<const FuncTerm> Theory::nullLoc() {
-  return Terms::func("null_loc", {}, Sorts::locSort(), false);
+  return Terms::func("null_loc", {}, Sorts::intSort(), false);
 }
 
 std::shared_ptr<const FuncTerm> Theory::valueAt(
     std::shared_ptr<const Term> timePoint,
     std::shared_ptr<const Term> location,
-    std::string sortName,
     bool isConst) {
 
   std::vector<std::shared_ptr<const Term>> subterms;
@@ -195,36 +194,133 @@ std::shared_ptr<const FuncTerm> Theory::valueAt(
   }
   subterms.push_back(location);
 
-  std::string str = isConst ? "const_" : "";
-  std::string funcName = "value_" + str + toLower(sortName);
+  std::string str = isConst ? "_const" : "";
+  std::string funcName = "value" + str;
 
-  return Terms::func(funcName, subterms, Sorts::fetch(sortName), false);
+  return Terms::func(funcName, subterms, Sorts::intSort(), false);
 }
 
-std::shared_ptr<const FuncTerm> Theory::deref(
-    std::shared_ptr<const Term> timePoint, std::shared_ptr<const Term> location,
-    unsigned level) {
-  assert(level >= 1);
-
-  auto term =
-      Terms::func("deref", {timePoint, location}, Sorts::locSort(), false);
-  for (unsigned i = 0; i < level - 1; i++) {
-    term = Terms::func("deref", {timePoint, term}, Sorts::locSort(), false);
-  }
-  return term;
-}
-
-std::shared_ptr<const Formula> Theory::frameAxiom(
+std::shared_ptr<const Formula> Theory::framePred(
       std::shared_ptr<const Term> location,
       std::shared_ptr<const Term> t1,
       std::shared_ptr<const Term> t2) {
   return Formulas::predicate("frame_axiom", {location, t1, t2});
 }
 
+std::shared_ptr<logic::Axiom> Theory::frameAxiom(
+      std::shared_ptr<const logic::Symbol> tpVarSym1,
+      std::shared_ptr<const logic::Symbol> tpVarSym2,
+      std::shared_ptr<const logic::Symbol> memLocVarSym) 
+{
+  auto memLocVariable = logic::Terms::var(memLocVarSym);
+  auto tpVar = logic::Terms::var(tpVarSym1);  
+  auto tpVar2 = logic::Terms::var(tpVarSym2);
+
+  auto framePred = logic::Theory::framePred(memLocVariable, tpVar, tpVar2);
+  auto loc = logic::Signature::varSymbol("m-loc", logic::Sorts::intSort());
+  auto locVar = logic::Terms::var(loc); 
+
+  auto notEqual = logic::Formulas::disequality(memLocVariable, locVar);
+  auto rhs = logic::Formulas::equality(
+    logic::Theory::valueAt(tpVar, locVar),
+    logic::Theory::valueAt(tpVar2, locVar));
+  rhs =  logic::Formulas::implicationSimp(notEqual, rhs);
+  rhs =  logic::Formulas::universal({loc}, rhs);
+
+  auto frameDefinition = logic::Formulas::universal({memLocVarSym,tpVarSym1,tpVarSym2 },
+    logic::Formulas::equivalenceSimp(framePred, rhs));
+  return std::make_shared<logic::Axiom>(
+    frameDefinition, "Definition of the frame axiom",
+    logic::ProblemItem::Visibility::Implicit);
+}
+
+
+std::shared_ptr<const Formula> Theory::disjoint1(
+      std::shared_ptr<const Term> loc1,
+      std::shared_ptr<const Term> size1,
+      std::shared_ptr<const Term> loc2,
+      std::shared_ptr<const Term> size2) {
+  return Formulas::predicate("disjoint1", {loc1, size1, loc2, size2});
+}
+
+std::shared_ptr<logic::Axiom> Theory::disjoint1Axiom(
+      std::shared_ptr<const logic::Symbol> memLocVarSym1,
+      std::shared_ptr<const logic::Symbol> sizeSym1,      
+      std::shared_ptr<const logic::Symbol> memLocVarSym2,
+      std::shared_ptr<const logic::Symbol> sizeSym2)
+{
+  auto memLocVar1 = logic::Terms::var(memLocVarSym1);
+  auto size1 = logic::Terms::var(sizeSym1);  
+  auto memLocVar2 = logic::Terms::var(memLocVarSym2);
+  auto size2 = logic::Terms::var(sizeSym2);
+  
+  auto disjointPred = disjoint1(memLocVar1, size1, memLocVar2, size2);
+
+  auto x1Sym = logic::Signature::varSymbol("x1", logic::Sorts::intSort());
+  auto x1 = logic::Terms::var(x1Sym); 
+
+  auto x2Sym = logic::Signature::varSymbol("x2", logic::Sorts::intSort());
+  auto x2 = logic::Terms::var(x2Sym);
+
+  std::vector<std::shared_ptr<const logic::Formula>> forms;
+  forms.push_back(Theory::intLessEqual(memLocVar1, x1));
+  forms.push_back(Theory::intLess(x1, Theory::intAddition(memLocVar1, size1)));
+  forms.push_back(Theory::intLessEqual(memLocVar2, x2));
+  forms.push_back(Theory::intLess(x2, Theory::intAddition(memLocVar2, size2)));
+  auto premise = logic::Formulas::conjunctionSimp(forms);
+  auto conc = logic::Formulas::disequality(x1,x2);
+  auto imp = logic::Formulas::implicationSimp(premise, conc);
+  auto rhs = logic::Formulas::universal({x1Sym, x2Sym}, imp);
+
+  auto disjointDef = logic::Formulas::universal({memLocVarSym1,sizeSym1,memLocVarSym2, sizeSym2},
+    logic::Formulas::equivalenceSimp(disjointPred, rhs));
+
+  return std::make_shared<logic::Axiom>(
+    disjointDef, "Definition of disjointness axiom",
+    logic::ProblemItem::Visibility::Implicit);
+}
+
+std::shared_ptr<const Formula> Theory::disjoint2(
+      std::shared_ptr<const Term> loc1,
+      std::shared_ptr<const Term> loc2,
+      std::shared_ptr<const Term> size) {
+  return Formulas::predicate("disjoint2", {loc1, loc2, size});
+}  
+
+std::shared_ptr<logic::Axiom> Theory::disjoint2Axiom(
+      std::shared_ptr<const logic::Symbol> memLocVarSym1,
+      std::shared_ptr<const logic::Symbol> memLocVarSym2,
+      std::shared_ptr<const logic::Symbol> sizeSym)
+{
+  auto memLocVar1 = logic::Terms::var(memLocVarSym1);
+  auto memLocVar2 = logic::Terms::var(memLocVarSym2);
+  auto size = logic::Terms::var(sizeSym);
+  
+  auto disjointPred = disjoint2(memLocVar1, memLocVar2, size);
+
+  auto xSym = logic::Signature::varSymbol("x", logic::Sorts::intSort());
+  auto x = logic::Terms::var(xSym); 
+
+  std::vector<std::shared_ptr<const logic::Formula>> forms;
+  forms.push_back(Theory::intLessEqual(memLocVar2, x));
+  forms.push_back(Theory::intLess(x, Theory::intAddition(memLocVar2, size)));
+  auto premise = logic::Formulas::conjunctionSimp(forms);
+  auto conc = logic::Formulas::disequality(memLocVar1,x);
+  auto imp = logic::Formulas::implicationSimp(premise, conc);
+  auto rhs = logic::Formulas::universal({xSym}, imp);
+
+  auto disjointDef = logic::Formulas::universal({memLocVarSym1,memLocVarSym2, sizeSym},
+    logic::Formulas::equivalenceSimp(disjointPred, rhs));
+
+  return std::make_shared<logic::Axiom>(
+    disjointDef, "Definition of disjointness axiom",
+    logic::ProblemItem::Visibility::Implicit);  
+}
+
 std::shared_ptr<const FuncTerm> Theory::mallocFun(
     std::shared_ptr<const Term> timePoint) {
 
-  return Terms::func("malloc", {timePoint}, Sorts::locSort(), false, 
+  return Terms::func("malloc", {timePoint}, Sorts::intSort(), false, 
     logic::Symbol::SymbolType::MallocFunc);
 }
 

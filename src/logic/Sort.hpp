@@ -60,7 +60,6 @@ class Sorts {
     }
     return natSort();
   }
-  static Sort* locSort() { return fetchOrDeclare("Location"); }  // memory locations
   static Sort* arraySort() { return fetchOrDeclare("Arr"); }
   static Sort* timeSort() { return fetchOrDeclare("Time"); }
   static Sort* traceSort() { return fetchOrDeclare("Trace"); }

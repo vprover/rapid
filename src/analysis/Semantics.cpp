@@ -41,10 +41,9 @@ std::vector<std::shared_ptr<const program::Variable>> difference(
   return v3;
 }
 
-std::vector<std::shared_ptr<const program::Variable>> vecUnion(
-    std::vector<std::shared_ptr<const program::Variable>> v1,
-    std::vector<std::shared_ptr<const program::Variable>> v2) {
-  std::vector<std::shared_ptr<const program::Variable>> v3;
+template <class T>
+std::vector<T> vecUnion(std::vector<T> v1, std::vector<T> v2) {
+  std::vector<T> v3;
 
   std::sort(v1.begin(), v1.end());
   std::sort(v2.begin(), v2.end());
@@ -57,7 +56,7 @@ std::vector<std::shared_ptr<const logic::Axiom>> Semantics::generateBounds() {
   std::vector<std::shared_ptr<const program::Variable>> allVars;
 
   for (auto it : locationToActiveVars) {
-    allVars = vecUnion(it.second, allVars);
+    allVars = vecUnion<std::shared_ptr<const program::Variable>>(it.second, allVars);
   }
 
   std::vector<std::shared_ptr<const logic::Axiom>> axioms;
@@ -157,83 +156,151 @@ Semantics::generateSemantics() {
   for (auto vars : locationToActiveVars) {
     // WARNING if there are multiple vars with the same name, but in different
     // scope this is dangerous!
-    allVars = vecUnion(allVars, vars.second);
+    //TODO break this down by scope?
+    allVars = vecUnion<std::shared_ptr<const program::Variable>>(allVars, vars.second);
   }
 
   std::vector<std::shared_ptr<const logic::Formula>> uniqueVars;
 
-  auto tp = locationSymbol("tp", 0);
-  auto tp2 = locationSymbol("tp2", 0);
+  auto tp = tpVarSymbol("tp");
+  auto tp2 = tpVarSymbol("tp2");
   auto tpVar = logic::Terms::var(tp);  
   auto tpVar2 = logic::Terms::var(tp2);
 
+  auto memLocSymbol = locVarSymbol("mem-loc");
+  auto memLocSymbol2 = locVarSymbol("mem-loc2");
+
+  auto memLocVar = logic::Terms::var(memLocSymbol);
+  auto memLocVar2 = logic::Terms::var(memLocSymbol2);
+
+  auto size1Sym = locVarSymbol("size1");
+  auto size2Sym = locVarSymbol("size2");
+
+  bool needDisjoint2Axiom = false;
+  bool needDisjoint1Axiom = false;
+
+  // adding axioms to ensure memory disjointness. For example a != b
+  // for distinct variables a and b
   for (int i = 0; i < allVars.size(); i++) {
     auto var = allVars[i];
     auto varAsTerm = logic::Terms::func(logic::Signature::fetch(var->name), {});
+    // no variable is equal to the null location
     auto notNull =
         logic::Formulas::disequality(varAsTerm, logic::Theory::nullLoc());
     uniqueVars.push_back(notNull);
 
-    auto notMalloc = 
-        logic::Formulas::disequality(varAsTerm, logic::Theory::mallocFun(tpVar));
-    uniqueVars.push_back(logic::Formulas::universal({tp},notMalloc));
+    // adding axioms to ensure disjointness between stack and heap allocated memory
+    for(unsigned k = 0; k < mallocStatements.size(); k++){
+      std::shared_ptr<const logic::Formula> notMalloc;
+      auto mallocStatement = mallocStatements[k].first;
 
+      std::vector<std::shared_ptr<const logic::Symbol>> varSyms;
+      mallocStatement = rectifyVars(mallocStatement, varSyms);
+
+      int size = mallocStatements[k].second;
+      if(size > 1){
+        if(util::Configuration::instance().explodeMemRegions() && size < SMALL_STRUCT_SIZE){
+          notMalloc = explode(varAsTerm, 1, mallocStatement, size); 
+        } else {
+          needDisjoint2Axiom = true;
+          auto sizeTerm = logic::Theory::intConstant(size);
+          notMalloc = logic::Theory::disjoint2(varAsTerm, mallocStatement, sizeTerm);          
+        }
+      } else {
+        notMalloc = logic::Formulas::disequality(varAsTerm, mallocStatement);
+      }
+      uniqueVars.push_back(logic::Formulas::universalSimp(varSyms, notMalloc));
+    }
+
+    //pairwise disjointness of variables
     for (int j = i + 1; j < allVars.size(); j++) {
       auto var2 = allVars[j];
       auto var2AsTerm =
           logic::Terms::func(logic::Signature::fetch(var2->name), {});
-      auto notEqual = logic::Formulas::disequality(varAsTerm, var2AsTerm);
-      uniqueVars.push_back(notEqual);
+      uniqueVars.push_back(logic::Formulas::disequality(varAsTerm, var2AsTerm));
     }
   }
 
-  auto memLocSymbol = locVarSymbol();
-  auto memLocVariable = memLocVar();
+  // disjointess between heap locations
+  for(unsigned k = 0; k < mallocStatements.size(); k++){
+    auto mallocStatement = mallocStatements[k].first;
+    int size = mallocStatements[k].second;    
+    auto sizeTerm = logic::Theory::intConstant(size);
 
-  {
-    auto frameAxiom = logic::Theory::frameAxiom(memLocVariable, tpVar, tpVar2);
-    std::vector<std::shared_ptr<const logic::Formula>> forms;
-    auto loc = logic::Signature::varSymbol("m-loc", logic::Sorts::locSort());
-    auto locVar = logic::Terms::var(loc); 
-
-    for (const auto& memArraySym : logic::Signature::memoryArraySymbols()){
-      if (!memArraySym->isConstMemoryArray()) {
-        auto arrayAtL2 = logic::Terms::func(memArraySym, {tpVar, locVar});
-        auto arrayAtL1 = logic::Terms::func(memArraySym, {tpVar2, locVar});
-        auto equality = logic::Formulas::equality(arrayAtL2, arrayAtL1);
-        forms.push_back(equality);
+    std::vector<std::shared_ptr<const logic::Symbol>> varSyms;
+    mallocStatement = rectifyVars(mallocStatement, varSyms);
+    
+    //for dynamic allocations within a loop, no two allocations
+    //return the same memory location 
+    if(varSyms.size()){
+      std::vector<std::shared_ptr<const logic::Symbol>> varSyms2;
+      auto mallocStatement2 = rectifyVars(mallocStatement, varSyms2, varSyms.size());
+      
+      std::shared_ptr<const logic::Formula> diffLocs;
+      if(size > 1){
+        if(util::Configuration::instance().explodeMemRegions() && size < SMALL_STRUCT_SIZE){
+           diffLocs = explode(mallocStatement, size, mallocStatement2, size); 
+        } else {
+          needDisjoint1Axiom = true;
+          diffLocs = logic::Theory::disjoint1(mallocStatement, sizeTerm, mallocStatement2, sizeTerm);
+        }
+      } else {
+        diffLocs = logic::Formulas::disequality(mallocStatement, mallocStatement2);        
       }
+
+      std::vector<std::shared_ptr<const logic::Formula>> forms;    
+      for(unsigned i = 0; i < varSyms.size(); i++){
+        auto var1 = logic::Terms::var(varSyms[i]);
+        auto var2 = logic::Terms::var(varSyms2[i]);
+        forms.push_back(logic::Formulas::disequality(var1, var2));
+      }
+      auto prem = logic::Formulas::conjunctionSimp(forms);
+      auto imp = logic::Formulas::implicationSimp(prem, diffLocs);
+
+      uniqueVars.push_back(logic::Formulas::universalSimp(
+        vecUnion<std::shared_ptr<const logic::Symbol>>(varSyms, varSyms2), imp));      
     }
-    forms.push_back(logic::Formulas::equality(
-      logic::Theory::deref(tpVar, locVar),
-      logic::Theory::deref(tpVar2, locVar)
-    ));
 
-    auto notEqual = logic::Formulas::disequality(memLocVariable, locVar);
-    auto rhs = logic::Formulas::conjunctionSimp(forms);
-    rhs =  logic::Formulas::implicationSimp(notEqual, rhs);
-    rhs =  logic::Formulas::universal({loc}, rhs);
+    //TODO not null axiom?
 
-    auto frameDefinition = logic::Formulas::universal({memLocSymbol,tp, tp2 },
-      logic::Formulas::equivalenceSimp(frameAxiom, rhs));
-    axioms.push_back(std::make_shared<logic::Axiom>(
-      frameDefinition, "Definition of the frame axiom",
-      logic::ProblemItem::Visibility::Implicit));
+    for (int l = k + 1; l < mallocStatements.size(); l++) {
+      auto mallocStatement2 = mallocStatements[l].first;
+      int size2 = mallocStatements[l].second;    
+      auto sizeTerm2 = logic::Theory::intConstant(size2);
+
+      std::vector<std::shared_ptr<const logic::Symbol>> varSyms2;
+      mallocStatement2 = rectifyVars(mallocStatement2, varSyms2, varSyms.size());
+
+      std::shared_ptr<const logic::Formula> diffLocs;
+      if(size > 1 || size2 > 1){
+        if(util::Configuration::instance().explodeMemRegions() && size < SMALL_STRUCT_SIZE){
+           diffLocs = explode(mallocStatement, size, mallocStatement2, size2); 
+        } else {
+          needDisjoint1Axiom = true;          
+          diffLocs = logic::Theory::disjoint1(mallocStatement, sizeTerm, mallocStatement2, sizeTerm2);
+        }
+      } else {
+        diffLocs = logic::Formulas::disequality(mallocStatement, mallocStatement2);        
+      }
+
+      uniqueVars.push_back(logic::Formulas::universalSimp(
+        vecUnion<std::shared_ptr<const logic::Symbol>>(varSyms, varSyms2), diffLocs));  
+    }
   }
 
-  auto deref = logic::Theory::deref(tpVar, memLocVariable);
-  auto derefFormula = logic::Formulas::disequality(memLocVariable, deref);
-  auto derefNotIdentity =
-      logic::Formulas::universal({tp, memLocSymbol}, derefFormula);
-  uniqueVars.push_back(derefNotIdentity);
+  axioms.push_back(logic::Theory::frameAxiom(tp, tp2, memLocSymbol));
+  
+  if(needDisjoint1Axiom) 
+    axioms.push_back(logic::Theory::disjoint1Axiom(memLocSymbol,size1Sym,memLocSymbol2,size2Sym));
+  
+  if(needDisjoint2Axiom)
+    axioms.push_back(logic::Theory::disjoint2Axiom(memLocSymbol,memLocSymbol2,size2Sym));
 
-  //TODO only add if a malloc present?
-  auto timePointDifferent = logic::Formulas::disequality(tpVar, tpVar2);
-  auto mallocAtTp = logic::Theory::mallocFun(tpVar);
-  auto mallocAtTp2 = logic::Theory::mallocFun(tpVar2);
-  auto mallocDifferent = logic::Formulas::disequality(mallocAtTp, mallocAtTp2);
-  auto mallocFormula = logic::Formulas::implication(timePointDifferent, mallocDifferent);
-  uniqueVars.push_back(logic::Formulas::universal({tp, tp2 },mallocFormula));
+  auto value = logic::Theory::valueAt(tpVar, memLocVar);
+  auto valueFormula = logic::Formulas::disequality(memLocVar, value);
+  auto valueNotIdentity =
+      logic::Formulas::universal({tp, memLocSymbol}, valueFormula);
+  uniqueVars.push_back(valueNotIdentity);
 
   auto memSemantics = logic::Formulas::conjunctionSimp(uniqueVars);
 
@@ -242,6 +309,32 @@ Semantics::generateSemantics() {
       logic::ProblemItem::Visibility::Implicit));
 
   return std::make_pair(axioms, inlinedVariableValues);
+}
+
+std::shared_ptr<const logic::Formula> Semantics::explode(
+    std::shared_ptr<const logic::Term> m1, int size1,
+    std::shared_ptr<const logic::Term> m2, int size2)
+{
+
+  std::vector<std::shared_ptr<const logic::Formula>> forms;    
+  
+  forms.push_back(logic::Formulas::disequality(m1, m2));
+  for(unsigned i = 1; i < size2; i++){
+    auto sum = logic::Theory::intAddition(m2, logic::Theory::intConstant(i));
+    forms.push_back(logic::Formulas::disequality(m1, sum));
+  }
+
+  for(unsigned i = 1; i < size1; i++){
+    auto sum = logic::Theory::intAddition(m1, logic::Theory::intConstant(i));   
+    forms.push_back(logic::Formulas::disequality(sum, m2));
+    
+    for(unsigned j = 1; j < size2; j++){
+      auto sum2 = logic::Theory::intAddition(m2, logic::Theory::intConstant(j));   
+      forms.push_back(logic::Formulas::disequality(sum, sum2));     
+    }
+  }
+
+  return logic::Formulas::conjunctionSimp(forms);
 }
 
 std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
@@ -391,7 +484,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
 
     //[*...*]x = term
     if (!isIntArrayApp(lhs) && !isRefExpr(rhs)) {
-      lhsTerm = toTerm(lhs, l2, trace);
+      lhsTerm = toTerm(lhs, l2, trace, l1);
       rhsTerm = toTerm(rhs, l1, trace);
     }
 
@@ -407,7 +500,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
       } else{
         rhsTerm = logic::Terms::locConstant(castedRhs->referent->name);
       }
-      lhsTerm = toTerm(lhs, l2, trace);
+      lhsTerm = toTerm(lhs, l2, trace, l1);
     }
 
     // a[expr1] = expr2
@@ -418,7 +511,11 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
       auto toStore = toTerm(rhs, l1, trace);
       auto array = toTerm(asArrayApp->array, l1, trace);
       rhsTerm = logic::Terms::arrayStore(array, index, toStore);
-      lhsTerm = toTerm(lhs, l2, trace, true);
+      lhsTerm = toTerm(lhs, l2, trace, nullptr, true);
+    }
+
+    if(rhsTerm->isMallocFun()){
+      mallocStatements.push_back(make_pair(rhsTerm, lhs->exprType()->getChild()->size()));
     }
 
     // lhs(l2) = rhs(l1);
@@ -431,28 +528,6 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     auto array = lhsAsFunc;
 
     conjuncts.push_back(eq);
-
-    // all other fields of the struct remain the same
-    /*if(lhsAsFunc->symbol->isSelectorSymbol()){
-      assert(lhsAsFunc->subterms.size() == 1);
-      auto structTermL2 = (*lhsAsFunc)[0];
-      assert(structTermL2->sort()->isAlgebraicSort());
-      array = structTermL2;
-
-      auto tm = std::static_pointer_cast<const logic::FuncTerm>(toTerm(lhs, l1, trace));
-      auto structTermL1  = (*tm)[0];
-
-      for(auto sel : structTermL2->sort()->selectors){
-        if(sel.first != lhsAsFunc->symbol->name){
-          auto selSymbol = logic::Signature::fetch(sel.first);
-          auto l = logic::Terms::func(selSymbol, {structTermL2});
-          auto r = logic::Terms::func(selSymbol, {structTermL1});
-          conjuncts.push_back(logic::Formulas::equality(l, r));
-        }
-      }
-    } else {
-      array = lhsAsFunc;
-    }*/
 
     auto arrayAccessedAt = (*std::static_pointer_cast<const logic::FuncTerm>(array))[1];
     //auto locSymbol = locVarSymbol();
@@ -472,7 +547,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
                         : eq3);*/
  
 
-    forms.push_back(logic::Theory::frameAxiom(arrayAccessedAt, l1, l2));
+    forms.push_back(logic::Theory::framePred(arrayAccessedAt, l1, l2));
 
     //auto arrayName = array->symbol->name;
 
@@ -966,18 +1041,8 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
       auto locSymbol = locVarSymbol();
       auto loc = memLocVar();
 
-      std::vector<std::shared_ptr<const logic::Formula>> forms;
-      for (const auto& memArraySym : logic::Signature::memoryArraySymbols()) {
-        if (!memArraySym->isConstMemoryArray()) {
-          auto arrayAtL2 = logic::Terms::func(memArraySym, {l2, loc});
-          auto arrayAtL1 = logic::Terms::func(memArraySym, {l1, loc});
-          auto equality = logic::Formulas::equality(arrayAtL2, arrayAtL1);
-          forms.push_back(equality);
-        }
-      }
-
-      auto lhs2 = logic::Theory::deref(l2, loc);
-      auto rhs2 = logic::Theory::deref(l1, loc);
+      auto lhs2 = logic::Theory::valueAt(l2, loc);
+      auto rhs2 = logic::Theory::valueAt(l1, loc);
 
       std::vector<std::shared_ptr<const logic::Formula>> disjs;
       std::vector<std::shared_ptr<const logic::Formula>> conjs;
@@ -993,6 +1058,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
         }
       }
 
+      std::vector<std::shared_ptr<const logic::Formula>> forms;
       if(util::Configuration::instance().memSafetyMode()){
         auto disjForm = logic::Formulas::disjunctionSimp(disjs);
         auto eq2 = logic::Formulas::equality(lhs2, logic::Theory::nullLoc());

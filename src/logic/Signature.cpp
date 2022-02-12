@@ -176,8 +176,6 @@ std::unordered_map<std::string, std::shared_ptr<const Symbol>>
     Signature::_signature;
 std::vector<std::shared_ptr<const Symbol>>
     Signature::_signatureOrderedByInsertion;
-std::vector<std::shared_ptr<const Symbol>>
-    Signature::_memoryArraySymbols;
 
 bool Signature::isDeclared(std::string name) {
   auto it = _signature.find(name);
@@ -231,9 +229,6 @@ std::shared_ptr<const Symbol> Signature::fetchOrAdd(
   auto symbol = pair.first->second;
 
   if (pair.second) {
-    if(typ == Symbol::SymbolType::MemoryArray){
-      _memoryArraySymbols.push_back(symbol);
-    }
     _signatureOrderedByInsertion.push_back(symbol);
   }
   // if a symbol with the name already exist, make sure it has the same sorts
@@ -260,7 +255,7 @@ std::shared_ptr<const Symbol> Signature::varSymbol(std::string name,
   assert(_signature.count(name) == 0);
 
   return std::shared_ptr<Symbol>(
-      new Symbol(name, rngSort, true, SyS::ProgramVar));
+      new Symbol(name, rngSort, true, SyS::Other));
 }
 
 void Signature::addColorSymbol(std::string name, std::string orientation) {

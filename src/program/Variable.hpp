@@ -91,12 +91,15 @@ class StructType : public ExprType {
     ExprType(BasicType::STRUCT) {}
 
   std::string getName() const { return name; }
-  std::shared_ptr<const program::Variable> getField(std::string name) const;
-  std::list<std::shared_ptr<const program::Variable>> getFields() const { return fields; }
+  std::shared_ptr<const program::Variable>  getField(std::string name) const;
+  int getFieldPos(std::string name) const;
+  int size() const override { return fields.size(); }
 
   std::string toString() const override;
 
   private:
+    //TODO make sure we need ti sotre more than just names
+    //at moment we use a list due to some clashing inside the parser
     std::list<std::shared_ptr<const program::Variable>> fields;
     std::string name;
 };

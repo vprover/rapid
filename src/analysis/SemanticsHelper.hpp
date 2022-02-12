@@ -17,6 +17,17 @@ namespace analysis {
 bool getDiff(std::shared_ptr<const program::Variable> v,
              const program::Statement*, int& diff, bool topLevel);
 
+std::shared_ptr<const logic::Term> 
+rectifyVars(
+    std::shared_ptr<const logic::Term> mallocTerm,
+    std::vector<std::shared_ptr<const logic::Symbol>>& varSyms,
+    unsigned startingFrom = 0);
+
+std::shared_ptr<const logic::Term> 
+rectify(
+    std::shared_ptr<const logic::Term> mallocTerm,
+    std::vector<std::shared_ptr<const logic::Symbol>>& varSyms);
+
 #pragma mark - Methods for generating most used variables
 std::shared_ptr<const logic::LVariable> posVar();
 std::shared_ptr<const logic::LVariable> memLocVar();
@@ -63,8 +74,7 @@ std::vector<std::shared_ptr<const logic::Symbol>> enclosingIteratorsSymbols(
 
 #pragma mark - Methods for generating sorts
 
-logic::Sort* toSort(
-    std::shared_ptr<const program::ExprType> type);
+//CURRENTLY EMPTY
 
 #pragma mark - Methods for generating most used terms/predicates denoting program-expressions
 /* The parameter lhsOfAssignment is used when converting an array access.
@@ -72,8 +82,10 @@ logic::Sort* toSort(
  */
 std::shared_ptr<const logic::Term> toTerm(
     std::shared_ptr<const program::Expression> expr,
-    std::shared_ptr<const logic::Term> timePoint,
-    std::shared_ptr<const logic::Term> trace, bool lhsOfAssignment = false);
+    std::shared_ptr<const logic::Term> tp,    
+    std::shared_ptr<const logic::Term> trace, 
+    std::shared_ptr<const logic::Term> innerTp = nullptr,
+    bool lhsOfAssignment = false);
 
 #pragma mark - Methods for generating most used timepoint terms and symbols in integer sort
 std::shared_ptr<const logic::LVariable> intIteratorTermForLoop(
@@ -139,8 +151,9 @@ std::shared_ptr<const logic::Term> toTerm(
     std::shared_ptr<const logic::Term> trace);
 std::shared_ptr<const logic::Term> toTerm(
     std::shared_ptr<const program::DerefExpression> e,
-    std::shared_ptr<const logic::Term> timePoint,
-    std::shared_ptr<const logic::Term> trace);
+    std::shared_ptr<const logic::Term> tp,
+    std::shared_ptr<const logic::Term> trace,
+    std::shared_ptr<const logic::Term> innerTp = nullptr);
 std::shared_ptr<const logic::Term> toTerm(
     std::shared_ptr<const program::StructFieldAccess> e,
     std::shared_ptr<const logic::Term> timePoint,
@@ -152,8 +165,10 @@ std::shared_ptr<const logic::Term> toTerm(
  */
 std::shared_ptr<const logic::Term> toIntTerm(
     std::shared_ptr<const program::Expression> expr,
-    std::shared_ptr<const logic::Term> timePoint,
-    std::shared_ptr<const logic::Term> trace, bool lhsOfAssignment = false);
+    std::shared_ptr<const logic::Term> tp,    
+    std::shared_ptr<const logic::Term> trace, 
+    std::shared_ptr<const logic::Term> innerTp = nullptr,
+    bool lhsOfAssignment = false);
 
 /*
  * convert the boolean expression expr to a logical predicate refering to the

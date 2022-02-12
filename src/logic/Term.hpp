@@ -31,6 +31,13 @@ class Term {
   virtual std::string toSMTLIB() const = 0;
   virtual std::string toTPTP() const = 0;
   virtual std::string prettyString() const = 0;
+
+  bool isMallocFun() const {
+    return symbol->isMallocSymbol();
+  } 
+  bool isConstMemoryArray() const { 
+    return (symbol->name).starts_with("value_const"); 
+  }
 };
 
 bool operator==(const Term& t1, const Term& t2);
@@ -66,16 +73,6 @@ class FuncTerm : public Term {
 
  public:
   const std::vector<std::shared_ptr<const Term>> subterms;
-
-  bool isDerefAt() const { return symbol->name == "deref"; }
-  bool isValueAt() const { return symbol->name == "value_int"; }
-  bool isArrayAt() const { return symbol->name == "value_arr"; }
-  bool isSelectorFor(std::string& algebraicSortName) const {
-    return symbol->isSelectorSymbol() && symbol->argSorts[0]->name == algebraicSortName; 
-  }
-  bool isConstMemoryArray() const { 
-    return (symbol->name).starts_with("value_const"); 
-  }
 
   std::shared_ptr<const Term> operator[](unsigned i) const {
     return subterms[i];

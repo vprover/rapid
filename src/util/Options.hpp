@@ -76,6 +76,7 @@ class Configuration {
         _variableDifferences("-varDiff", false),
         _axiomatiseToInt("-axToInt", false),
         _memSafetyMode("-memSafetyMode", false),
+        _explodeMemRegions("-explodeMemRegions", false),
         _lemmaPredicates("-lemmaPredicates", true),
         _integerIterations("-integerIterations", false),
         _inlineLemmas("-inlineLemmas", false),
@@ -91,6 +92,7 @@ class Configuration {
     registerOption(&_variableDifferences);
     registerOption(&_axiomatiseToInt);
     registerOption(&_memSafetyMode);
+    registerOption(&_explodeMemRegions);
     // uses lemma predicates for Rapid Vampire
     registerOption(&_lemmaPredicates);
 
@@ -126,6 +128,7 @@ class Configuration {
   bool variableDifferences() { return _variableDifferences.getValue(); }
   bool axiomatiseToInt() { return _axiomatiseToInt.getValue(); }
   bool memSafetyMode() { return _memSafetyMode.getValue(); }
+  bool explodeMemRegions() { return _explodeMemRegions.getValue(); }
 
   void setDontInline() { _inlineSemantics.setValue("off"); }
   bool lemmaPredicates() { return _lemmaPredicates.getValue(); }
@@ -146,6 +149,7 @@ class Configuration {
   BooleanOption _variableDifferences;
   BooleanOption _axiomatiseToInt;
   BooleanOption _memSafetyMode;
+  BooleanOption _explodeMemRegions;
   BooleanOption _lemmaPredicates;
   BooleanOption _integerIterations;
   BooleanOption _inlineLemmas;

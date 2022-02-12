@@ -43,6 +43,11 @@ class ExprType {
       return "Nat";
     }
   }
+
+  //size of a basic type is 1
+  virtual int size() const {
+    return 1;
+  }
   program::BasicType type() const { return bt; };
   bool isStructType() const { 
     return bt == BasicType::STRUCT;
@@ -130,7 +135,7 @@ class Expression {
 
   virtual std::string toString() const = 0;
 
-  virtual const std::shared_ptr<const ExprType> exprType() const {
+  virtual std::shared_ptr<const ExprType> exprType() const {
     return exprtype;
   }
 

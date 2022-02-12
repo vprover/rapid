@@ -51,13 +51,14 @@ void MemConjectureGenerator::createLeftHandsSides(
     std::vector<std::shared_ptr<const logic::Term>>& lhSides) {
 
   auto castedLhs = std::static_pointer_cast<const logic::FuncTerm>(lhs);
-
-  if (castedLhs->isValueAt() || castedLhs->isDerefAt()) {
+  
+  //TODO fix below, should not be true
+  if (true /*castedLhs->isValueAt()*/) {
     assert(castedLhs->subterms.size() == 2);
     auto location = castedLhs->subterms[1];
     if(location->type() == logic::Term::Type::FuncTerm){
     	auto castedLoc = std::static_pointer_cast<const logic::FuncTerm>(location);
-    	if(castedLoc->isDerefAt()){
+    	if(true /*castedLoc->isDerefAt()*/){
         lhSides.push_back(location);
         createLeftHandsSides(location, lhSides);
     	}
@@ -96,7 +97,7 @@ void MemConjectureGenerator::generateConjectures(
 
   // a[expr1] = expr2
   if (isIntArrayApp(lhs)) {
-    lhsTerm = toTerm(lhs, l2, trace, true);
+    lhsTerm = toTerm(lhs, l2, trace, nullptr, true);
   } else {
     lhsTerm = toTerm(lhs, l2, trace);    	
   }

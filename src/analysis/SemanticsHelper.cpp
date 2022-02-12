@@ -102,6 +102,27 @@ bool getDiff(programVar v, const program::Statement* s, int& diff,
   }
 }
 
+std::shared_ptr<const logic::Term> 
+rectifyVars(
+    std::shared_ptr<const logic::Term> mallocTerm,
+    std::vector<std::shared_ptr<const logic::Symbol>>& varSyms,
+    unsigned startingFrom)
+{
+  assert(mallocTerm->isMallocFun());
+  auto mtaf = std::static_pointer_cast<const logic::FuncTerm>(mallocTerm);
+  auto tpTerm = (*mtaf)[0];
+  auto tpaf = std::static_pointer_cast<const logic::FuncTerm>(tpTerm);
+  
+  std::vector<std::shared_ptr<const logic::Term>> vars;
+  for(unsigned i = startingFrom; i < tpaf->subterms.size() + startingFrom; i++){
+    auto rectifiedVar = natVarSymbol("it" + std::to_string(i));
+    varSyms.push_back(rectifiedVar);
+    vars.push_back(logic::Terms::var(rectifiedVar));
+  }
+  auto rectifiedTP = logic::Terms::func(tpaf->symbol,vars);
+  return logic::Theory::mallocFun(rectifiedTP);
+}
+
 #pragma mark - Methods for generating most used variables
 
 std::shared_ptr<const logic::LVariable> posVar() {
@@ -453,49 +474,18 @@ std::shared_ptr<const logic::Formula> getDensityDefinition(
 
 #pragma mark - Methods for generating sorts
 
-logic::Sort* toSort(
-    std::shared_ptr<const program::ExprType> type) {
-  assert(type != nullptr);
-
-  if(type->isIntType()){
-    return logic::Sorts::intSort();
-  }
-
-  if(type->isPointerType()){
-    return logic::Sorts::locSort();
-  }
-
-  if(type->isArrayType()){
-    return logic::Sorts::arraySort();
-  }
-
-  //TODO Nat sort
-
-  if(type->isStructType()){
-    std::vector<std::pair<std::string, std::string>> selectors;
-    auto structType = std::static_pointer_cast<const program::StructType>(type);
-
-    for (auto field : structType->getFields())
-    {
-      auto fieldType = field->vt;
-      logic::Sort* fieldSort = toSort(fieldType);
-      selectors.push_back(std::make_pair(field->name, fieldSort->name));
-    }
-    return logic::Sorts::structSort(structType->getName(), selectors);
-  }
-  assert(false);
-}
-
 #pragma mark - Methods for generating most used terms/predicates denoting program-expressions
 std::shared_ptr<const logic::Term> toTerm(
     std::shared_ptr<const program::Expression> expr,
-    std::shared_ptr<const logic::Term> timePoint,
-    std::shared_ptr<const logic::Term> trace, bool lhsOfAssignment) {
+    std::shared_ptr<const logic::Term> tp,    
+    std::shared_ptr<const logic::Term> trace, 
+    std::shared_ptr<const logic::Term> innerTp,
+    bool lhsOfAssignment) {
   assert(expr != nullptr);
-  assert(timePoint != nullptr);
+  assert(tp != nullptr);
 
   if (expr->isArithmeticExpr()) {
-    return toIntTerm(expr, timePoint, trace, lhsOfAssignment);
+    return toIntTerm(expr, tp, trace, innerTp, lhsOfAssignment);
   }
   
   if (expr->isPointerExpr() || expr->isStructExpr()) {
@@ -503,20 +493,21 @@ std::shared_ptr<const logic::Term> toTerm(
       case program::Type::VariableAccess: {
         auto castedExpr =
             std::static_pointer_cast<const program::VariableAccess>(expr);
-        return toTerm(castedExpr->var, timePoint, trace);
+        return toTerm(castedExpr->var, tp, trace);
       }
       case program::Type::PointerDeref: {
         auto castedExpr =
             std::static_pointer_cast<const program::DerefExpression>(expr);
-        return toTerm(castedExpr, timePoint, trace);
+        return toTerm(castedExpr, tp, trace, innerTp);
       }
       case program::Type::FieldAccess: {
         auto castedExpr =
             std::static_pointer_cast<const program::StructFieldAccess>(expr);
-        return toTerm(castedExpr, timePoint, trace);    
+        assert(innerTp != nullptr);
+        return logic::Theory::valueAt(tp, toTerm(castedExpr, innerTp, trace));    
       }      
       case program::Type::MallocFunc: {
-        return logic::Theory::mallocFun(timePoint);
+        return logic::Theory::mallocFun(tp);
       }
       case program::Type::NullPtr: {
         return logic::Theory::nullLoc();
@@ -528,7 +519,7 @@ std::shared_ptr<const logic::Term> toTerm(
 
   assert(false);
   // to silence compiler warnings, but we should never reach here
-  return toTerm(expr, timePoint, trace);
+  return toTerm(expr, tp, trace);
 }
 
 std::shared_ptr<const logic::Term> toTerm(
@@ -542,50 +533,69 @@ std::shared_ptr<const logic::Term> toTerm(
 
 std::shared_ptr<const logic::Term> toTerm(
     std::shared_ptr<const program::DerefExpression> e,
-    std::shared_ptr<const logic::Term> timePoint,
-    std::shared_ptr<const logic::Term> trace) {
+    std::shared_ptr<const logic::Term> tp,
+    std::shared_ptr<const logic::Term> trace,
+    std::shared_ptr<const logic::Term> innerTp) {
   std::shared_ptr<const logic::Term> exprToTerm;
   // the expression being dereferenced
   auto expr = e->expr;
-  auto exprSort = toSort(e->exprType());
-  if (expr->type() == program::Type::VariableAccess) {
-    exprToTerm = logic::Terms::locConstant(expr->toString());
-  } else {
-    auto castedExpr =
-        std::static_pointer_cast<const program::DerefExpression>(expr);
-    exprToTerm = toTerm(castedExpr, timePoint, trace);
-  }
-  auto term = logic::Theory::deref(timePoint, exprToTerm);
-  if(!expr->exprType()->isPointerToPointer()){
-    term = logic::Theory::valueAt(timePoint, term, exprSort->name, false);
-  }
-  return term;
+
+  //if (expr->type() == program::Type::VariableAccess) {
+  //  exprToTerm = toTerm(expr, tp, VariableAccess); //logic::Terms::locConstant(expr->toString());
+  //} else {
+  //  auto castedExpr =
+  //      std::static_pointer_cast<const program::DerefExpression>(expr);
+    if(innerTp != nullptr){
+      exprToTerm = toTerm(expr, innerTp, trace);
+    } else {
+      exprToTerm = toTerm(expr, tp, trace);      
+    }
+  //}
+ 
+  //auto term = logic::Theory::valueAt(timePoint, exprToTerm);
+  exprToTerm = logic::Theory::valueAt(tp, exprToTerm, false);
+  return exprToTerm;
 }
 
 std::shared_ptr<const logic::Term> toTerm(
     std::shared_ptr<const program::StructFieldAccess> e,
     std::shared_ptr<const logic::Term> timePoint,
     std::shared_ptr<const logic::Term> trace) {
+
   auto struc = e->getStruct();
   auto field = e->getField();
   bool structIsPointer = struc->isPointerExpr();
 
-  auto structTerm = toTerm(struc, timePoint, trace);
+  //TODO see if there is a nicer way than the horrid static cast below
+  auto structType = std::static_pointer_cast<const program::StructType>(
+    structIsPointer ?
+      struc->exprType()->getChild() :
+      struc->exprType());
+
+  auto offSet = structType->getFieldPos(field->name);
+
+  std::shared_ptr<const logic::Term> structTerm;
+  if(struc->type() == program::Type::VariableAccess) {
+    structTerm = logic::Terms::locConstant(struc->toString());
+  } else {
+    structTerm = toTerm(struc, timePoint, trace);    
+  }
+
   if(structIsPointer){
-    auto structSort = toSort(struc->exprType()->getChild());
-    structTerm = logic::Theory::valueAt(timePoint, structTerm, structSort->name, false);
-  }
-  auto selectorSymbol = logic::Signature::fetch(field->name);
-  auto selectorTerm = logic::Terms::func(selectorSymbol, {structTerm});
-
-  if(field->isPointer()){
-    return logic::Theory::deref(timePoint, selectorTerm);    
+    structTerm = logic::Theory::valueAt(timePoint, structTerm, false);
   }
 
-  logic::Sort* fieldSort = toSort(field->vt);
+  if(offSet > 0){
+    auto offSetTerm = logic::Theory::intConstant(offSet);
+    structTerm = logic::Theory::intAddition(structTerm, offSetTerm);
+  }
+  return structTerm;
+
   //TODO false since at the moment we don't allow const fields
   //Or so I think!
-  return logic::Theory::valueAt(timePoint, selectorTerm, fieldSort->name, false);  
+  //TODO, this should be pushed into caller. At the moment, the translation
+  // is not correct for example car.door.handle
+  //return logic::Theory::valueAt(timePoint, structTerm, false);  
 }
 
 std::shared_ptr<const logic::Term> toTerm(
@@ -605,22 +615,18 @@ std::shared_ptr<const logic::Term> toTerm(
     typ = logic::Symbol::SymbolType::ConstProgramVar;
   }
   
-  auto varAsConst = logic::Terms::func(var->name, {}, logic::Sorts::locSort(), false, typ);
-
-  if (var->isPointer()) {
-    return logic::Theory::deref(timePoint, varAsConst);
-  }
-
-  logic::Sort* varSort = toSort(var->vt);
-  return logic::Theory::valueAt(timePoint, varAsConst, varSort->name, var->isConstant);
+  auto varAsConst = logic::Terms::func(var->name, {}, logic::Sorts::intSort(), false, typ);
+  return logic::Theory::valueAt(timePoint, varAsConst, var->isConstant);
 }
 
 std::shared_ptr<const logic::Term> toIntTerm(
     std::shared_ptr<const program::Expression> expr,
-    std::shared_ptr<const logic::Term> timePoint,
-    std::shared_ptr<const logic::Term> trace, bool lhsOfAssignment) {
+    std::shared_ptr<const logic::Term> tp,    
+    std::shared_ptr<const logic::Term> trace, 
+    std::shared_ptr<const logic::Term> innerTp,     
+    bool lhsOfAssignment) {
   assert(expr != nullptr);
-  assert(timePoint != nullptr);
+  assert(tp != nullptr);
 
   switch (expr->type()) {
     case program::Type::IntegerConstant: {
@@ -631,58 +637,59 @@ std::shared_ptr<const logic::Term> toIntTerm(
     case program::Type::Addition: {
       auto castedExpr = std::static_pointer_cast<const program::Addition>(expr);
       return logic::Theory::intAddition(
-          toTerm(castedExpr->summand1, timePoint, trace),
-          toTerm(castedExpr->summand2, timePoint, trace));
+          toTerm(castedExpr->summand1, tp, trace, tp),
+          toTerm(castedExpr->summand2, tp, trace, tp));
     }
     case program::Type::Subtraction: {
       auto castedExpr =
           std::static_pointer_cast<const program::Subtraction>(expr);
       return logic::Theory::intSubtraction(
-          toTerm(castedExpr->child1, timePoint, trace),
-          toTerm(castedExpr->child2, timePoint, trace));
+          toTerm(castedExpr->child1, tp, trace, tp),
+          toTerm(castedExpr->child2, tp, trace, tp));
     }
     case program::Type::Modulo: {
       auto castedExpr = std::static_pointer_cast<const program::Modulo>(expr);
       return logic::Theory::intModulo(
-          toTerm(castedExpr->child1, timePoint, trace),
-          toTerm(castedExpr->child2, timePoint, trace));
+          toTerm(castedExpr->child1, tp, trace, tp),
+          toTerm(castedExpr->child2, tp, trace, tp));
     }
     case program::Type::Multiplication: {
       auto castedExpr =
           std::static_pointer_cast<const program::Multiplication>(expr);
       return logic::Theory::intMultiplication(
-          toTerm(castedExpr->factor1, timePoint, trace),
-          toTerm(castedExpr->factor2, timePoint, trace));
+          toTerm(castedExpr->factor1, tp, trace, tp),
+          toTerm(castedExpr->factor2, tp, trace, tp));
     }
     case program::Type::FieldAccess: {
       auto castedExpr =
           std::static_pointer_cast<const program::StructFieldAccess>(expr);
-      return toTerm(castedExpr, timePoint, trace);    
+      assert(innerTp != nullptr);
+      return logic::Theory::valueAt(tp, toTerm(castedExpr, innerTp, trace));    
     }
     case program::Type::VariableAccess: {
       auto castedExpr =
-          std::static_pointer_cast<const program::VariableAccess>(expr);
-      return toTerm(castedExpr->var, timePoint, trace);
+          std::static_pointer_cast<const program::VariableAccess>(expr);         
+      return toTerm(castedExpr->var, tp, trace);
     }
     case program::Type::IntArrayApplication: {
       auto castedExpr =
           std::static_pointer_cast<const program::IntArrayApplication>(expr);
       if (lhsOfAssignment) {
-        return toTerm(castedExpr->array, timePoint, trace);
+        return toTerm(castedExpr->array, tp, trace);
       } else {
-        return toTerm(castedExpr, timePoint, trace);
+        return toTerm(castedExpr, tp, trace);
       }
     }
     case program::Type::PointerDeref: {
       auto castedExpr =
           std::static_pointer_cast<const program::DerefExpression>(expr);
-      return toTerm(castedExpr, timePoint, trace);
+      return toTerm(castedExpr, tp, trace, innerTp);
     }
     default :
       assert(false);
   }
   // to silence compiler warnings, but we should never reach here
-  return toTerm(expr, timePoint, trace);
+  return toTerm(expr, tp, trace);
 }
 
 std::shared_ptr<const logic::Formula> toFormula(
@@ -811,16 +818,10 @@ std::shared_ptr<const logic::Formula> allVarEqual(
 
   auto locSymbol = locVarSymbol();
   auto loc = memLocVar();  
-  for (const auto& memArraySym : logic::Signature::memoryArraySymbols()) {
-    if (!memArraySym->isConstMemoryArray()) {
-      auto arrayAtTp1 = logic::Terms::func(memArraySym, {timePoint1, loc});
-      auto arrayAtTp2 = logic::Terms::func(memArraySym, {timePoint2, loc});
-      conjuncts.push_back(logic::Formulas::equality(arrayAtTp1, arrayAtTp2));
-    }
-  }
-  auto derefAtTp1 = logic::Theory::deref(timePoint1, loc);
-  auto derefAtTp2 = logic::Theory::deref(timePoint2, loc);
-  conjuncts.push_back(logic::Formulas::equality(derefAtTp1, derefAtTp2));
+  
+  auto valueAtTp1 = logic::Theory::valueAt(timePoint1, loc);
+  auto valueAtTp2 = logic::Theory::valueAt(timePoint2, loc);
+  conjuncts.push_back(logic::Formulas::equality(valueAtTp1, valueAtTp2));
 
   return logic::Formulas::universal({locSymbol},logic::Formulas::conjunction(conjuncts, label));
 }

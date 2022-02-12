@@ -60,6 +60,8 @@ class Semantics {
 
  private:
 
+  const int SMALL_STRUCT_SIZE = 5;
+
   const program::Program& program;
   const EndTimePointMap endTimePointMap;
   const std::unordered_map<
@@ -80,6 +82,12 @@ class Semantics {
   // timepoint for target symbols
   // TODO, I dont think these arrays are necessary 
   std::vector<std::shared_ptr<const logic::Term>> loopEndTimePoints;
+
+  std::vector<std::pair<std::shared_ptr<const logic::Term>, int>> mallocStatements;
+
+  std::shared_ptr<const logic::Formula> explode(
+      std::shared_ptr<const logic::Term> m1, int size1,
+      std::shared_ptr<const logic::Term> m2, int size2);
 
   std::shared_ptr<const logic::Formula> generateSemantics(
       const program::Statement* statement, SemanticsInliner& inliner,

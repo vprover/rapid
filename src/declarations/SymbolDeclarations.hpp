@@ -22,6 +22,9 @@ std::shared_ptr<const logic::Symbol> lastIterationSymbol(
 
 std::shared_ptr<const logic::Symbol> posVarSymbol();
 std::shared_ptr<const logic::Symbol> locVarSymbol();  // memory location
+std::shared_ptr<const logic::Symbol> locVarSymbol(std::string varName);  // memory location
+std::shared_ptr<const logic::Symbol> tpVarSymbol(std::string varName);
+std::shared_ptr<const logic::Symbol> natVarSymbol(std::string varName);
 
 std::shared_ptr<const logic::Symbol> intIteratorSymbol(
     const program::WhileStatement* whileStatement);
@@ -49,7 +52,6 @@ void declareSymbolsForProgramVar(const program::Variable* var);
 void declareSymbolsForTraces(unsigned numberOfTraces);
 void declareSymbolsForFunction(const program::Function* function,
                                unsigned numberOfTraces);
-void declareSymbolsForStructType(std::shared_ptr<const program::ExprType> type);
 // helper method for declareSymbolsForFunction
 void declareSymbolsForStatements(const program::Statement* statement,
                                  unsigned numberOfTraces);

@@ -724,7 +724,6 @@ struct_dec:
   {
     auto structType = std::shared_ptr<const program::ExprType>(new program::StructType($2, std::move($5))); 
     parsing_context.addStructType($2, structType);
-    declareSymbolsForStructType(structType);
     $$ = structType;    
   }
 ;

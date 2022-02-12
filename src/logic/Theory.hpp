@@ -68,18 +68,45 @@ class Theory {
   static std::shared_ptr<const FuncTerm> valueAt(
       std::shared_ptr<const Term> timePoint,
       std::shared_ptr<const Term> location,
-      std::string sortName,
-      bool  isConst);
-  static std::shared_ptr<const FuncTerm> deref(
-      std::shared_ptr<const Term> timePoint,
-      std::shared_ptr<const Term> location, unsigned level = 1);
+      bool isConst = false);
   static std::shared_ptr<const FuncTerm> mallocFun(
       std::shared_ptr<const Term> timePoint);
-  static std::shared_ptr<const Formula> frameAxiom(
+
+  static std::shared_ptr<const Formula> framePred(
       std::shared_ptr<const Term> location,
       std::shared_ptr<const Term> t1,
-      std::shared_ptr<const Term> t2);  
-  
+      std::shared_ptr<const Term> t2);
+  static std::shared_ptr<logic::Axiom> frameAxiom(
+      std::shared_ptr<const logic::Symbol> tpVarSym1,
+      std::shared_ptr<const logic::Symbol> tpVarSym2,
+      std::shared_ptr<const logic::Symbol> memLocVarSym);
+
+
+  //predicate that holds when two memory regions are 
+  //disjoint 
+  static std::shared_ptr<const Formula> disjoint1(
+      std::shared_ptr<const Term> loc1,
+      std::shared_ptr<const Term> size1,
+      std::shared_ptr<const Term> loc2,
+      std::shared_ptr<const Term> size2);       
+  //predicate that holds when a memory region and 
+  //a variable (memory region of size 1, are disjoint)
+  static std::shared_ptr<const Formula> disjoint2(
+      std::shared_ptr<const Term> loc1,
+      std::shared_ptr<const Term> loc2,
+      std::shared_ptr<const Term> size);       
+
+  static std::shared_ptr<logic::Axiom> disjoint1Axiom(
+      std::shared_ptr<const logic::Symbol> memLocVarSym1,
+      std::shared_ptr<const logic::Symbol> sizeSym1,      
+      std::shared_ptr<const logic::Symbol> memLocVarSym2,
+      std::shared_ptr<const logic::Symbol> sizeSym2);
+  static std::shared_ptr<logic::Axiom> disjoint2Axiom(
+      std::shared_ptr<const logic::Symbol> memLocVarSym1,
+      std::shared_ptr<const logic::Symbol> memLocVarSym2,
+      std::shared_ptr<const logic::Symbol> sizeSym);
+
+
   static std::shared_ptr<const FuncTerm> zero();
   static std::shared_ptr<const FuncTerm> succ(std::shared_ptr<const Term> t);
   static std::shared_ptr<const Formula> less(std::shared_ptr<const Term> t1,

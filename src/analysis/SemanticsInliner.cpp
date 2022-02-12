@@ -103,7 +103,8 @@ void SemanticsInliner::computePersistentTermsRec(
     case logic::Term::Type::FuncTerm: {
       auto castedTerm = std::static_pointer_cast<const logic::FuncTerm>(t);
 
-      if (castedTerm->isValueAt() || castedTerm->isArrayAt()) {
+      //TODO fix below
+      if (false /*castedTerm->isValueAt() || castedTerm->isArrayAt()*/) {
         auto timepointName = castedTerm->subterms[0]->symbol->name;
         auto programVarName = castedTerm->subterms[1]->symbol->name;
 

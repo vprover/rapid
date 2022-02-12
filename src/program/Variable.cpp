@@ -42,6 +42,20 @@ StructType::getField(std::string name) const {
   return std::shared_ptr<const program::Variable>();
 }
 
+int StructType::getFieldPos(std::string name) const {
+  int count = 0;
+  for(auto i = fields.begin(); i != fields.end(); ++i){
+    if((*i)->name == name){
+      return count;
+    } 
+    count++;
+  }
+  assert(false);
+  //to make compiler happy
+  return -1;
+}
+
+
 std::string StructType::toString() const {
   return name;
 }

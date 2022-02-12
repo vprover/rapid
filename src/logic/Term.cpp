@@ -134,8 +134,7 @@ std::shared_ptr<const LVariable> Terms::var(
 
 std::shared_ptr<const FuncTerm> Terms::locConstant(std::string name,
                                                    bool noDeclaration) {
-  std::vector<std::shared_ptr<const Term>> subterms;
-  return Terms::func(name, subterms, logic::Sorts::locSort(), noDeclaration);
+  return Terms::func(name, {}, logic::Sorts::intSort(), noDeclaration);
 }
 
 std::shared_ptr<const FuncTerm> Terms::arrayStore(
