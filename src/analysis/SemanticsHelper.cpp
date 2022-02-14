@@ -280,7 +280,7 @@ std::shared_ptr<const logic::Term> getDensityFormula(
 
   std::string direction = increasing ? "increasing" : "decreasing";
 
-  return logic::Terms::lemmaPredicate(
+  return logic::Formulas::lemmaPredicate(
       "Dense-" + direction + "-" + nameSuffix, freeVars);
 }
 
@@ -328,7 +328,7 @@ std::shared_ptr<const logic::Term> getDensityDefinition(
   // add density definition
   auto dense = getDensityFormula(freeVarSymbols, nameSuffix, increasing);
 
-  auto denseFormula = logic::Formulas::Universal(
+  auto denseFormula = logic::Formulas::universal(
       {itSymbol},
       logic::Formulas::implication(
           logic::Theory::natSub(it, n),

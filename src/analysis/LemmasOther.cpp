@@ -11,11 +11,7 @@
 namespace analysis {
 
 void AtLeastOneIterationLemmas::generateOutputFor(
-<<<<<<< HEAD
-    const program::WhileStatement* statement,
-=======
     program::WhileStatement* statement,
->>>>>>> main
     std::vector<std::shared_ptr<const logic::ProblemItem>>& items) {
   if (util::Configuration::instance().integerIterations()) {
     AtLeastOneIterationLemmas::generateOutputForInteger(statement, items);
@@ -39,15 +35,9 @@ void AtLeastOneIterationLemmas::generateOutputFor(
           enclosingIteratorsSymbols(statement),
           logic::Formulas::implication(
               util::Configuration::instance().inlineSemantics()
-<<<<<<< HEAD
-                  ? inlinedVarValues.toInlinedFormula(
-                        statement, statement->condition, lStartZero, trace)
-                  : toFormula(statement->condition, lStartZero, trace),
-=======
                   ? inlinedVarValues.toInlinedTerm(
                         statement, statement->condition, lStartZero, trace)
                   : toTerm(statement->condition, lStartZero, trace),
->>>>>>> main
               logic::Formulas::existential(
                   {itSymbol},
                   logic::Formulas::equality(logic::Theory::natSucc(it), n))));
@@ -59,13 +49,12 @@ void AtLeastOneIterationLemmas::generateOutputFor(
       items.push_back(std::make_shared<logic::Lemma>(
           bareLemma, name, logic::ProblemItem::Visibility::Implicit,
           fromItems));
-<<<<<<< HEAD
     }
   }
 }
 
 void AtLeastOneIterationLemmas::generateOutputForInteger(
-    const program::WhileStatement* statement,
+    program::WhileStatement* statement,
     std::vector<std::shared_ptr<const logic::ProblemItem>>& items) {
   auto itSymbol = iteratorSymbol(statement);
   auto it = iteratorTermForLoop(statement);
@@ -86,9 +75,9 @@ void AtLeastOneIterationLemmas::generateOutputForInteger(
         enclosingIteratorsSymbols(statement),
         logic::Formulas::implication(
             util::Configuration::instance().inlineSemantics()
-                ? inlinedVarValues.toInlinedFormula(
+                ? inlinedVarValues.toInlinedTerm(
                       statement, statement->condition, lStartZero, trace)
-                : toFormula(statement->condition, lStartZero, trace),
+                : toTerm(statement->condition, lStartZero, trace),
             logic::Formulas::existential(
                 {itSymbol},
                 logic::Formulas::conjunction(
@@ -106,52 +95,51 @@ void AtLeastOneIterationLemmas::generateOutputForInteger(
 }
 
 bool LoopConditionAnalysisLemmas::doesNotChangeInLoop(
-    std::unordered_set<std::shared_ptr<const program::Variable>>& assignedVars,
-    std::shared_ptr<const program::IntExpression> expr) {
-  switch (expr->type()) {
-    case program::IntExpression::Type::IntVariableAccess: {
+    std::unordered_set<std::shared_ptr<program::Variable>>& assignedVars,
+    std::shared_ptr<program::Expression> expr) {
+    if (typeid(*expr) == typeid(program::VariableAccess)) {
       auto var =
-          std::static_pointer_cast<const program::IntVariableAccess>(expr);
+          std::static_pointer_cast<program::VariableAccess>(expr);
       return assignedVars.find(var->var) == assignedVars.end();
-    }
-    case program::IntExpression::Type::Addition: {
+    } 
+    else if (typeid(*expr) == typeid(program::Addition)) {
       auto castedExpr = std::static_pointer_cast<const program::Addition>(expr);
-      return doesNotChangeInLoop(assignedVars, castedExpr->summand1) &&
-             doesNotChangeInLoop(assignedVars, castedExpr->summand2);
+      return doesNotChangeInLoop(assignedVars, castedExpr->child1) &&
+             doesNotChangeInLoop(assignedVars, castedExpr->child2);
     }
-    case program::IntExpression::Type::Subtraction: {
+    else if (typeid(*expr) == typeid(program::Subtraction)) {
       auto castedExpr =
           std::static_pointer_cast<const program::Subtraction>(expr);
       return doesNotChangeInLoop(assignedVars, castedExpr->child1) &&
              doesNotChangeInLoop(assignedVars, castedExpr->child2);
     }
-    case program::IntExpression::Type::Modulo: {
+    else if (typeid(*expr) == typeid(program::Modulo)) {
       auto castedExpr = std::static_pointer_cast<const program::Modulo>(expr);
       return doesNotChangeInLoop(assignedVars, castedExpr->child1) &&
              doesNotChangeInLoop(assignedVars, castedExpr->child2);
     }
-    case program::IntExpression::Type::Multiplication: {
+    else if (typeid(*expr) == typeid(program::Multiplication)) {
       auto castedExpr =
           std::static_pointer_cast<const program::Multiplication>(expr);
-      return doesNotChangeInLoop(assignedVars, castedExpr->factor1) &&
-             doesNotChangeInLoop(assignedVars, castedExpr->factor2);
+      return doesNotChangeInLoop(assignedVars, castedExpr->child1) &&
+             doesNotChangeInLoop(assignedVars, castedExpr->child2);
     }
-    case program::IntExpression::Type::ArithmeticConstant: {
+    else if (typeid(*expr) == typeid(program::ArithmeticConstant)) {
       return true;
     }
-    case program::IntExpression::Type::IntArrayApplication: {
+    else if (typeid(*expr) == typeid(program::ArrayApplication)) {
       auto var =
-          std::static_pointer_cast<const program::IntArrayApplication>(expr);
+          std::static_pointer_cast<program::ArrayApplication>(expr);
       return assignedVars.find(var->array) == assignedVars.end();
     }
-    default:
+    else {
       // should never happen
       return false;
-  }
+    }
 }
 
 void LoopConditionAnalysisLemmas::generateOutputFor(
-    const program::WhileStatement* statement,
+    program::WhileStatement* statement,
     std::vector<std::shared_ptr<const logic::ProblemItem>>& items) {
   auto assignedVars = AnalysisPreComputation::computeAssignedVars(statement);
 
@@ -176,7 +164,7 @@ void LoopConditionAnalysisLemmas::generateOutputFor(
       auto n = lastIterationTermForLoop(statement, numberOfTraces, trace);
       auto lStartN = timepointForLoopStatement(statement, n);
 
-      if (cond->type() == program::BoolExpression::Type::ArithmeticComparison) {
+      if (typeid(*cond) == typeid(program::ArithmeticComparison)) {
         auto condCasted =
             std::static_pointer_cast<const program::ArithmeticComparison>(cond);
         if (condCasted->kind != program::ArithmeticComparison::Kind::EQ) {
@@ -269,59 +257,11 @@ void LoopConditionAnalysisLemmas::generateOutputFor(
         }
       }
     }
-=======
-    }
-  }
-}
-
-void AtLeastOneIterationLemmas::generateOutputForInteger(
-    program::WhileStatement* statement,
-    std::vector<std::shared_ptr<const logic::ProblemItem>>& items) {
-  auto itSymbol = iteratorSymbol(statement);
-  auto it = iteratorTermForLoop(statement);
-
-  auto lStartZero =
-      timepointForLoopStatement(statement, logic::Theory::intZero());
-
-  for (unsigned traceNumber = 1; traceNumber < numberOfTraces + 1;
-       traceNumber++) {
-    auto trace = traceTerm(traceNumber);
-    auto n = lastIterationTermForLoop(statement, numberOfTraces, trace);
-
-    auto name = "atLeastOneIteration-" + statement->location +
-                (numberOfTraces > 1 ? ("-" + trace->symbol->name) : "");
-
-    // forall enclosingIterators. (Cond(l(0)) => exists it. s(it)=n)
-    auto bareLemma = logic::Formulas::universal(
-        enclosingIteratorsSymbols(statement),
-        logic::Formulas::implication(
-            util::Configuration::instance().inlineSemantics()
-                ? inlinedVarValues.toInlinedTerm(
-                      statement, statement->condition, lStartZero, trace)
-                : toTerm(statement->condition, lStartZero, trace),
-            logic::Formulas::existential(
-                {itSymbol},
-                logic::Formulas::conjunction(
-                    {logic::Theory::intLessEqual(logic::Theory::intZero(), it),
-                     logic::Formulas::equality(logic::Theory::intSucc(it),
-                                               n)}))));
-
-    std::vector<std::string> fromItems;
-    for (auto& item : programSemantics) {
-      fromItems.push_back(item->name);
-    }
-    items.push_back(std::make_shared<logic::Lemma>(
-        bareLemma, name, logic::ProblemItem::Visibility::Implicit, fromItems));
->>>>>>> main
   }
 }
 
 void OrderingSynchronizationLemmas::generateOutputFor(
-<<<<<<< HEAD
-    const program::WhileStatement* statement,
-=======
     program::WhileStatement* statement,
->>>>>>> main
     std::vector<std::shared_ptr<const logic::ProblemItem>>& items) {
   // assert(numberOfTraces > 1);
 

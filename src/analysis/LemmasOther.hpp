@@ -38,11 +38,7 @@ class AtLeastOneIterationLemmas
   AtLeastOneIterationLemmas(
       const program::Program& program,
       std::unordered_map<std::string,
-<<<<<<< HEAD
-                         std::vector<std::shared_ptr<const program::Variable>>>
-=======
                          std::vector<std::shared_ptr<program::Variable>>>
->>>>>>> main
           locationToActiveVars,
       unsigned numberOfTraces,
       std::vector<std::shared_ptr<const logic::Axiom>> programSemantics,
@@ -58,54 +54,45 @@ class AtLeastOneIterationLemmas
   InlinedVariableValues& inlinedVarValues;
 
   virtual void generateOutputFor(
-<<<<<<< HEAD
-      const program::WhileStatement* statement,
+      program::WhileStatement* statement,
       std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
   virtual void generateOutputForInteger(
-      const program::WhileStatement* statement,
+      program::WhileStatement* statement,
       std::vector<std::shared_ptr<const logic::ProblemItem>>& items);
 };
 
-class LoopConditionAnalysisLemmas
-    : public ProgramTraverser<
+class LoopConditionAnalysisLemmas: public ProgramTraverser<
           std::vector<std::shared_ptr<const logic::ProblemItem>>> {
  public:
   LoopConditionAnalysisLemmas(
-      const program::Program& program,
-      std::unordered_map<std::string,
-                         std::vector<std::shared_ptr<const program::Variable>>>
-          locationToActiveVars,
-      unsigned numberOfTraces,
-      std::vector<std::shared_ptr<const logic::Axiom>> programSemantics)
-      : ProgramTraverser<
-            std::vector<std::shared_ptr<const logic::ProblemItem>>>(
-            program, locationToActiveVars, numberOfTraces),
+    program::Program& program,
+    std::unordered_map<std::string,
+                    std::vector<std::shared_ptr<const program::Variable>>>
+                    locationToActiveVars,
+                    unsigned numberOfTraces,
+                    std::vector<std::shared_ptr<const logic::Axiom>> programSemantics): 
+                        ProgramTraverser<std::vector<std::shared_ptr<const logic::ProblemItem>>>(
+                            program, 
+                            locationToActiveVars, 
+                            numberOfTraces
+                        ),
         programSemantics(programSemantics) {}
 
  private:
   std::vector<std::shared_ptr<const logic::Axiom>> programSemantics;
 
   bool doesNotChangeInLoop(
-      std::unordered_set<std::shared_ptr<const program::Variable>>&
+      std::unordered_set<std::shared_ptr<program::Variable>>&
           assignedVars,
-      std::shared_ptr<const program::IntExpression> expr);
+      std::shared_ptr<program::Expression> expr);
 
   virtual void generateOutputFor(
-      const program::WhileStatement* statement,
+    program::WhileStatement* statement,
       std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
   // virtual void generateOutputForInteger(const program::WhileStatement*
   // statement, std::vector<std::shared_ptr<const logic::ProblemItem>>& items);
 };
 
-=======
-      program::WhileStatement* statement,
-      std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
-  virtual void generateOutputForInteger(
-      program::WhileStatement* statement,
-      std::vector<std::shared_ptr<const logic::ProblemItem>>& items);
-};
-
->>>>>>> main
 /*
  * LEMMA 2
  * TODO: not used currently, since implementation unsound
@@ -121,11 +108,7 @@ class OrderingSynchronizationLemmas
 
  private:
   virtual void generateOutputFor(
-<<<<<<< HEAD
-      const program::WhileStatement* statement,
-=======
       program::WhileStatement* statement,
->>>>>>> main
       std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;
 };
 }  // namespace analysis

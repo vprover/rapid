@@ -367,12 +367,18 @@ std::shared_ptr<const logic::Term> Semantics::generateSemantics(
         }
       }
     }
-              cachedArrayVarTimepoints.end() ||
-        if (!var->isConstant) {
-          mergeVars.insert(var);
-        }
-      }
+    
+    for (const auto &pair : cachedArrayVarTimepointsLeft) {	
+      auto var = pair.first;	
+      if (cachedArrayVarTimepoints.find(var) ==	
+              cachedArrayVarTimepoints.end() ||	
+          *cachedArrayVarTimepoints[var] != *pair.second) {	
+        if (!var->isConstant) {	
+          mergeVars.insert(var);	
+        }	
+      }	
     }
+      
     for (const auto &pair : cachedArrayVarTimepointsRight) {
       auto var = pair.first;
       if (cachedArrayVarTimepoints.find(var) ==
