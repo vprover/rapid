@@ -1,8 +1,8 @@
-// A Bison parser, made by GNU Bison 3.5.1.
+// A Bison parser, made by GNU Bison 3.4.2.
 
 // Skeleton interface for Bison LALR(1) parsers in C++
 
-// Copyright (C) 2002-2015, 2018-2020 Free Software Foundation, Inc.
+// Copyright (C) 2002-2015, 2018-2019 Free Software Foundation, Inc.
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -43,7 +43,7 @@
 
 #ifndef YY_YY_SRC_PARSER_WHILEPARSER_HPP_INCLUDED
 # define YY_YY_SRC_PARSER_WHILEPARSER_HPP_INCLUDED
-// "%code requires" blocks.
+// //                    "%code requires" blocks.
 #line 10 "WhileParser.yy"
 
 #include <cstring>
@@ -119,26 +119,28 @@ namespace parser {
 #endif
 
 #include <typeinfo>
-#ifndef YY_ASSERT
+#ifndef YYASSERT
 # include <cassert>
-# define YY_ASSERT assert
+# define YYASSERT assert
 #endif
 
 
-#ifndef YY_ATTRIBUTE_PURE
-# if defined __GNUC__ && 2 < __GNUC__ + (96 <= __GNUC_MINOR__)
-#  define YY_ATTRIBUTE_PURE __attribute__ ((__pure__))
+#ifndef YY_ATTRIBUTE
+# if (defined __GNUC__                                               \
+      && (2 < __GNUC__ || (__GNUC__ == 2 && 96 <= __GNUC_MINOR__)))  \
+     || defined __SUNPRO_C && 0x5110 <= __SUNPRO_C
+#  define YY_ATTRIBUTE(Spec) __attribute__(Spec)
 # else
-#  define YY_ATTRIBUTE_PURE
+#  define YY_ATTRIBUTE(Spec) /* empty */
 # endif
+#endif
+
+#ifndef YY_ATTRIBUTE_PURE
+# define YY_ATTRIBUTE_PURE   YY_ATTRIBUTE ((__pure__))
 #endif
 
 #ifndef YY_ATTRIBUTE_UNUSED
-# if defined __GNUC__ && 2 < __GNUC__ + (7 <= __GNUC_MINOR__)
-#  define YY_ATTRIBUTE_UNUSED __attribute__ ((__unused__))
-# else
-#  define YY_ATTRIBUTE_UNUSED
-# endif
+# define YY_ATTRIBUTE_UNUSED YY_ATTRIBUTE ((__unused__))
 #endif
 
 /* Suppress unused-variable warnings by "using" E.  */
@@ -150,11 +152,11 @@ namespace parser {
 
 #if defined __GNUC__ && ! defined __ICC && 407 <= __GNUC__ * 100 + __GNUC_MINOR__
 /* Suppress an incorrect diagnostic about yylval being uninitialized.  */
-# define YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN                            \
-    _Pragma ("GCC diagnostic push")                                     \
-    _Pragma ("GCC diagnostic ignored \"-Wuninitialized\"")              \
+# define YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN \
+    _Pragma ("GCC diagnostic push") \
+    _Pragma ("GCC diagnostic ignored \"-Wuninitialized\"")\
     _Pragma ("GCC diagnostic ignored \"-Wmaybe-uninitialized\"")
-# define YY_IGNORE_MAYBE_UNINITIALIZED_END      \
+# define YY_IGNORE_MAYBE_UNINITIALIZED_END \
     _Pragma ("GCC diagnostic pop")
 #else
 # define YY_INITIAL_VALUE(Value) Value
@@ -167,27 +169,6 @@ namespace parser {
 # define YY_INITIAL_VALUE(Value) /* Nothing. */
 #endif
 
-#if defined __cplusplus && defined __GNUC__ && ! defined __ICC && 6 <= __GNUC__
-# define YY_IGNORE_USELESS_CAST_BEGIN                          \
-    _Pragma ("GCC diagnostic push")                            \
-    _Pragma ("GCC diagnostic ignored \"-Wuseless-cast\"")
-# define YY_IGNORE_USELESS_CAST_END            \
-    _Pragma ("GCC diagnostic pop")
-#endif
-#ifndef YY_IGNORE_USELESS_CAST_BEGIN
-# define YY_IGNORE_USELESS_CAST_BEGIN
-# define YY_IGNORE_USELESS_CAST_END
-#endif
-
-# ifndef YY_CAST
-#  ifdef __cplusplus
-#   define YY_CAST(Type, Val) static_cast<Type> (Val)
-#   define YY_REINTERPRET_CAST(Type, Val) reinterpret_cast<Type> (Val)
-#  else
-#   define YY_CAST(Type, Val) ((Type) (Val))
-#   define YY_REINTERPRET_CAST(Type, Val) ((Type) (Val))
-#  endif
-# endif
 # ifndef YY_NULLPTR
 #  if defined __cplusplus
 #   if 201103L <= __cplusplus
@@ -207,7 +188,7 @@ namespace parser {
 
 #line 4 "WhileParser.yy"
 namespace parser {
-#line 211 "../src/parser/WhileParser.hpp"
+#line 192 "../src/parser/WhileParser.hpp"
 
 
 
@@ -239,14 +220,14 @@ namespace parser {
     semantic_type (YY_RVREF (T) t)
       : yytypeid_ (&typeid (T))
     {
-      YY_ASSERT (sizeof (T) <= size);
+      YYASSERT (sizeof (T) <= size);
       new (yyas_<T> ()) T (YY_MOVE (t));
     }
 
     /// Destruction, allowed only if empty.
     ~semantic_type () YY_NOEXCEPT
     {
-      YY_ASSERT (!yytypeid_);
+      YYASSERT (!yytypeid_);
     }
 
 # if 201103L <= YY_CPLUSPLUS
@@ -255,8 +236,8 @@ namespace parser {
     T&
     emplace (U&&... u)
     {
-      YY_ASSERT (!yytypeid_);
-      YY_ASSERT (sizeof (T) <= size);
+      YYASSERT (!yytypeid_);
+      YYASSERT (sizeof (T) <= size);
       yytypeid_ = & typeid (T);
       return *new (yyas_<T> ()) T (std::forward <U>(u)...);
     }
@@ -266,8 +247,8 @@ namespace parser {
     T&
     emplace ()
     {
-      YY_ASSERT (!yytypeid_);
-      YY_ASSERT (sizeof (T) <= size);
+      YYASSERT (!yytypeid_);
+      YYASSERT (sizeof (T) <= size);
       yytypeid_ = & typeid (T);
       return *new (yyas_<T> ()) T ();
     }
@@ -277,8 +258,8 @@ namespace parser {
     T&
     emplace (const T& t)
     {
-      YY_ASSERT (!yytypeid_);
-      YY_ASSERT (sizeof (T) <= size);
+      YYASSERT (!yytypeid_);
+      YYASSERT (sizeof (T) <= size);
       yytypeid_ = & typeid (T);
       return *new (yyas_<T> ()) T (t);
     }
@@ -307,9 +288,9 @@ namespace parser {
     T&
     as () YY_NOEXCEPT
     {
-      YY_ASSERT (yytypeid_);
-      YY_ASSERT (*yytypeid_ == typeid (T));
-      YY_ASSERT (sizeof (T) <= size);
+      YYASSERT (yytypeid_);
+      YYASSERT (*yytypeid_ == typeid (T));
+      YYASSERT (sizeof (T) <= size);
       return *yyas_<T> ();
     }
 
@@ -318,9 +299,9 @@ namespace parser {
     const T&
     as () const YY_NOEXCEPT
     {
-      YY_ASSERT (yytypeid_);
-      YY_ASSERT (*yytypeid_ == typeid (T));
-      YY_ASSERT (sizeof (T) <= size);
+      YYASSERT (yytypeid_);
+      YYASSERT (*yytypeid_ == typeid (T));
+      YYASSERT (sizeof (T) <= size);
       return *yyas_<T> ();
     }
 
@@ -336,8 +317,8 @@ namespace parser {
     void
     swap (self_type& that) YY_NOEXCEPT
     {
-      YY_ASSERT (yytypeid_);
-      YY_ASSERT (*yytypeid_ == *that.yytypeid_);
+      YYASSERT (yytypeid_);
+      YYASSERT (*yytypeid_ == *that.yytypeid_);
       std::swap (as<T> (), that.as<T> ());
     }
 
@@ -411,54 +392,54 @@ namespace parser {
     /// An auxiliary type to compute the largest semantic type.
     union union_type
     {
-      // smtlib_formula
-      char dummy1[sizeof ( std::shared_ptr<const logic::Formula> )];
-
       // smtlib_problemitem
-      char dummy2[sizeof ( std::shared_ptr<const logic::ProblemItem> )];
+      char dummy1[sizeof ( std::shared_ptr<const logic::ProblemItem> )];
 
       // smtlib_quantvar
-      char dummy3[sizeof ( std::shared_ptr<const logic::Symbol> )];
+      char dummy2[sizeof ( std::shared_ptr<const logic::Symbol> )];
 
       // smtlib_term
-      char dummy4[sizeof ( std::shared_ptr<const logic::Term> )];
-
-      // formula
-      char dummy5[sizeof ( std::shared_ptr<const program::BoolExpression> )];
-
-      // function
-      char dummy6[sizeof ( std::shared_ptr<const program::Function> )];
-
-      // if_else_statement
-      char dummy7[sizeof ( std::shared_ptr<const program::IfElse> )];
+      char dummy3[sizeof ( std::shared_ptr<const logic::Term> )];
 
       // assignment_statement
-      char dummy8[sizeof ( std::shared_ptr<const program::IntAssignment> )];
+      char dummy4[sizeof ( std::shared_ptr<program::Assignment> )];
+
+      // break_statement
+      char dummy5[sizeof ( std::shared_ptr<program::BreakStatement> )];
+
+      // continue_statement
+      char dummy6[sizeof ( std::shared_ptr<program::ContinueStatement> )];
 
       // expr
       // location
-      char dummy9[sizeof ( std::shared_ptr<const program::IntExpression> )];
+      char dummy7[sizeof ( std::shared_ptr<program::Expression> )];
+
+      // function
+      char dummy8[sizeof ( std::shared_ptr<program::Function> )];
+
+      // if_else_statement
+      char dummy9[sizeof ( std::shared_ptr<program::IfElseStatement> )];
 
       // program
-      char dummy10[sizeof ( std::shared_ptr<const program::Program> )];
+      char dummy10[sizeof ( std::shared_ptr<program::Program> )];
+
+      // return_statement
+      char dummy11[sizeof ( std::shared_ptr<program::ReturnStatement> )];
 
       // skip_statement
-      char dummy11[sizeof ( std::shared_ptr<const program::SkipStatement> )];
+      char dummy12[sizeof ( std::shared_ptr<program::SkipStatement> )];
 
       // statement
-      char dummy12[sizeof ( std::shared_ptr<const program::Statement> )];
+      char dummy13[sizeof ( std::shared_ptr<program::Statement> )];
 
       // var_definition_head
-      char dummy13[sizeof ( std::shared_ptr<const program::Variable> )];
+      char dummy14[sizeof ( std::shared_ptr<program::Variable> )];
 
       // while_statement
-      char dummy14[sizeof ( std::shared_ptr<const program::WhileStatement> )];
+      char dummy15[sizeof ( std::shared_ptr<program::WhileStatement> )];
 
       // function_list
-      char dummy15[sizeof ( std::vector< std::shared_ptr<const program::Function>> )];
-
-      // smtlib_formula_list
-      char dummy16[sizeof ( std::vector<std::shared_ptr<const logic::Formula>> )];
+      char dummy16[sizeof ( std::vector< std::shared_ptr<program::Function>> )];
 
       // smtlib_problemitem_list
       char dummy17[sizeof ( std::vector<std::shared_ptr<const logic::ProblemItem> > )];
@@ -470,10 +451,10 @@ namespace parser {
       char dummy19[sizeof ( std::vector<std::shared_ptr<const logic::Term>> )];
 
       // statement_list
-      char dummy20[sizeof ( std::vector<std::shared_ptr<const program::Statement>> )];
+      char dummy20[sizeof ( std::vector<std::shared_ptr<program::Statement>> )];
 
       // active_vars_dummy
-      char dummy21[sizeof ( std::vector<std::shared_ptr<const program::Variable>> )];
+      char dummy21[sizeof ( std::vector<std::shared_ptr<program::Variable>> )];
 
       // "number"
       char dummy22[sizeof (int)];
@@ -536,45 +517,48 @@ namespace parser {
         TOK_IF = 261,
         TOK_ELSE = 262,
         TOK_WHILE = 263,
-        TOK_SKIP = 264,
-        TOK_FUNC = 265,
-        TOK_LPAR = 266,
-        TOK_RPAR = 267,
-        TOK_LBRA = 268,
-        TOK_RBRA = 269,
-        TOK_LCUR = 270,
-        TOK_RCUR = 271,
-        TOK_SCOL = 272,
-        TOK_NOT = 273,
-        TOK_MUL = 274,
-        TOK_PLUS = 275,
-        TOK_MINUS = 276,
-        TOK_MOD = 277,
-        TOK_GT = 278,
-        TOK_GE = 279,
-        TOK_LT = 280,
-        TOK_LE = 281,
-        TOK_EQ = 282,
-        TOK_NEQ = 283,
-        TOK_OR = 284,
-        TOK_AND = 285,
-        TOK_ANDSMTLIB = 286,
-        TOK_ORSMTLIB = 287,
-        TOK_NOTSMTLIB = 288,
-        TOK_IMPSMTLIB = 289,
-        TOK_FORALLSMTLIB = 290,
-        TOK_EXISTSSMTLIB = 291,
-        TOK_AXIOM = 292,
-        TOK_LEMMA = 293,
-        TOK_CONJECTURE = 294,
-        TOK_CONST = 295,
-        TOK_SETTRACES = 296,
-        TOK_PROGRAM_ID = 297,
-        TOK_SMTLIB_ID = 298,
-        TOK_TYPE = 299,
-        TOK_INTEGER = 300,
-        TOK_DIV = 301,
-        TOK_UMINUS = 302
+        TOK_BREAK = 264,
+        TOK_CONTINUE = 265,
+        TOK_RETURN = 266,
+        TOK_SKIP = 267,
+        TOK_FUNC = 268,
+        TOK_LPAR = 269,
+        TOK_RPAR = 270,
+        TOK_LBRA = 271,
+        TOK_RBRA = 272,
+        TOK_LCUR = 273,
+        TOK_RCUR = 274,
+        TOK_SCOL = 275,
+        TOK_NOT = 276,
+        TOK_MUL = 277,
+        TOK_PLUS = 278,
+        TOK_MINUS = 279,
+        TOK_MOD = 280,
+        TOK_GT = 281,
+        TOK_GE = 282,
+        TOK_LT = 283,
+        TOK_LE = 284,
+        TOK_EQ = 285,
+        TOK_NEQ = 286,
+        TOK_OR = 287,
+        TOK_AND = 288,
+        TOK_ANDSMTLIB = 289,
+        TOK_ORSMTLIB = 290,
+        TOK_NOTSMTLIB = 291,
+        TOK_IMPSMTLIB = 292,
+        TOK_FORALLSMTLIB = 293,
+        TOK_EXISTSSMTLIB = 294,
+        TOK_AXIOM = 295,
+        TOK_LEMMA = 296,
+        TOK_CONJECTURE = 297,
+        TOK_CONST = 298,
+        TOK_SETTRACES = 299,
+        TOK_PROGRAM_ID = 300,
+        TOK_SMTLIB_ID = 301,
+        TOK_TYPE = 302,
+        TOK_INTEGER = 303,
+        TOK_DIV = 304,
+        TOK_UMINUS = 305
       };
     };
 
@@ -588,7 +572,7 @@ namespace parser {
     enum { empty_symbol = -2 };
 
     /// Internal symbol number for tokens (subsumed by symbol_number_type).
-    typedef signed char token_number_type;
+    typedef unsigned char token_number_type;
 
     /// A complete symbol.
     ///
@@ -625,19 +609,6 @@ namespace parser {
 #else
       basic_symbol (typename Base::kind_type t, const location_type& l)
         : Base (t)
-        , location (l)
-      {}
-#endif
-#if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t,  std::shared_ptr<const logic::Formula> && v, location_type&& l)
-        : Base (t)
-        , value (std::move (v))
-        , location (std::move (l))
-      {}
-#else
-      basic_symbol (typename Base::kind_type t, const  std::shared_ptr<const logic::Formula> & v, const location_type& l)
-        : Base (t)
-        , value (v)
         , location (l)
       {}
 #endif
@@ -681,156 +652,169 @@ namespace parser {
       {}
 #endif
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t,  std::shared_ptr<const program::BoolExpression> && v, location_type&& l)
+      basic_symbol (typename Base::kind_type t,  std::shared_ptr<program::Assignment> && v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const  std::shared_ptr<const program::BoolExpression> & v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const  std::shared_ptr<program::Assignment> & v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
       {}
 #endif
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t,  std::shared_ptr<const program::Function> && v, location_type&& l)
+      basic_symbol (typename Base::kind_type t,  std::shared_ptr<program::BreakStatement> && v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const  std::shared_ptr<const program::Function> & v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const  std::shared_ptr<program::BreakStatement> & v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
       {}
 #endif
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t,  std::shared_ptr<const program::IfElse> && v, location_type&& l)
+      basic_symbol (typename Base::kind_type t,  std::shared_ptr<program::ContinueStatement> && v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const  std::shared_ptr<const program::IfElse> & v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const  std::shared_ptr<program::ContinueStatement> & v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
       {}
 #endif
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t,  std::shared_ptr<const program::IntAssignment> && v, location_type&& l)
+      basic_symbol (typename Base::kind_type t,  std::shared_ptr<program::Expression> && v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const  std::shared_ptr<const program::IntAssignment> & v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const  std::shared_ptr<program::Expression> & v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
       {}
 #endif
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t,  std::shared_ptr<const program::IntExpression> && v, location_type&& l)
+      basic_symbol (typename Base::kind_type t,  std::shared_ptr<program::Function> && v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const  std::shared_ptr<const program::IntExpression> & v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const  std::shared_ptr<program::Function> & v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
       {}
 #endif
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t,  std::shared_ptr<const program::Program> && v, location_type&& l)
+      basic_symbol (typename Base::kind_type t,  std::shared_ptr<program::IfElseStatement> && v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const  std::shared_ptr<const program::Program> & v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const  std::shared_ptr<program::IfElseStatement> & v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
       {}
 #endif
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t,  std::shared_ptr<const program::SkipStatement> && v, location_type&& l)
+      basic_symbol (typename Base::kind_type t,  std::shared_ptr<program::Program> && v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const  std::shared_ptr<const program::SkipStatement> & v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const  std::shared_ptr<program::Program> & v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
       {}
 #endif
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t,  std::shared_ptr<const program::Statement> && v, location_type&& l)
+      basic_symbol (typename Base::kind_type t,  std::shared_ptr<program::ReturnStatement> && v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const  std::shared_ptr<const program::Statement> & v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const  std::shared_ptr<program::ReturnStatement> & v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
       {}
 #endif
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t,  std::shared_ptr<const program::Variable> && v, location_type&& l)
+      basic_symbol (typename Base::kind_type t,  std::shared_ptr<program::SkipStatement> && v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const  std::shared_ptr<const program::Variable> & v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const  std::shared_ptr<program::SkipStatement> & v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
       {}
 #endif
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t,  std::shared_ptr<const program::WhileStatement> && v, location_type&& l)
+      basic_symbol (typename Base::kind_type t,  std::shared_ptr<program::Statement> && v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const  std::shared_ptr<const program::WhileStatement> & v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const  std::shared_ptr<program::Statement> & v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
       {}
 #endif
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t,  std::vector< std::shared_ptr<const program::Function>> && v, location_type&& l)
+      basic_symbol (typename Base::kind_type t,  std::shared_ptr<program::Variable> && v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const  std::vector< std::shared_ptr<const program::Function>> & v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const  std::shared_ptr<program::Variable> & v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
       {}
 #endif
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t,  std::vector<std::shared_ptr<const logic::Formula>> && v, location_type&& l)
+      basic_symbol (typename Base::kind_type t,  std::shared_ptr<program::WhileStatement> && v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const  std::vector<std::shared_ptr<const logic::Formula>> & v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const  std::shared_ptr<program::WhileStatement> & v, const location_type& l)
+        : Base (t)
+        , value (v)
+        , location (l)
+      {}
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      basic_symbol (typename Base::kind_type t,  std::vector< std::shared_ptr<program::Function>> && v, location_type&& l)
+        : Base (t)
+        , value (std::move (v))
+        , location (std::move (l))
+      {}
+#else
+      basic_symbol (typename Base::kind_type t, const  std::vector< std::shared_ptr<program::Function>> & v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -876,26 +860,26 @@ namespace parser {
       {}
 #endif
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t,  std::vector<std::shared_ptr<const program::Statement>> && v, location_type&& l)
+      basic_symbol (typename Base::kind_type t,  std::vector<std::shared_ptr<program::Statement>> && v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const  std::vector<std::shared_ptr<const program::Statement>> & v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const  std::vector<std::shared_ptr<program::Statement>> & v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
       {}
 #endif
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t,  std::vector<std::shared_ptr<const program::Variable>> && v, location_type&& l)
+      basic_symbol (typename Base::kind_type t,  std::vector<std::shared_ptr<program::Variable>> && v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const  std::vector<std::shared_ptr<const program::Variable>> & v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const  std::vector<std::shared_ptr<program::Variable>> & v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -950,98 +934,98 @@ namespace parser {
         // Type destructor.
 switch (yytype)
     {
-      case 56: // smtlib_formula
-        value.template destroy<  std::shared_ptr<const logic::Formula>  > ();
-        break;
-
-      case 54: // smtlib_problemitem
+      case 57: // smtlib_problemitem
         value.template destroy<  std::shared_ptr<const logic::ProblemItem>  > ();
         break;
 
-      case 60: // smtlib_quantvar
+      case 63: // smtlib_quantvar
         value.template destroy<  std::shared_ptr<const logic::Symbol>  > ();
         break;
 
-      case 62: // smtlib_term
+      case 59: // smtlib_term
         value.template destroy<  std::shared_ptr<const logic::Term>  > ();
         break;
 
-      case 78: // formula
-        value.template destroy<  std::shared_ptr<const program::BoolExpression>  > ();
+      case 69: // assignment_statement
+        value.template destroy<  std::shared_ptr<program::Assignment>  > ();
         break;
 
-      case 64: // function
-        value.template destroy<  std::shared_ptr<const program::Function>  > ();
+      case 73: // break_statement
+        value.template destroy<  std::shared_ptr<program::BreakStatement>  > ();
         break;
 
-      case 69: // if_else_statement
-        value.template destroy<  std::shared_ptr<const program::IfElse>  > ();
+      case 74: // continue_statement
+        value.template destroy<  std::shared_ptr<program::ContinueStatement>  > ();
         break;
 
-      case 68: // assignment_statement
-        value.template destroy<  std::shared_ptr<const program::IntAssignment>  > ();
+      case 81: // expr
+      case 82: // location
+        value.template destroy<  std::shared_ptr<program::Expression>  > ();
         break;
 
-      case 79: // expr
-      case 80: // location
-        value.template destroy<  std::shared_ptr<const program::IntExpression>  > ();
+      case 65: // function
+        value.template destroy<  std::shared_ptr<program::Function>  > ();
         break;
 
-      case 52: // program
-        value.template destroy<  std::shared_ptr<const program::Program>  > ();
+      case 70: // if_else_statement
+        value.template destroy<  std::shared_ptr<program::IfElseStatement>  > ();
         break;
 
-      case 75: // skip_statement
-        value.template destroy<  std::shared_ptr<const program::SkipStatement>  > ();
+      case 55: // program
+        value.template destroy<  std::shared_ptr<program::Program>  > ();
         break;
 
-      case 67: // statement
-        value.template destroy<  std::shared_ptr<const program::Statement>  > ();
+      case 75: // return_statement
+        value.template destroy<  std::shared_ptr<program::ReturnStatement>  > ();
         break;
 
-      case 77: // var_definition_head
-        value.template destroy<  std::shared_ptr<const program::Variable>  > ();
+      case 76: // skip_statement
+        value.template destroy<  std::shared_ptr<program::SkipStatement>  > ();
         break;
 
-      case 73: // while_statement
-        value.template destroy<  std::shared_ptr<const program::WhileStatement>  > ();
+      case 68: // statement
+        value.template destroy<  std::shared_ptr<program::Statement>  > ();
         break;
 
-      case 63: // function_list
-        value.template destroy<  std::vector< std::shared_ptr<const program::Function>>  > ();
+      case 80: // var_definition_head
+        value.template destroy<  std::shared_ptr<program::Variable>  > ();
         break;
 
-      case 55: // smtlib_formula_list
-        value.template destroy<  std::vector<std::shared_ptr<const logic::Formula>>  > ();
+      case 71: // while_statement
+        value.template destroy<  std::shared_ptr<program::WhileStatement>  > ();
         break;
 
-      case 53: // smtlib_problemitem_list
+      case 64: // function_list
+        value.template destroy<  std::vector< std::shared_ptr<program::Function>>  > ();
+        break;
+
+      case 56: // smtlib_problemitem_list
         value.template destroy<  std::vector<std::shared_ptr<const logic::ProblemItem> >  > ();
         break;
 
-      case 59: // smtlib_quantvar_list
+      case 62: // smtlib_quantvar_list
         value.template destroy<  std::vector<std::shared_ptr<const logic::Symbol>>  > ();
         break;
 
-      case 61: // smtlib_term_list
+      case 58: // smtlib_term_list
         value.template destroy<  std::vector<std::shared_ptr<const logic::Term>>  > ();
         break;
 
-      case 66: // statement_list
-        value.template destroy<  std::vector<std::shared_ptr<const program::Statement>>  > ();
+      case 67: // statement_list
+        value.template destroy<  std::vector<std::shared_ptr<program::Statement>>  > ();
         break;
 
-      case 76: // active_vars_dummy
-        value.template destroy<  std::vector<std::shared_ptr<const program::Variable>>  > ();
+      case 77: // active_vars_dummy
+        value.template destroy<  std::vector<std::shared_ptr<program::Variable>>  > ();
         break;
 
-      case 45: // "number"
+      case 48: // "number"
         value.template destroy< int > ();
         break;
 
-      case 42: // "program identifier"
-      case 43: // "smtlib identifier"
-      case 44: // "type identifier"
+      case 45: // "program identifier"
+      case 46: // "smtlib identifier"
+      case 47: // "type identifier"
         value.template destroy< std::string > ();
         break;
 
@@ -1101,6 +1085,9 @@ switch (yytype)
       /// \a empty when empty.
       symbol_number_type type_get () const YY_NOEXCEPT;
 
+      /// The token.
+      token_type token () const YY_NOEXCEPT;
+
       /// The symbol type.
       /// \a empty_symbol when empty.
       /// An int, not token_number_type, to be able to store empty_symbol.
@@ -1121,45 +1108,45 @@ switch (yytype)
       symbol_type (int tok, location_type l)
         : super_type(token_type (tok), std::move (l))
       {
-        YY_ASSERT (tok == token::TOK_END || tok == token::TOK_TRUE || tok == token::TOK_FALSE || tok == token::TOK_ASSIGN || tok == token::TOK_IF || tok == token::TOK_ELSE || tok == token::TOK_WHILE || tok == token::TOK_SKIP || tok == token::TOK_FUNC || tok == token::TOK_LPAR || tok == token::TOK_RPAR || tok == token::TOK_LBRA || tok == token::TOK_RBRA || tok == token::TOK_LCUR || tok == token::TOK_RCUR || tok == token::TOK_SCOL || tok == token::TOK_NOT || tok == token::TOK_MUL || tok == token::TOK_PLUS || tok == token::TOK_MINUS || tok == token::TOK_MOD || tok == token::TOK_GT || tok == token::TOK_GE || tok == token::TOK_LT || tok == token::TOK_LE || tok == token::TOK_EQ || tok == token::TOK_NEQ || tok == token::TOK_OR || tok == token::TOK_AND || tok == token::TOK_ANDSMTLIB || tok == token::TOK_ORSMTLIB || tok == token::TOK_NOTSMTLIB || tok == token::TOK_IMPSMTLIB || tok == token::TOK_FORALLSMTLIB || tok == token::TOK_EXISTSSMTLIB || tok == token::TOK_AXIOM || tok == token::TOK_LEMMA || tok == token::TOK_CONJECTURE || tok == token::TOK_CONST || tok == token::TOK_SETTRACES || tok == token::TOK_DIV || tok == token::TOK_UMINUS);
+        YYASSERT (tok == token::TOK_END || tok == token::TOK_TRUE || tok == token::TOK_FALSE || tok == token::TOK_ASSIGN || tok == token::TOK_IF || tok == token::TOK_ELSE || tok == token::TOK_WHILE || tok == token::TOK_BREAK || tok == token::TOK_CONTINUE || tok == token::TOK_RETURN || tok == token::TOK_SKIP || tok == token::TOK_FUNC || tok == token::TOK_LPAR || tok == token::TOK_RPAR || tok == token::TOK_LBRA || tok == token::TOK_RBRA || tok == token::TOK_LCUR || tok == token::TOK_RCUR || tok == token::TOK_SCOL || tok == token::TOK_NOT || tok == token::TOK_MUL || tok == token::TOK_PLUS || tok == token::TOK_MINUS || tok == token::TOK_MOD || tok == token::TOK_GT || tok == token::TOK_GE || tok == token::TOK_LT || tok == token::TOK_LE || tok == token::TOK_EQ || tok == token::TOK_NEQ || tok == token::TOK_OR || tok == token::TOK_AND || tok == token::TOK_ANDSMTLIB || tok == token::TOK_ORSMTLIB || tok == token::TOK_NOTSMTLIB || tok == token::TOK_IMPSMTLIB || tok == token::TOK_FORALLSMTLIB || tok == token::TOK_EXISTSSMTLIB || tok == token::TOK_AXIOM || tok == token::TOK_LEMMA || tok == token::TOK_CONJECTURE || tok == token::TOK_CONST || tok == token::TOK_SETTRACES || tok == token::TOK_DIV || tok == token::TOK_UMINUS);
       }
 #else
       symbol_type (int tok, const location_type& l)
         : super_type(token_type (tok), l)
       {
-        YY_ASSERT (tok == token::TOK_END || tok == token::TOK_TRUE || tok == token::TOK_FALSE || tok == token::TOK_ASSIGN || tok == token::TOK_IF || tok == token::TOK_ELSE || tok == token::TOK_WHILE || tok == token::TOK_SKIP || tok == token::TOK_FUNC || tok == token::TOK_LPAR || tok == token::TOK_RPAR || tok == token::TOK_LBRA || tok == token::TOK_RBRA || tok == token::TOK_LCUR || tok == token::TOK_RCUR || tok == token::TOK_SCOL || tok == token::TOK_NOT || tok == token::TOK_MUL || tok == token::TOK_PLUS || tok == token::TOK_MINUS || tok == token::TOK_MOD || tok == token::TOK_GT || tok == token::TOK_GE || tok == token::TOK_LT || tok == token::TOK_LE || tok == token::TOK_EQ || tok == token::TOK_NEQ || tok == token::TOK_OR || tok == token::TOK_AND || tok == token::TOK_ANDSMTLIB || tok == token::TOK_ORSMTLIB || tok == token::TOK_NOTSMTLIB || tok == token::TOK_IMPSMTLIB || tok == token::TOK_FORALLSMTLIB || tok == token::TOK_EXISTSSMTLIB || tok == token::TOK_AXIOM || tok == token::TOK_LEMMA || tok == token::TOK_CONJECTURE || tok == token::TOK_CONST || tok == token::TOK_SETTRACES || tok == token::TOK_DIV || tok == token::TOK_UMINUS);
+        YYASSERT (tok == token::TOK_END || tok == token::TOK_TRUE || tok == token::TOK_FALSE || tok == token::TOK_ASSIGN || tok == token::TOK_IF || tok == token::TOK_ELSE || tok == token::TOK_WHILE || tok == token::TOK_BREAK || tok == token::TOK_CONTINUE || tok == token::TOK_RETURN || tok == token::TOK_SKIP || tok == token::TOK_FUNC || tok == token::TOK_LPAR || tok == token::TOK_RPAR || tok == token::TOK_LBRA || tok == token::TOK_RBRA || tok == token::TOK_LCUR || tok == token::TOK_RCUR || tok == token::TOK_SCOL || tok == token::TOK_NOT || tok == token::TOK_MUL || tok == token::TOK_PLUS || tok == token::TOK_MINUS || tok == token::TOK_MOD || tok == token::TOK_GT || tok == token::TOK_GE || tok == token::TOK_LT || tok == token::TOK_LE || tok == token::TOK_EQ || tok == token::TOK_NEQ || tok == token::TOK_OR || tok == token::TOK_AND || tok == token::TOK_ANDSMTLIB || tok == token::TOK_ORSMTLIB || tok == token::TOK_NOTSMTLIB || tok == token::TOK_IMPSMTLIB || tok == token::TOK_FORALLSMTLIB || tok == token::TOK_EXISTSSMTLIB || tok == token::TOK_AXIOM || tok == token::TOK_LEMMA || tok == token::TOK_CONJECTURE || tok == token::TOK_CONST || tok == token::TOK_SETTRACES || tok == token::TOK_DIV || tok == token::TOK_UMINUS);
       }
 #endif
 #if 201103L <= YY_CPLUSPLUS
       symbol_type (int tok, int v, location_type l)
         : super_type(token_type (tok), std::move (v), std::move (l))
       {
-        YY_ASSERT (tok == token::TOK_INTEGER);
+        YYASSERT (tok == token::TOK_INTEGER);
       }
 #else
       symbol_type (int tok, const int& v, const location_type& l)
         : super_type(token_type (tok), v, l)
       {
-        YY_ASSERT (tok == token::TOK_INTEGER);
+        YYASSERT (tok == token::TOK_INTEGER);
       }
 #endif
 #if 201103L <= YY_CPLUSPLUS
       symbol_type (int tok, std::string v, location_type l)
         : super_type(token_type (tok), std::move (v), std::move (l))
       {
-        YY_ASSERT (tok == token::TOK_PROGRAM_ID || tok == token::TOK_SMTLIB_ID || tok == token::TOK_TYPE);
+        YYASSERT (tok == token::TOK_PROGRAM_ID || tok == token::TOK_SMTLIB_ID || tok == token::TOK_TYPE);
       }
 #else
       symbol_type (int tok, const std::string& v, const location_type& l)
         : super_type(token_type (tok), v, l)
       {
-        YY_ASSERT (tok == token::TOK_PROGRAM_ID || tok == token::TOK_SMTLIB_ID || tok == token::TOK_TYPE);
+        YYASSERT (tok == token::TOK_PROGRAM_ID || tok == token::TOK_SMTLIB_ID || tok == token::TOK_TYPE);
       }
 #endif
     };
 
     /// Build a parser object.
-    WhileParser (parser::WhileParsingContext &context_yyarg);
+    WhileParser (parser::WhileParsingContext &parsing_context_yyarg);
     virtual ~WhileParser ();
 
     /// Parse.  An alias for parse ().
@@ -1296,6 +1283,51 @@ switch (yytype)
       make_WHILE (const location_type& l)
       {
         return symbol_type (token::TOK_WHILE, l);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_BREAK (location_type l)
+      {
+        return symbol_type (token::TOK_BREAK, std::move (l));
+      }
+#else
+      static
+      symbol_type
+      make_BREAK (const location_type& l)
+      {
+        return symbol_type (token::TOK_BREAK, l);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_CONTINUE (location_type l)
+      {
+        return symbol_type (token::TOK_CONTINUE, std::move (l));
+      }
+#else
+      static
+      symbol_type
+      make_CONTINUE (const location_type& l)
+      {
+        return symbol_type (token::TOK_CONTINUE, l);
+      }
+#endif
+#if 201103L <= YY_CPLUSPLUS
+      static
+      symbol_type
+      make_RETURN (location_type l)
+      {
+        return symbol_type (token::TOK_RETURN, std::move (l));
+      }
+#else
+      static
+      symbol_type
+      make_RETURN (const location_type& l)
+      {
+        return symbol_type (token::TOK_RETURN, l);
       }
 #endif
 #if 201103L <= YY_CPLUSPLUS
@@ -1890,8 +1922,8 @@ switch (yytype)
     WhileParser (const WhileParser&);
     WhileParser& operator= (const WhileParser&);
 
-    /// Stored state numbers (used for stacks).
-    typedef unsigned char state_type;
+    /// State numbers.
+    typedef int state_type;
 
     /// Generate an error message.
     /// \param yystate   the state where the error occurred.
@@ -1902,7 +1934,7 @@ switch (yytype)
     /// Compute post-reduction state.
     /// \param yystate   the current state
     /// \param yysym     the nonterminal to push on the stack
-    static state_type yy_lr_goto_state_ (state_type yystate, int yysym);
+    state_type yy_lr_goto_state_ (state_type yystate, int yysym);
 
     /// Whether the given \c yypact_ value indicates a defaulted state.
     /// \param yyvalue   the value to check
@@ -1916,42 +1948,40 @@ switch (yytype)
     static const signed char yytable_ninf_;
 
     /// Convert a scanner token number \a t to a symbol number.
-    /// In theory \a t should be a token_type, but character literals
-    /// are valid, yet not members of the token_type enum.
-    static token_number_type yytranslate_ (int t);
+    static token_number_type yytranslate_ (token_type t);
 
     // Tables.
-    // YYPACT[STATE-NUM] -- Index in YYTABLE of the portion describing
-    // STATE-NUM.
-    static const short yypact_[];
+  // YYPACT[STATE-NUM] -- Index in YYTABLE of the portion describing
+  // STATE-NUM.
+  static const short yypact_[];
 
-    // YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
-    // Performed when YYTABLE does not specify something else to do.  Zero
-    // means the default is an error.
-    static const signed char yydefact_[];
+  // YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
+  // Performed when YYTABLE does not specify something else to do.  Zero
+  // means the default is an error.
+  static const unsigned char yydefact_[];
 
-    // YYPGOTO[NTERM-NUM].
-    static const short yypgoto_[];
+  // YYPGOTO[NTERM-NUM].
+  static const short yypgoto_[];
 
-    // YYDEFGOTO[NTERM-NUM].
-    static const short yydefgoto_[];
+  // YYDEFGOTO[NTERM-NUM].
+  static const short yydefgoto_[];
 
-    // YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
-    // positive, shift that token.  If negative, reduce the rule whose
-    // number is the opposite.  If YYTABLE_NINF, syntax error.
-    static const unsigned char yytable_[];
+  // YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
+  // positive, shift that token.  If negative, reduce the rule whose
+  // number is the opposite.  If YYTABLE_NINF, syntax error.
+  static const unsigned char yytable_[];
 
-    static const short yycheck_[];
+  static const short yycheck_[];
 
-    // YYSTOS[STATE-NUM] -- The (internal number of the) accessing
-    // symbol of state STATE-NUM.
-    static const signed char yystos_[];
+  // YYSTOS[STATE-NUM] -- The (internal number of the) accessing
+  // symbol of state STATE-NUM.
+  static const unsigned char yystos_[];
 
-    // YYR1[YYN] -- Symbol number of symbol that rule YYN derives.
-    static const signed char yyr1_[];
+  // YYR1[YYN] -- Symbol number of symbol that rule YYN derives.
+  static const unsigned char yyr1_[];
 
-    // YYR2[YYN] -- Number of symbols on the right hand side of rule YYN.
-    static const signed char yyr2_[];
+  // YYR2[YYN] -- Number of symbols on the right hand side of rule YYN.
+  static const unsigned char yyr2_[];
 
 
     /// Convert the symbol name \a n to a form suitable for a diagnostic.
@@ -1961,8 +1991,8 @@ switch (yytype)
     /// For a symbol, its name in clear.
     static const char* const yytname_[];
 #if YYDEBUG
-    // YYRLINE[YYN] -- Source line where rule number YYN was defined.
-    static const short yyrline_[];
+  // YYRLINE[YYN] -- Source line where rule number YYN was defined.
+  static const unsigned short yyrline_[];
     /// Report on the debug stream that the rule \a r is going to be reduced.
     virtual void yy_reduce_print_ (int r);
     /// Print the state stack on the debug stream.
@@ -2014,8 +2044,7 @@ switch (yytype)
       symbol_number_type type_get () const YY_NOEXCEPT;
 
       /// The state number used to denote an empty symbol.
-      /// We use the initial state, as it does not have a value.
-      enum { empty_state = 0 };
+      enum { empty_state = -1 };
 
       /// The state.
       /// \a empty when empty.
@@ -2037,10 +2066,6 @@ switch (yytype)
       /// Assignment, needed by push_back by some old implementations.
       /// Moves the contents of that.
       stack_symbol_type& operator= (stack_symbol_type& that);
-
-      /// Assignment, needed by push_back by other implementations.
-      /// Needed by some other old implementations.
-      stack_symbol_type& operator= (const stack_symbol_type& that);
 #endif
     };
 
@@ -2053,7 +2078,6 @@ switch (yytype)
       typedef typename S::reverse_iterator iterator;
       typedef typename S::const_reverse_iterator const_iterator;
       typedef typename S::size_type size_type;
-      typedef typename std::ptrdiff_t index_type;
 
       stack (size_type n = 200)
         : seq_ (n)
@@ -2062,19 +2086,37 @@ switch (yytype)
       /// Random access.
       ///
       /// Index 0 returns the topmost element.
-      const T&
-      operator[] (index_type i) const
+      T&
+      operator[] (size_type i)
       {
-        return seq_[size_type (size () - 1 - i)];
+        return seq_[size () - 1 - i];
       }
 
       /// Random access.
       ///
       /// Index 0 returns the topmost element.
       T&
-      operator[] (index_type i)
+      operator[] (int i)
       {
-        return seq_[size_type (size () - 1 - i)];
+        return operator[] (size_type (i));
+      }
+
+      /// Random access.
+      ///
+      /// Index 0 returns the topmost element.
+      const T&
+      operator[] (size_type i) const
+      {
+        return seq_[size () - 1 - i];
+      }
+
+      /// Random access.
+      ///
+      /// Index 0 returns the topmost element.
+      const T&
+      operator[] (int i) const
+      {
+        return operator[] (size_type (i));
       }
 
       /// Steal the contents of \a t.
@@ -2089,7 +2131,7 @@ switch (yytype)
 
       /// Pop elements from the stack.
       void
-      pop (std::ptrdiff_t n = 1) YY_NOEXCEPT
+      pop (int n = 1) YY_NOEXCEPT
       {
         for (; 0 < n; --n)
           seq_.pop_back ();
@@ -2103,16 +2145,10 @@ switch (yytype)
       }
 
       /// Number of elements on the stack.
-      index_type
+      size_type
       size () const YY_NOEXCEPT
       {
-        return index_type (seq_.size ());
-      }
-
-      std::ptrdiff_t
-      ssize () const YY_NOEXCEPT
-      {
-        return std::ptrdiff_t (size ());
+        return seq_.size ();
       }
 
       /// Iterator on top of the stack (going downwards).
@@ -2133,20 +2169,20 @@ switch (yytype)
       class slice
       {
       public:
-        slice (const stack& stack, index_type range)
+        slice (const stack& stack, int range)
           : stack_ (stack)
           , range_ (range)
         {}
 
         const T&
-        operator[] (index_type i) const
+        operator[] (int i) const
         {
           return stack_[range_ - i];
         }
 
       private:
         const stack& stack_;
-        index_type range_;
+        int range_;
       };
 
     private:
@@ -2181,28 +2217,26 @@ switch (yytype)
     /// Pop \a n symbols from the stack.
     void yypop_ (int n = 1);
 
-    /// Some specific tokens.
-    static const token_number_type yy_error_token_ = 1;
-    static const token_number_type yy_undef_token_ = 2;
-
     /// Constants.
     enum
     {
       yyeof_ = 0,
-      yylast_ = 246,     ///< Last index in yytable_.
-      yynnts_ = 33,  ///< Number of nonterminal symbols.
+      yylast_ = 347,     ///< Last index in yytable_.
+      yynnts_ = 32,  ///< Number of nonterminal symbols.
       yyfinal_ = 5, ///< Termination state number.
-      yyntokens_ = 48  ///< Number of tokens.
+      yyterror_ = 1,
+      yyerrcode_ = 256,
+      yyntokens_ = 51  ///< Number of tokens.
     };
 
 
     // User arguments.
-    parser::WhileParsingContext &context;
+    parser::WhileParsingContext &parsing_context;
   };
 
   inline
   WhileParser::token_number_type
-  WhileParser::yytranslate_ (int t)
+  WhileParser::yytranslate_ (token_type t)
   {
     // YYTRANSLATE[TOKEN-NUM] -- Symbol number corresponding to
     // TOKEN-NUM as returned by yylex.
@@ -2240,16 +2274,17 @@ switch (yytype)
       15,    16,    17,    18,    19,    20,    21,    22,    23,    24,
       25,    26,    27,    28,    29,    30,    31,    32,    33,    34,
       35,    36,    37,    38,    39,    40,    41,    42,    43,    44,
-      45,    46,    47
+      45,    46,    47,    48,    49,    50
     };
-    const int user_token_number_max_ = 302;
+    const unsigned user_token_number_max_ = 305;
+    const token_number_type undef_token_ = 2;
 
-    if (t <= 0)
+    if (static_cast<int> (t) <= yyeof_)
       return yyeof_;
-    else if (t <= user_token_number_max_)
+    else if (static_cast<unsigned> (t) <= user_token_number_max_)
       return translate_table[t];
     else
-      return yy_undef_token_;
+      return undef_token_;
   }
 
   // basic_symbol.
@@ -2262,98 +2297,98 @@ switch (yytype)
   {
     switch (this->type_get ())
     {
-      case 56: // smtlib_formula
-        value.move<  std::shared_ptr<const logic::Formula>  > (std::move (that.value));
-        break;
-
-      case 54: // smtlib_problemitem
+      case 57: // smtlib_problemitem
         value.move<  std::shared_ptr<const logic::ProblemItem>  > (std::move (that.value));
         break;
 
-      case 60: // smtlib_quantvar
+      case 63: // smtlib_quantvar
         value.move<  std::shared_ptr<const logic::Symbol>  > (std::move (that.value));
         break;
 
-      case 62: // smtlib_term
+      case 59: // smtlib_term
         value.move<  std::shared_ptr<const logic::Term>  > (std::move (that.value));
         break;
 
-      case 78: // formula
-        value.move<  std::shared_ptr<const program::BoolExpression>  > (std::move (that.value));
+      case 69: // assignment_statement
+        value.move<  std::shared_ptr<program::Assignment>  > (std::move (that.value));
         break;
 
-      case 64: // function
-        value.move<  std::shared_ptr<const program::Function>  > (std::move (that.value));
+      case 73: // break_statement
+        value.move<  std::shared_ptr<program::BreakStatement>  > (std::move (that.value));
         break;
 
-      case 69: // if_else_statement
-        value.move<  std::shared_ptr<const program::IfElse>  > (std::move (that.value));
+      case 74: // continue_statement
+        value.move<  std::shared_ptr<program::ContinueStatement>  > (std::move (that.value));
         break;
 
-      case 68: // assignment_statement
-        value.move<  std::shared_ptr<const program::IntAssignment>  > (std::move (that.value));
+      case 81: // expr
+      case 82: // location
+        value.move<  std::shared_ptr<program::Expression>  > (std::move (that.value));
         break;
 
-      case 79: // expr
-      case 80: // location
-        value.move<  std::shared_ptr<const program::IntExpression>  > (std::move (that.value));
+      case 65: // function
+        value.move<  std::shared_ptr<program::Function>  > (std::move (that.value));
         break;
 
-      case 52: // program
-        value.move<  std::shared_ptr<const program::Program>  > (std::move (that.value));
+      case 70: // if_else_statement
+        value.move<  std::shared_ptr<program::IfElseStatement>  > (std::move (that.value));
         break;
 
-      case 75: // skip_statement
-        value.move<  std::shared_ptr<const program::SkipStatement>  > (std::move (that.value));
+      case 55: // program
+        value.move<  std::shared_ptr<program::Program>  > (std::move (that.value));
         break;
 
-      case 67: // statement
-        value.move<  std::shared_ptr<const program::Statement>  > (std::move (that.value));
+      case 75: // return_statement
+        value.move<  std::shared_ptr<program::ReturnStatement>  > (std::move (that.value));
         break;
 
-      case 77: // var_definition_head
-        value.move<  std::shared_ptr<const program::Variable>  > (std::move (that.value));
+      case 76: // skip_statement
+        value.move<  std::shared_ptr<program::SkipStatement>  > (std::move (that.value));
         break;
 
-      case 73: // while_statement
-        value.move<  std::shared_ptr<const program::WhileStatement>  > (std::move (that.value));
+      case 68: // statement
+        value.move<  std::shared_ptr<program::Statement>  > (std::move (that.value));
         break;
 
-      case 63: // function_list
-        value.move<  std::vector< std::shared_ptr<const program::Function>>  > (std::move (that.value));
+      case 80: // var_definition_head
+        value.move<  std::shared_ptr<program::Variable>  > (std::move (that.value));
         break;
 
-      case 55: // smtlib_formula_list
-        value.move<  std::vector<std::shared_ptr<const logic::Formula>>  > (std::move (that.value));
+      case 71: // while_statement
+        value.move<  std::shared_ptr<program::WhileStatement>  > (std::move (that.value));
         break;
 
-      case 53: // smtlib_problemitem_list
+      case 64: // function_list
+        value.move<  std::vector< std::shared_ptr<program::Function>>  > (std::move (that.value));
+        break;
+
+      case 56: // smtlib_problemitem_list
         value.move<  std::vector<std::shared_ptr<const logic::ProblemItem> >  > (std::move (that.value));
         break;
 
-      case 59: // smtlib_quantvar_list
+      case 62: // smtlib_quantvar_list
         value.move<  std::vector<std::shared_ptr<const logic::Symbol>>  > (std::move (that.value));
         break;
 
-      case 61: // smtlib_term_list
+      case 58: // smtlib_term_list
         value.move<  std::vector<std::shared_ptr<const logic::Term>>  > (std::move (that.value));
         break;
 
-      case 66: // statement_list
-        value.move<  std::vector<std::shared_ptr<const program::Statement>>  > (std::move (that.value));
+      case 67: // statement_list
+        value.move<  std::vector<std::shared_ptr<program::Statement>>  > (std::move (that.value));
         break;
 
-      case 76: // active_vars_dummy
-        value.move<  std::vector<std::shared_ptr<const program::Variable>>  > (std::move (that.value));
+      case 77: // active_vars_dummy
+        value.move<  std::vector<std::shared_ptr<program::Variable>>  > (std::move (that.value));
         break;
 
-      case 45: // "number"
+      case 48: // "number"
         value.move< int > (std::move (that.value));
         break;
 
-      case 42: // "program identifier"
-      case 43: // "smtlib identifier"
-      case 44: // "type identifier"
+      case 45: // "program identifier"
+      case 46: // "smtlib identifier"
+      case 47: // "type identifier"
         value.move< std::string > (std::move (that.value));
         break;
 
@@ -2372,98 +2407,98 @@ switch (yytype)
   {
     switch (this->type_get ())
     {
-      case 56: // smtlib_formula
-        value.copy<  std::shared_ptr<const logic::Formula>  > (YY_MOVE (that.value));
-        break;
-
-      case 54: // smtlib_problemitem
+      case 57: // smtlib_problemitem
         value.copy<  std::shared_ptr<const logic::ProblemItem>  > (YY_MOVE (that.value));
         break;
 
-      case 60: // smtlib_quantvar
+      case 63: // smtlib_quantvar
         value.copy<  std::shared_ptr<const logic::Symbol>  > (YY_MOVE (that.value));
         break;
 
-      case 62: // smtlib_term
+      case 59: // smtlib_term
         value.copy<  std::shared_ptr<const logic::Term>  > (YY_MOVE (that.value));
         break;
 
-      case 78: // formula
-        value.copy<  std::shared_ptr<const program::BoolExpression>  > (YY_MOVE (that.value));
+      case 69: // assignment_statement
+        value.copy<  std::shared_ptr<program::Assignment>  > (YY_MOVE (that.value));
         break;
 
-      case 64: // function
-        value.copy<  std::shared_ptr<const program::Function>  > (YY_MOVE (that.value));
+      case 73: // break_statement
+        value.copy<  std::shared_ptr<program::BreakStatement>  > (YY_MOVE (that.value));
         break;
 
-      case 69: // if_else_statement
-        value.copy<  std::shared_ptr<const program::IfElse>  > (YY_MOVE (that.value));
+      case 74: // continue_statement
+        value.copy<  std::shared_ptr<program::ContinueStatement>  > (YY_MOVE (that.value));
         break;
 
-      case 68: // assignment_statement
-        value.copy<  std::shared_ptr<const program::IntAssignment>  > (YY_MOVE (that.value));
+      case 81: // expr
+      case 82: // location
+        value.copy<  std::shared_ptr<program::Expression>  > (YY_MOVE (that.value));
         break;
 
-      case 79: // expr
-      case 80: // location
-        value.copy<  std::shared_ptr<const program::IntExpression>  > (YY_MOVE (that.value));
+      case 65: // function
+        value.copy<  std::shared_ptr<program::Function>  > (YY_MOVE (that.value));
         break;
 
-      case 52: // program
-        value.copy<  std::shared_ptr<const program::Program>  > (YY_MOVE (that.value));
+      case 70: // if_else_statement
+        value.copy<  std::shared_ptr<program::IfElseStatement>  > (YY_MOVE (that.value));
         break;
 
-      case 75: // skip_statement
-        value.copy<  std::shared_ptr<const program::SkipStatement>  > (YY_MOVE (that.value));
+      case 55: // program
+        value.copy<  std::shared_ptr<program::Program>  > (YY_MOVE (that.value));
         break;
 
-      case 67: // statement
-        value.copy<  std::shared_ptr<const program::Statement>  > (YY_MOVE (that.value));
+      case 75: // return_statement
+        value.copy<  std::shared_ptr<program::ReturnStatement>  > (YY_MOVE (that.value));
         break;
 
-      case 77: // var_definition_head
-        value.copy<  std::shared_ptr<const program::Variable>  > (YY_MOVE (that.value));
+      case 76: // skip_statement
+        value.copy<  std::shared_ptr<program::SkipStatement>  > (YY_MOVE (that.value));
         break;
 
-      case 73: // while_statement
-        value.copy<  std::shared_ptr<const program::WhileStatement>  > (YY_MOVE (that.value));
+      case 68: // statement
+        value.copy<  std::shared_ptr<program::Statement>  > (YY_MOVE (that.value));
         break;
 
-      case 63: // function_list
-        value.copy<  std::vector< std::shared_ptr<const program::Function>>  > (YY_MOVE (that.value));
+      case 80: // var_definition_head
+        value.copy<  std::shared_ptr<program::Variable>  > (YY_MOVE (that.value));
         break;
 
-      case 55: // smtlib_formula_list
-        value.copy<  std::vector<std::shared_ptr<const logic::Formula>>  > (YY_MOVE (that.value));
+      case 71: // while_statement
+        value.copy<  std::shared_ptr<program::WhileStatement>  > (YY_MOVE (that.value));
         break;
 
-      case 53: // smtlib_problemitem_list
+      case 64: // function_list
+        value.copy<  std::vector< std::shared_ptr<program::Function>>  > (YY_MOVE (that.value));
+        break;
+
+      case 56: // smtlib_problemitem_list
         value.copy<  std::vector<std::shared_ptr<const logic::ProblemItem> >  > (YY_MOVE (that.value));
         break;
 
-      case 59: // smtlib_quantvar_list
+      case 62: // smtlib_quantvar_list
         value.copy<  std::vector<std::shared_ptr<const logic::Symbol>>  > (YY_MOVE (that.value));
         break;
 
-      case 61: // smtlib_term_list
+      case 58: // smtlib_term_list
         value.copy<  std::vector<std::shared_ptr<const logic::Term>>  > (YY_MOVE (that.value));
         break;
 
-      case 66: // statement_list
-        value.copy<  std::vector<std::shared_ptr<const program::Statement>>  > (YY_MOVE (that.value));
+      case 67: // statement_list
+        value.copy<  std::vector<std::shared_ptr<program::Statement>>  > (YY_MOVE (that.value));
         break;
 
-      case 76: // active_vars_dummy
-        value.copy<  std::vector<std::shared_ptr<const program::Variable>>  > (YY_MOVE (that.value));
+      case 77: // active_vars_dummy
+        value.copy<  std::vector<std::shared_ptr<program::Variable>>  > (YY_MOVE (that.value));
         break;
 
-      case 45: // "number"
+      case 48: // "number"
         value.copy< int > (YY_MOVE (that.value));
         break;
 
-      case 42: // "program identifier"
-      case 43: // "smtlib identifier"
-      case 44: // "type identifier"
+      case 45: // "program identifier"
+      case 46: // "smtlib identifier"
+      case 47: // "type identifier"
         value.copy< std::string > (YY_MOVE (that.value));
         break;
 
@@ -2489,98 +2524,98 @@ switch (yytype)
     super_type::move (s);
     switch (this->type_get ())
     {
-      case 56: // smtlib_formula
-        value.move<  std::shared_ptr<const logic::Formula>  > (YY_MOVE (s.value));
-        break;
-
-      case 54: // smtlib_problemitem
+      case 57: // smtlib_problemitem
         value.move<  std::shared_ptr<const logic::ProblemItem>  > (YY_MOVE (s.value));
         break;
 
-      case 60: // smtlib_quantvar
+      case 63: // smtlib_quantvar
         value.move<  std::shared_ptr<const logic::Symbol>  > (YY_MOVE (s.value));
         break;
 
-      case 62: // smtlib_term
+      case 59: // smtlib_term
         value.move<  std::shared_ptr<const logic::Term>  > (YY_MOVE (s.value));
         break;
 
-      case 78: // formula
-        value.move<  std::shared_ptr<const program::BoolExpression>  > (YY_MOVE (s.value));
+      case 69: // assignment_statement
+        value.move<  std::shared_ptr<program::Assignment>  > (YY_MOVE (s.value));
         break;
 
-      case 64: // function
-        value.move<  std::shared_ptr<const program::Function>  > (YY_MOVE (s.value));
+      case 73: // break_statement
+        value.move<  std::shared_ptr<program::BreakStatement>  > (YY_MOVE (s.value));
         break;
 
-      case 69: // if_else_statement
-        value.move<  std::shared_ptr<const program::IfElse>  > (YY_MOVE (s.value));
+      case 74: // continue_statement
+        value.move<  std::shared_ptr<program::ContinueStatement>  > (YY_MOVE (s.value));
         break;
 
-      case 68: // assignment_statement
-        value.move<  std::shared_ptr<const program::IntAssignment>  > (YY_MOVE (s.value));
+      case 81: // expr
+      case 82: // location
+        value.move<  std::shared_ptr<program::Expression>  > (YY_MOVE (s.value));
         break;
 
-      case 79: // expr
-      case 80: // location
-        value.move<  std::shared_ptr<const program::IntExpression>  > (YY_MOVE (s.value));
+      case 65: // function
+        value.move<  std::shared_ptr<program::Function>  > (YY_MOVE (s.value));
         break;
 
-      case 52: // program
-        value.move<  std::shared_ptr<const program::Program>  > (YY_MOVE (s.value));
+      case 70: // if_else_statement
+        value.move<  std::shared_ptr<program::IfElseStatement>  > (YY_MOVE (s.value));
         break;
 
-      case 75: // skip_statement
-        value.move<  std::shared_ptr<const program::SkipStatement>  > (YY_MOVE (s.value));
+      case 55: // program
+        value.move<  std::shared_ptr<program::Program>  > (YY_MOVE (s.value));
         break;
 
-      case 67: // statement
-        value.move<  std::shared_ptr<const program::Statement>  > (YY_MOVE (s.value));
+      case 75: // return_statement
+        value.move<  std::shared_ptr<program::ReturnStatement>  > (YY_MOVE (s.value));
         break;
 
-      case 77: // var_definition_head
-        value.move<  std::shared_ptr<const program::Variable>  > (YY_MOVE (s.value));
+      case 76: // skip_statement
+        value.move<  std::shared_ptr<program::SkipStatement>  > (YY_MOVE (s.value));
         break;
 
-      case 73: // while_statement
-        value.move<  std::shared_ptr<const program::WhileStatement>  > (YY_MOVE (s.value));
+      case 68: // statement
+        value.move<  std::shared_ptr<program::Statement>  > (YY_MOVE (s.value));
         break;
 
-      case 63: // function_list
-        value.move<  std::vector< std::shared_ptr<const program::Function>>  > (YY_MOVE (s.value));
+      case 80: // var_definition_head
+        value.move<  std::shared_ptr<program::Variable>  > (YY_MOVE (s.value));
         break;
 
-      case 55: // smtlib_formula_list
-        value.move<  std::vector<std::shared_ptr<const logic::Formula>>  > (YY_MOVE (s.value));
+      case 71: // while_statement
+        value.move<  std::shared_ptr<program::WhileStatement>  > (YY_MOVE (s.value));
         break;
 
-      case 53: // smtlib_problemitem_list
+      case 64: // function_list
+        value.move<  std::vector< std::shared_ptr<program::Function>>  > (YY_MOVE (s.value));
+        break;
+
+      case 56: // smtlib_problemitem_list
         value.move<  std::vector<std::shared_ptr<const logic::ProblemItem> >  > (YY_MOVE (s.value));
         break;
 
-      case 59: // smtlib_quantvar_list
+      case 62: // smtlib_quantvar_list
         value.move<  std::vector<std::shared_ptr<const logic::Symbol>>  > (YY_MOVE (s.value));
         break;
 
-      case 61: // smtlib_term_list
+      case 58: // smtlib_term_list
         value.move<  std::vector<std::shared_ptr<const logic::Term>>  > (YY_MOVE (s.value));
         break;
 
-      case 66: // statement_list
-        value.move<  std::vector<std::shared_ptr<const program::Statement>>  > (YY_MOVE (s.value));
+      case 67: // statement_list
+        value.move<  std::vector<std::shared_ptr<program::Statement>>  > (YY_MOVE (s.value));
         break;
 
-      case 76: // active_vars_dummy
-        value.move<  std::vector<std::shared_ptr<const program::Variable>>  > (YY_MOVE (s.value));
+      case 77: // active_vars_dummy
+        value.move<  std::vector<std::shared_ptr<program::Variable>>  > (YY_MOVE (s.value));
         break;
 
-      case 45: // "number"
+      case 48: // "number"
         value.move< int > (YY_MOVE (s.value));
         break;
 
-      case 42: // "program identifier"
-      case 43: // "smtlib identifier"
-      case 44: // "type identifier"
+      case 45: // "program identifier"
+      case 46: // "smtlib identifier"
+      case 47: // "type identifier"
         value.move< std::string > (YY_MOVE (s.value));
         break;
 
@@ -2638,9 +2673,29 @@ switch (yytype)
     return type;
   }
 
+  inline
+  WhileParser::token_type
+  WhileParser::by_type::token () const YY_NOEXCEPT
+  {
+    // YYTOKNUM[NUM] -- (External) token number corresponding to the
+    // (internal) symbol number NUM (which must be that of a token).  */
+    static
+    const unsigned short
+    yytoken_number_[] =
+    {
+       0,   256,   257,   258,   259,   260,   261,   262,   263,   264,
+     265,   266,   267,   268,   269,   270,   271,   272,   273,   274,
+     275,   276,   277,   278,   279,   280,   281,   282,   283,   284,
+     285,   286,   287,   288,   289,   290,   291,   292,   293,   294,
+     295,   296,   297,   298,   299,   300,   301,   302,   303,   304,
+     305
+    };
+    return token_type (yytoken_number_[type]);
+  }
+
 #line 4 "WhileParser.yy"
 } // parser
-#line 2644 "../src/parser/WhileParser.hpp"
+#line 2699 "../src/parser/WhileParser.hpp"
 
 
 

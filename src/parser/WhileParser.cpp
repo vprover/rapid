@@ -1,8 +1,8 @@
-// A Bison parser, made by GNU Bison 3.5.1.
+// A Bison parser, made by GNU Bison 3.4.2.
 
 // Skeleton implementation for Bison LALR(1) parsers in C++
 
-// Copyright (C) 2002-2015, 2018-2020 Free Software Foundation, Inc.
+// Copyright (C) 2002-2015, 2018-2019 Free Software Foundation, Inc.
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@
 using namespace program;
 
 // Tell Flex the lexer's prototype ...
-# define YY_DECL parser::WhileParser::symbol_type yylex(parser::WhileParsingContext &context)
+# define YY_DECL parser::WhileParser::symbol_type yylex(parser::WhileParsingContext &parsing_context)
 // ... and declare it for the parser's sake.
 YY_DECL;
 
@@ -190,14 +190,13 @@ namespace parser {
 
 
   /// Build a parser object.
-  WhileParser::WhileParser (parser::WhileParsingContext &context_yyarg)
-#if YYDEBUG
-    : yydebug_ (false),
-      yycdebug_ (&std::cerr),
-#else
+  WhileParser::WhileParser (parser::WhileParsingContext &parsing_context_yyarg)
     :
+#if YYDEBUG
+      yydebug_ (false),
+      yycdebug_ (&std::cerr),
 #endif
-      context (context_yyarg)
+      parsing_context (parsing_context_yyarg)
   {}
 
   WhileParser::~WhileParser ()
@@ -244,7 +243,7 @@ namespace parser {
     if (state == empty_state)
       return empty_symbol;
     else
-      return yystos_[+state];
+      return yystos_[state];
   }
 
   WhileParser::stack_symbol_type::stack_symbol_type ()
@@ -255,98 +254,98 @@ namespace parser {
   {
     switch (that.type_get ())
     {
-      case 56: // smtlib_formula
-        value.YY_MOVE_OR_COPY<  std::shared_ptr<const logic::Formula>  > (YY_MOVE (that.value));
-        break;
-
-      case 54: // smtlib_problemitem
+      case 57: // smtlib_problemitem
         value.YY_MOVE_OR_COPY<  std::shared_ptr<const logic::ProblemItem>  > (YY_MOVE (that.value));
         break;
 
-      case 60: // smtlib_quantvar
+      case 63: // smtlib_quantvar
         value.YY_MOVE_OR_COPY<  std::shared_ptr<const logic::Symbol>  > (YY_MOVE (that.value));
         break;
 
-      case 62: // smtlib_term
+      case 59: // smtlib_term
         value.YY_MOVE_OR_COPY<  std::shared_ptr<const logic::Term>  > (YY_MOVE (that.value));
         break;
 
-      case 78: // formula
-        value.YY_MOVE_OR_COPY<  std::shared_ptr<const program::BoolExpression>  > (YY_MOVE (that.value));
+      case 69: // assignment_statement
+        value.YY_MOVE_OR_COPY<  std::shared_ptr<program::Assignment>  > (YY_MOVE (that.value));
         break;
 
-      case 64: // function
-        value.YY_MOVE_OR_COPY<  std::shared_ptr<const program::Function>  > (YY_MOVE (that.value));
+      case 73: // break_statement
+        value.YY_MOVE_OR_COPY<  std::shared_ptr<program::BreakStatement>  > (YY_MOVE (that.value));
         break;
 
-      case 69: // if_else_statement
-        value.YY_MOVE_OR_COPY<  std::shared_ptr<const program::IfElse>  > (YY_MOVE (that.value));
+      case 74: // continue_statement
+        value.YY_MOVE_OR_COPY<  std::shared_ptr<program::ContinueStatement>  > (YY_MOVE (that.value));
         break;
 
-      case 68: // assignment_statement
-        value.YY_MOVE_OR_COPY<  std::shared_ptr<const program::IntAssignment>  > (YY_MOVE (that.value));
+      case 81: // expr
+      case 82: // location
+        value.YY_MOVE_OR_COPY<  std::shared_ptr<program::Expression>  > (YY_MOVE (that.value));
         break;
 
-      case 79: // expr
-      case 80: // location
-        value.YY_MOVE_OR_COPY<  std::shared_ptr<const program::IntExpression>  > (YY_MOVE (that.value));
+      case 65: // function
+        value.YY_MOVE_OR_COPY<  std::shared_ptr<program::Function>  > (YY_MOVE (that.value));
         break;
 
-      case 52: // program
-        value.YY_MOVE_OR_COPY<  std::shared_ptr<const program::Program>  > (YY_MOVE (that.value));
+      case 70: // if_else_statement
+        value.YY_MOVE_OR_COPY<  std::shared_ptr<program::IfElseStatement>  > (YY_MOVE (that.value));
         break;
 
-      case 75: // skip_statement
-        value.YY_MOVE_OR_COPY<  std::shared_ptr<const program::SkipStatement>  > (YY_MOVE (that.value));
+      case 55: // program
+        value.YY_MOVE_OR_COPY<  std::shared_ptr<program::Program>  > (YY_MOVE (that.value));
         break;
 
-      case 67: // statement
-        value.YY_MOVE_OR_COPY<  std::shared_ptr<const program::Statement>  > (YY_MOVE (that.value));
+      case 75: // return_statement
+        value.YY_MOVE_OR_COPY<  std::shared_ptr<program::ReturnStatement>  > (YY_MOVE (that.value));
         break;
 
-      case 77: // var_definition_head
-        value.YY_MOVE_OR_COPY<  std::shared_ptr<const program::Variable>  > (YY_MOVE (that.value));
+      case 76: // skip_statement
+        value.YY_MOVE_OR_COPY<  std::shared_ptr<program::SkipStatement>  > (YY_MOVE (that.value));
         break;
 
-      case 73: // while_statement
-        value.YY_MOVE_OR_COPY<  std::shared_ptr<const program::WhileStatement>  > (YY_MOVE (that.value));
+      case 68: // statement
+        value.YY_MOVE_OR_COPY<  std::shared_ptr<program::Statement>  > (YY_MOVE (that.value));
         break;
 
-      case 63: // function_list
-        value.YY_MOVE_OR_COPY<  std::vector< std::shared_ptr<const program::Function>>  > (YY_MOVE (that.value));
+      case 80: // var_definition_head
+        value.YY_MOVE_OR_COPY<  std::shared_ptr<program::Variable>  > (YY_MOVE (that.value));
         break;
 
-      case 55: // smtlib_formula_list
-        value.YY_MOVE_OR_COPY<  std::vector<std::shared_ptr<const logic::Formula>>  > (YY_MOVE (that.value));
+      case 71: // while_statement
+        value.YY_MOVE_OR_COPY<  std::shared_ptr<program::WhileStatement>  > (YY_MOVE (that.value));
         break;
 
-      case 53: // smtlib_problemitem_list
+      case 64: // function_list
+        value.YY_MOVE_OR_COPY<  std::vector< std::shared_ptr<program::Function>>  > (YY_MOVE (that.value));
+        break;
+
+      case 56: // smtlib_problemitem_list
         value.YY_MOVE_OR_COPY<  std::vector<std::shared_ptr<const logic::ProblemItem> >  > (YY_MOVE (that.value));
         break;
 
-      case 59: // smtlib_quantvar_list
+      case 62: // smtlib_quantvar_list
         value.YY_MOVE_OR_COPY<  std::vector<std::shared_ptr<const logic::Symbol>>  > (YY_MOVE (that.value));
         break;
 
-      case 61: // smtlib_term_list
+      case 58: // smtlib_term_list
         value.YY_MOVE_OR_COPY<  std::vector<std::shared_ptr<const logic::Term>>  > (YY_MOVE (that.value));
         break;
 
-      case 66: // statement_list
-        value.YY_MOVE_OR_COPY<  std::vector<std::shared_ptr<const program::Statement>>  > (YY_MOVE (that.value));
+      case 67: // statement_list
+        value.YY_MOVE_OR_COPY<  std::vector<std::shared_ptr<program::Statement>>  > (YY_MOVE (that.value));
         break;
 
-      case 76: // active_vars_dummy
-        value.YY_MOVE_OR_COPY<  std::vector<std::shared_ptr<const program::Variable>>  > (YY_MOVE (that.value));
+      case 77: // active_vars_dummy
+        value.YY_MOVE_OR_COPY<  std::vector<std::shared_ptr<program::Variable>>  > (YY_MOVE (that.value));
         break;
 
-      case 45: // "number"
+      case 48: // "number"
         value.YY_MOVE_OR_COPY< int > (YY_MOVE (that.value));
         break;
 
-      case 42: // "program identifier"
-      case 43: // "smtlib identifier"
-      case 44: // "type identifier"
+      case 45: // "program identifier"
+      case 46: // "smtlib identifier"
+      case 47: // "type identifier"
         value.YY_MOVE_OR_COPY< std::string > (YY_MOVE (that.value));
         break;
 
@@ -365,98 +364,98 @@ namespace parser {
   {
     switch (that.type_get ())
     {
-      case 56: // smtlib_formula
-        value.move<  std::shared_ptr<const logic::Formula>  > (YY_MOVE (that.value));
-        break;
-
-      case 54: // smtlib_problemitem
+      case 57: // smtlib_problemitem
         value.move<  std::shared_ptr<const logic::ProblemItem>  > (YY_MOVE (that.value));
         break;
 
-      case 60: // smtlib_quantvar
+      case 63: // smtlib_quantvar
         value.move<  std::shared_ptr<const logic::Symbol>  > (YY_MOVE (that.value));
         break;
 
-      case 62: // smtlib_term
+      case 59: // smtlib_term
         value.move<  std::shared_ptr<const logic::Term>  > (YY_MOVE (that.value));
         break;
 
-      case 78: // formula
-        value.move<  std::shared_ptr<const program::BoolExpression>  > (YY_MOVE (that.value));
+      case 69: // assignment_statement
+        value.move<  std::shared_ptr<program::Assignment>  > (YY_MOVE (that.value));
         break;
 
-      case 64: // function
-        value.move<  std::shared_ptr<const program::Function>  > (YY_MOVE (that.value));
+      case 73: // break_statement
+        value.move<  std::shared_ptr<program::BreakStatement>  > (YY_MOVE (that.value));
         break;
 
-      case 69: // if_else_statement
-        value.move<  std::shared_ptr<const program::IfElse>  > (YY_MOVE (that.value));
+      case 74: // continue_statement
+        value.move<  std::shared_ptr<program::ContinueStatement>  > (YY_MOVE (that.value));
         break;
 
-      case 68: // assignment_statement
-        value.move<  std::shared_ptr<const program::IntAssignment>  > (YY_MOVE (that.value));
+      case 81: // expr
+      case 82: // location
+        value.move<  std::shared_ptr<program::Expression>  > (YY_MOVE (that.value));
         break;
 
-      case 79: // expr
-      case 80: // location
-        value.move<  std::shared_ptr<const program::IntExpression>  > (YY_MOVE (that.value));
+      case 65: // function
+        value.move<  std::shared_ptr<program::Function>  > (YY_MOVE (that.value));
         break;
 
-      case 52: // program
-        value.move<  std::shared_ptr<const program::Program>  > (YY_MOVE (that.value));
+      case 70: // if_else_statement
+        value.move<  std::shared_ptr<program::IfElseStatement>  > (YY_MOVE (that.value));
         break;
 
-      case 75: // skip_statement
-        value.move<  std::shared_ptr<const program::SkipStatement>  > (YY_MOVE (that.value));
+      case 55: // program
+        value.move<  std::shared_ptr<program::Program>  > (YY_MOVE (that.value));
         break;
 
-      case 67: // statement
-        value.move<  std::shared_ptr<const program::Statement>  > (YY_MOVE (that.value));
+      case 75: // return_statement
+        value.move<  std::shared_ptr<program::ReturnStatement>  > (YY_MOVE (that.value));
         break;
 
-      case 77: // var_definition_head
-        value.move<  std::shared_ptr<const program::Variable>  > (YY_MOVE (that.value));
+      case 76: // skip_statement
+        value.move<  std::shared_ptr<program::SkipStatement>  > (YY_MOVE (that.value));
         break;
 
-      case 73: // while_statement
-        value.move<  std::shared_ptr<const program::WhileStatement>  > (YY_MOVE (that.value));
+      case 68: // statement
+        value.move<  std::shared_ptr<program::Statement>  > (YY_MOVE (that.value));
         break;
 
-      case 63: // function_list
-        value.move<  std::vector< std::shared_ptr<const program::Function>>  > (YY_MOVE (that.value));
+      case 80: // var_definition_head
+        value.move<  std::shared_ptr<program::Variable>  > (YY_MOVE (that.value));
         break;
 
-      case 55: // smtlib_formula_list
-        value.move<  std::vector<std::shared_ptr<const logic::Formula>>  > (YY_MOVE (that.value));
+      case 71: // while_statement
+        value.move<  std::shared_ptr<program::WhileStatement>  > (YY_MOVE (that.value));
         break;
 
-      case 53: // smtlib_problemitem_list
+      case 64: // function_list
+        value.move<  std::vector< std::shared_ptr<program::Function>>  > (YY_MOVE (that.value));
+        break;
+
+      case 56: // smtlib_problemitem_list
         value.move<  std::vector<std::shared_ptr<const logic::ProblemItem> >  > (YY_MOVE (that.value));
         break;
 
-      case 59: // smtlib_quantvar_list
+      case 62: // smtlib_quantvar_list
         value.move<  std::vector<std::shared_ptr<const logic::Symbol>>  > (YY_MOVE (that.value));
         break;
 
-      case 61: // smtlib_term_list
+      case 58: // smtlib_term_list
         value.move<  std::vector<std::shared_ptr<const logic::Term>>  > (YY_MOVE (that.value));
         break;
 
-      case 66: // statement_list
-        value.move<  std::vector<std::shared_ptr<const program::Statement>>  > (YY_MOVE (that.value));
+      case 67: // statement_list
+        value.move<  std::vector<std::shared_ptr<program::Statement>>  > (YY_MOVE (that.value));
         break;
 
-      case 76: // active_vars_dummy
-        value.move<  std::vector<std::shared_ptr<const program::Variable>>  > (YY_MOVE (that.value));
+      case 77: // active_vars_dummy
+        value.move<  std::vector<std::shared_ptr<program::Variable>>  > (YY_MOVE (that.value));
         break;
 
-      case 45: // "number"
+      case 48: // "number"
         value.move< int > (YY_MOVE (that.value));
         break;
 
-      case 42: // "program identifier"
-      case 43: // "smtlib identifier"
-      case 44: // "type identifier"
+      case 45: // "program identifier"
+      case 46: // "smtlib identifier"
+      case 47: // "type identifier"
         value.move< std::string > (YY_MOVE (that.value));
         break;
 
@@ -470,212 +469,103 @@ namespace parser {
 
 #if YY_CPLUSPLUS < 201103L
   WhileParser::stack_symbol_type&
-  WhileParser::stack_symbol_type::operator= (const stack_symbol_type& that)
-  {
-    state = that.state;
-    switch (that.type_get ())
-    {
-      case 56: // smtlib_formula
-        value.copy<  std::shared_ptr<const logic::Formula>  > (that.value);
-        break;
-
-      case 54: // smtlib_problemitem
-        value.copy<  std::shared_ptr<const logic::ProblemItem>  > (that.value);
-        break;
-
-      case 60: // smtlib_quantvar
-        value.copy<  std::shared_ptr<const logic::Symbol>  > (that.value);
-        break;
-
-      case 62: // smtlib_term
-        value.copy<  std::shared_ptr<const logic::Term>  > (that.value);
-        break;
-
-      case 78: // formula
-        value.copy<  std::shared_ptr<const program::BoolExpression>  > (that.value);
-        break;
-
-      case 64: // function
-        value.copy<  std::shared_ptr<const program::Function>  > (that.value);
-        break;
-
-      case 69: // if_else_statement
-        value.copy<  std::shared_ptr<const program::IfElse>  > (that.value);
-        break;
-
-      case 68: // assignment_statement
-        value.copy<  std::shared_ptr<const program::IntAssignment>  > (that.value);
-        break;
-
-      case 79: // expr
-      case 80: // location
-        value.copy<  std::shared_ptr<const program::IntExpression>  > (that.value);
-        break;
-
-      case 52: // program
-        value.copy<  std::shared_ptr<const program::Program>  > (that.value);
-        break;
-
-      case 75: // skip_statement
-        value.copy<  std::shared_ptr<const program::SkipStatement>  > (that.value);
-        break;
-
-      case 67: // statement
-        value.copy<  std::shared_ptr<const program::Statement>  > (that.value);
-        break;
-
-      case 77: // var_definition_head
-        value.copy<  std::shared_ptr<const program::Variable>  > (that.value);
-        break;
-
-      case 73: // while_statement
-        value.copy<  std::shared_ptr<const program::WhileStatement>  > (that.value);
-        break;
-
-      case 63: // function_list
-        value.copy<  std::vector< std::shared_ptr<const program::Function>>  > (that.value);
-        break;
-
-      case 55: // smtlib_formula_list
-        value.copy<  std::vector<std::shared_ptr<const logic::Formula>>  > (that.value);
-        break;
-
-      case 53: // smtlib_problemitem_list
-        value.copy<  std::vector<std::shared_ptr<const logic::ProblemItem> >  > (that.value);
-        break;
-
-      case 59: // smtlib_quantvar_list
-        value.copy<  std::vector<std::shared_ptr<const logic::Symbol>>  > (that.value);
-        break;
-
-      case 61: // smtlib_term_list
-        value.copy<  std::vector<std::shared_ptr<const logic::Term>>  > (that.value);
-        break;
-
-      case 66: // statement_list
-        value.copy<  std::vector<std::shared_ptr<const program::Statement>>  > (that.value);
-        break;
-
-      case 76: // active_vars_dummy
-        value.copy<  std::vector<std::shared_ptr<const program::Variable>>  > (that.value);
-        break;
-
-      case 45: // "number"
-        value.copy< int > (that.value);
-        break;
-
-      case 42: // "program identifier"
-      case 43: // "smtlib identifier"
-      case 44: // "type identifier"
-        value.copy< std::string > (that.value);
-        break;
-
-      default:
-        break;
-    }
-
-    location = that.location;
-    return *this;
-  }
-
-  WhileParser::stack_symbol_type&
   WhileParser::stack_symbol_type::operator= (stack_symbol_type& that)
   {
     state = that.state;
     switch (that.type_get ())
     {
-      case 56: // smtlib_formula
-        value.move<  std::shared_ptr<const logic::Formula>  > (that.value);
-        break;
-
-      case 54: // smtlib_problemitem
+      case 57: // smtlib_problemitem
         value.move<  std::shared_ptr<const logic::ProblemItem>  > (that.value);
         break;
 
-      case 60: // smtlib_quantvar
+      case 63: // smtlib_quantvar
         value.move<  std::shared_ptr<const logic::Symbol>  > (that.value);
         break;
 
-      case 62: // smtlib_term
+      case 59: // smtlib_term
         value.move<  std::shared_ptr<const logic::Term>  > (that.value);
         break;
 
-      case 78: // formula
-        value.move<  std::shared_ptr<const program::BoolExpression>  > (that.value);
+      case 69: // assignment_statement
+        value.move<  std::shared_ptr<program::Assignment>  > (that.value);
         break;
 
-      case 64: // function
-        value.move<  std::shared_ptr<const program::Function>  > (that.value);
+      case 73: // break_statement
+        value.move<  std::shared_ptr<program::BreakStatement>  > (that.value);
         break;
 
-      case 69: // if_else_statement
-        value.move<  std::shared_ptr<const program::IfElse>  > (that.value);
+      case 74: // continue_statement
+        value.move<  std::shared_ptr<program::ContinueStatement>  > (that.value);
         break;
 
-      case 68: // assignment_statement
-        value.move<  std::shared_ptr<const program::IntAssignment>  > (that.value);
+      case 81: // expr
+      case 82: // location
+        value.move<  std::shared_ptr<program::Expression>  > (that.value);
         break;
 
-      case 79: // expr
-      case 80: // location
-        value.move<  std::shared_ptr<const program::IntExpression>  > (that.value);
+      case 65: // function
+        value.move<  std::shared_ptr<program::Function>  > (that.value);
         break;
 
-      case 52: // program
-        value.move<  std::shared_ptr<const program::Program>  > (that.value);
+      case 70: // if_else_statement
+        value.move<  std::shared_ptr<program::IfElseStatement>  > (that.value);
         break;
 
-      case 75: // skip_statement
-        value.move<  std::shared_ptr<const program::SkipStatement>  > (that.value);
+      case 55: // program
+        value.move<  std::shared_ptr<program::Program>  > (that.value);
         break;
 
-      case 67: // statement
-        value.move<  std::shared_ptr<const program::Statement>  > (that.value);
+      case 75: // return_statement
+        value.move<  std::shared_ptr<program::ReturnStatement>  > (that.value);
         break;
 
-      case 77: // var_definition_head
-        value.move<  std::shared_ptr<const program::Variable>  > (that.value);
+      case 76: // skip_statement
+        value.move<  std::shared_ptr<program::SkipStatement>  > (that.value);
         break;
 
-      case 73: // while_statement
-        value.move<  std::shared_ptr<const program::WhileStatement>  > (that.value);
+      case 68: // statement
+        value.move<  std::shared_ptr<program::Statement>  > (that.value);
         break;
 
-      case 63: // function_list
-        value.move<  std::vector< std::shared_ptr<const program::Function>>  > (that.value);
+      case 80: // var_definition_head
+        value.move<  std::shared_ptr<program::Variable>  > (that.value);
         break;
 
-      case 55: // smtlib_formula_list
-        value.move<  std::vector<std::shared_ptr<const logic::Formula>>  > (that.value);
+      case 71: // while_statement
+        value.move<  std::shared_ptr<program::WhileStatement>  > (that.value);
         break;
 
-      case 53: // smtlib_problemitem_list
+      case 64: // function_list
+        value.move<  std::vector< std::shared_ptr<program::Function>>  > (that.value);
+        break;
+
+      case 56: // smtlib_problemitem_list
         value.move<  std::vector<std::shared_ptr<const logic::ProblemItem> >  > (that.value);
         break;
 
-      case 59: // smtlib_quantvar_list
+      case 62: // smtlib_quantvar_list
         value.move<  std::vector<std::shared_ptr<const logic::Symbol>>  > (that.value);
         break;
 
-      case 61: // smtlib_term_list
+      case 58: // smtlib_term_list
         value.move<  std::vector<std::shared_ptr<const logic::Term>>  > (that.value);
         break;
 
-      case 66: // statement_list
-        value.move<  std::vector<std::shared_ptr<const program::Statement>>  > (that.value);
+      case 67: // statement_list
+        value.move<  std::vector<std::shared_ptr<program::Statement>>  > (that.value);
         break;
 
-      case 76: // active_vars_dummy
-        value.move<  std::vector<std::shared_ptr<const program::Variable>>  > (that.value);
+      case 77: // active_vars_dummy
+        value.move<  std::vector<std::shared_ptr<program::Variable>>  > (that.value);
         break;
 
-      case 45: // "number"
+      case 48: // "number"
         value.move< int > (that.value);
         break;
 
-      case 42: // "program identifier"
-      case 43: // "smtlib identifier"
-      case 44: // "type identifier"
+      case 45: // "program identifier"
+      case 46: // "smtlib identifier"
+      case 47: // "type identifier"
         value.move< std::string > (that.value);
         break;
 
@@ -718,160 +608,160 @@ namespace parser {
         << yysym.location << ": ";
     switch (yytype)
     {
-      case 42: // "program identifier"
-#line 138 "WhileParser.yy"
-                 { yyoutput << yysym.value.template as < std::string > (); }
-#line 725 "../src/parser/WhileParser.cpp"
+      case 45: // "program identifier"
+#line 141 "WhileParser.yy"
+        { yyoutput << yysym.value.template as < std::string > (); }
+#line 615 "../src/parser/WhileParser.cpp"
         break;
 
-      case 43: // "smtlib identifier"
-#line 138 "WhileParser.yy"
-                 { yyoutput << yysym.value.template as < std::string > (); }
-#line 731 "../src/parser/WhileParser.cpp"
+      case 46: // "smtlib identifier"
+#line 141 "WhileParser.yy"
+        { yyoutput << yysym.value.template as < std::string > (); }
+#line 621 "../src/parser/WhileParser.cpp"
         break;
 
-      case 44: // "type identifier"
-#line 138 "WhileParser.yy"
-                 { yyoutput << yysym.value.template as < std::string > (); }
-#line 737 "../src/parser/WhileParser.cpp"
+      case 47: // "type identifier"
+#line 141 "WhileParser.yy"
+        { yyoutput << yysym.value.template as < std::string > (); }
+#line 627 "../src/parser/WhileParser.cpp"
         break;
 
-      case 45: // "number"
-#line 138 "WhileParser.yy"
-                 { yyoutput << yysym.value.template as < int > (); }
-#line 743 "../src/parser/WhileParser.cpp"
+      case 48: // "number"
+#line 141 "WhileParser.yy"
+        { yyoutput << yysym.value.template as < int > (); }
+#line 633 "../src/parser/WhileParser.cpp"
         break;
 
-      case 52: // program
-#line 138 "WhileParser.yy"
-                 { yyoutput << yysym.value.template as <  std::shared_ptr<const program::Program>  > (); }
-#line 749 "../src/parser/WhileParser.cpp"
+      case 55: // program
+#line 141 "WhileParser.yy"
+        { yyoutput << yysym.value.template as <  std::shared_ptr<program::Program>  > (); }
+#line 639 "../src/parser/WhileParser.cpp"
         break;
 
-      case 53: // smtlib_problemitem_list
-#line 138 "WhileParser.yy"
-                 { yyoutput << yysym.value.template as <  std::vector<std::shared_ptr<const logic::ProblemItem> >  > (); }
-#line 755 "../src/parser/WhileParser.cpp"
+      case 56: // smtlib_problemitem_list
+#line 141 "WhileParser.yy"
+        { yyoutput << yysym.value.template as <  std::vector<std::shared_ptr<const logic::ProblemItem> >  > (); }
+#line 645 "../src/parser/WhileParser.cpp"
         break;
 
-      case 54: // smtlib_problemitem
-#line 138 "WhileParser.yy"
-                 { yyoutput << yysym.value.template as <  std::shared_ptr<const logic::ProblemItem>  > (); }
-#line 761 "../src/parser/WhileParser.cpp"
+      case 57: // smtlib_problemitem
+#line 141 "WhileParser.yy"
+        { yyoutput << yysym.value.template as <  std::shared_ptr<const logic::ProblemItem>  > (); }
+#line 651 "../src/parser/WhileParser.cpp"
         break;
 
-      case 55: // smtlib_formula_list
-#line 138 "WhileParser.yy"
-                 { yyoutput << yysym.value.template as <  std::vector<std::shared_ptr<const logic::Formula>>  > (); }
-#line 767 "../src/parser/WhileParser.cpp"
+      case 58: // smtlib_term_list
+#line 141 "WhileParser.yy"
+        { yyoutput << yysym.value.template as <  std::vector<std::shared_ptr<const logic::Term>>  > (); }
+#line 657 "../src/parser/WhileParser.cpp"
         break;
 
-      case 56: // smtlib_formula
-#line 138 "WhileParser.yy"
-                 { yyoutput << yysym.value.template as <  std::shared_ptr<const logic::Formula>  > (); }
-#line 773 "../src/parser/WhileParser.cpp"
+      case 59: // smtlib_term
+#line 141 "WhileParser.yy"
+        { yyoutput << yysym.value.template as <  std::shared_ptr<const logic::Term>  > (); }
+#line 663 "../src/parser/WhileParser.cpp"
         break;
 
-      case 59: // smtlib_quantvar_list
-#line 138 "WhileParser.yy"
-                 { yyoutput << yysym.value.template as <  std::vector<std::shared_ptr<const logic::Symbol>>  > (); }
-#line 779 "../src/parser/WhileParser.cpp"
+      case 62: // smtlib_quantvar_list
+#line 141 "WhileParser.yy"
+        { yyoutput << yysym.value.template as <  std::vector<std::shared_ptr<const logic::Symbol>>  > (); }
+#line 669 "../src/parser/WhileParser.cpp"
         break;
 
-      case 60: // smtlib_quantvar
-#line 138 "WhileParser.yy"
-                 { yyoutput << yysym.value.template as <  std::shared_ptr<const logic::Symbol>  > (); }
-#line 785 "../src/parser/WhileParser.cpp"
+      case 63: // smtlib_quantvar
+#line 141 "WhileParser.yy"
+        { yyoutput << yysym.value.template as <  std::shared_ptr<const logic::Symbol>  > (); }
+#line 675 "../src/parser/WhileParser.cpp"
         break;
 
-      case 61: // smtlib_term_list
-#line 138 "WhileParser.yy"
-                 { yyoutput << yysym.value.template as <  std::vector<std::shared_ptr<const logic::Term>>  > (); }
-#line 791 "../src/parser/WhileParser.cpp"
+      case 64: // function_list
+#line 141 "WhileParser.yy"
+        { yyoutput << yysym.value.template as <  std::vector< std::shared_ptr<program::Function>>  > (); }
+#line 681 "../src/parser/WhileParser.cpp"
         break;
 
-      case 62: // smtlib_term
-#line 138 "WhileParser.yy"
-                 { yyoutput << yysym.value.template as <  std::shared_ptr<const logic::Term>  > (); }
-#line 797 "../src/parser/WhileParser.cpp"
+      case 65: // function
+#line 141 "WhileParser.yy"
+        { yyoutput << yysym.value.template as <  std::shared_ptr<program::Function>  > (); }
+#line 687 "../src/parser/WhileParser.cpp"
         break;
 
-      case 63: // function_list
-#line 138 "WhileParser.yy"
-                 { yyoutput << yysym.value.template as <  std::vector< std::shared_ptr<const program::Function>>  > (); }
-#line 803 "../src/parser/WhileParser.cpp"
+      case 67: // statement_list
+#line 141 "WhileParser.yy"
+        { yyoutput << yysym.value.template as <  std::vector<std::shared_ptr<program::Statement>>  > (); }
+#line 693 "../src/parser/WhileParser.cpp"
         break;
 
-      case 64: // function
-#line 138 "WhileParser.yy"
-                 { yyoutput << yysym.value.template as <  std::shared_ptr<const program::Function>  > (); }
-#line 809 "../src/parser/WhileParser.cpp"
+      case 68: // statement
+#line 141 "WhileParser.yy"
+        { yyoutput << yysym.value.template as <  std::shared_ptr<program::Statement>  > (); }
+#line 699 "../src/parser/WhileParser.cpp"
         break;
 
-      case 66: // statement_list
-#line 138 "WhileParser.yy"
-                 { yyoutput << yysym.value.template as <  std::vector<std::shared_ptr<const program::Statement>>  > (); }
-#line 815 "../src/parser/WhileParser.cpp"
+      case 69: // assignment_statement
+#line 141 "WhileParser.yy"
+        { yyoutput << yysym.value.template as <  std::shared_ptr<program::Assignment>  > (); }
+#line 705 "../src/parser/WhileParser.cpp"
         break;
 
-      case 67: // statement
-#line 138 "WhileParser.yy"
-                 { yyoutput << yysym.value.template as <  std::shared_ptr<const program::Statement>  > (); }
-#line 821 "../src/parser/WhileParser.cpp"
+      case 70: // if_else_statement
+#line 141 "WhileParser.yy"
+        { yyoutput << yysym.value.template as <  std::shared_ptr<program::IfElseStatement>  > (); }
+#line 711 "../src/parser/WhileParser.cpp"
         break;
 
-      case 68: // assignment_statement
-#line 138 "WhileParser.yy"
-                 { yyoutput << yysym.value.template as <  std::shared_ptr<const program::IntAssignment>  > (); }
-#line 827 "../src/parser/WhileParser.cpp"
+      case 71: // while_statement
+#line 141 "WhileParser.yy"
+        { yyoutput << yysym.value.template as <  std::shared_ptr<program::WhileStatement>  > (); }
+#line 717 "../src/parser/WhileParser.cpp"
         break;
 
-      case 69: // if_else_statement
-#line 138 "WhileParser.yy"
-                 { yyoutput << yysym.value.template as <  std::shared_ptr<const program::IfElse>  > (); }
-#line 833 "../src/parser/WhileParser.cpp"
+      case 73: // break_statement
+#line 141 "WhileParser.yy"
+        { yyoutput << yysym.value.template as <  std::shared_ptr<program::BreakStatement>  > (); }
+#line 723 "../src/parser/WhileParser.cpp"
         break;
 
-      case 73: // while_statement
-#line 138 "WhileParser.yy"
-                 { yyoutput << yysym.value.template as <  std::shared_ptr<const program::WhileStatement>  > (); }
-#line 839 "../src/parser/WhileParser.cpp"
+      case 74: // continue_statement
+#line 141 "WhileParser.yy"
+        { yyoutput << yysym.value.template as <  std::shared_ptr<program::ContinueStatement>  > (); }
+#line 729 "../src/parser/WhileParser.cpp"
         break;
 
-      case 75: // skip_statement
-#line 138 "WhileParser.yy"
-                 { yyoutput << yysym.value.template as <  std::shared_ptr<const program::SkipStatement>  > (); }
-#line 845 "../src/parser/WhileParser.cpp"
+      case 75: // return_statement
+#line 141 "WhileParser.yy"
+        { yyoutput << yysym.value.template as <  std::shared_ptr<program::ReturnStatement>  > (); }
+#line 735 "../src/parser/WhileParser.cpp"
         break;
 
-      case 76: // active_vars_dummy
-#line 138 "WhileParser.yy"
-                 { yyoutput << yysym.value.template as <  std::vector<std::shared_ptr<const program::Variable>>  > (); }
-#line 851 "../src/parser/WhileParser.cpp"
+      case 76: // skip_statement
+#line 141 "WhileParser.yy"
+        { yyoutput << yysym.value.template as <  std::shared_ptr<program::SkipStatement>  > (); }
+#line 741 "../src/parser/WhileParser.cpp"
         break;
 
-      case 77: // var_definition_head
-#line 138 "WhileParser.yy"
-                 { yyoutput << yysym.value.template as <  std::shared_ptr<const program::Variable>  > (); }
-#line 857 "../src/parser/WhileParser.cpp"
+      case 77: // active_vars_dummy
+#line 141 "WhileParser.yy"
+        { yyoutput << yysym.value.template as <  std::vector<std::shared_ptr<program::Variable>>  > (); }
+#line 747 "../src/parser/WhileParser.cpp"
         break;
 
-      case 78: // formula
-#line 138 "WhileParser.yy"
-                 { yyoutput << yysym.value.template as <  std::shared_ptr<const program::BoolExpression>  > (); }
-#line 863 "../src/parser/WhileParser.cpp"
+      case 80: // var_definition_head
+#line 141 "WhileParser.yy"
+        { yyoutput << yysym.value.template as <  std::shared_ptr<program::Variable>  > (); }
+#line 753 "../src/parser/WhileParser.cpp"
         break;
 
-      case 79: // expr
-#line 138 "WhileParser.yy"
-                 { yyoutput << yysym.value.template as <  std::shared_ptr<const program::IntExpression>  > (); }
-#line 869 "../src/parser/WhileParser.cpp"
+      case 81: // expr
+#line 141 "WhileParser.yy"
+        { yyoutput << yysym.value.template as <  std::shared_ptr<program::Expression>  > (); }
+#line 759 "../src/parser/WhileParser.cpp"
         break;
 
-      case 80: // location
-#line 138 "WhileParser.yy"
-                 { yyoutput << yysym.value.template as <  std::shared_ptr<const program::IntExpression>  > (); }
-#line 875 "../src/parser/WhileParser.cpp"
+      case 82: // location
+#line 141 "WhileParser.yy"
+        { yyoutput << yysym.value.template as <  std::shared_ptr<program::Expression>  > (); }
+#line 765 "../src/parser/WhileParser.cpp"
         break;
 
       default:
@@ -964,6 +854,7 @@ namespace parser {
   int
   WhileParser::parse ()
   {
+    // State.
     int yyn;
     /// Length of the RHS of the rule being reduced.
     int yylen = 0;
@@ -992,10 +883,10 @@ namespace parser {
 #line 43 "WhileParser.yy"
 {
   // Initialize the initial location.
-  yyla.location.begin.filename = yyla.location.end.filename = &context.inputFile;
+  yyla.location.begin.filename = yyla.location.end.filename = &parsing_context.inputFile;
 }
 
-#line 999 "../src/parser/WhileParser.cpp"
+#line 890 "../src/parser/WhileParser.cpp"
 
 
     /* Initialize the stack.  The initial state will be set in
@@ -1009,7 +900,7 @@ namespace parser {
   | yynewstate -- push a new symbol on the stack.  |
   `-----------------------------------------------*/
   yynewstate:
-    YYCDEBUG << "Entering state " << int (yystack_[0].state) << '\n';
+    YYCDEBUG << "Entering state " << yystack_[0].state << '\n';
 
     // Accept?
     if (yystack_[0].state == yyfinal_)
@@ -1023,7 +914,7 @@ namespace parser {
   `-----------*/
   yybackup:
     // Try to take a decision without lookahead.
-    yyn = yypact_[+yystack_[0].state];
+    yyn = yypact_[yystack_[0].state];
     if (yy_pact_value_is_default_ (yyn))
       goto yydefault;
 
@@ -1035,7 +926,7 @@ namespace parser {
         try
 #endif // YY_EXCEPTIONS
           {
-            symbol_type yylookahead (yylex (context));
+            symbol_type yylookahead (yylex (parsing_context));
             yyla.move (yylookahead);
           }
 #if YY_EXCEPTIONS
@@ -1053,9 +944,7 @@ namespace parser {
        to detect an error, take that action.  */
     yyn += yyla.type_get ();
     if (yyn < 0 || yylast_ < yyn || yycheck_[yyn] != yyla.type_get ())
-      {
-        goto yydefault;
-      }
+      goto yydefault;
 
     // Reduce or error.
     yyn = yytable_[yyn];
@@ -1072,7 +961,7 @@ namespace parser {
       --yyerrstatus_;
 
     // Shift the lookahead token.
-    yypush_ ("Shifting", state_type (yyn), YY_MOVE (yyla));
+    yypush_ ("Shifting", yyn, YY_MOVE (yyla));
     goto yynewstate;
 
 
@@ -1080,7 +969,7 @@ namespace parser {
   | yydefault -- do the default action for the current state.  |
   `-----------------------------------------------------------*/
   yydefault:
-    yyn = yydefact_[+yystack_[0].state];
+    yyn = yydefact_[yystack_[0].state];
     if (yyn == 0)
       goto yyerrlab;
     goto yyreduce;
@@ -1099,98 +988,98 @@ namespace parser {
          when using variants.  */
       switch (yyr1_[yyn])
     {
-      case 56: // smtlib_formula
-        yylhs.value.emplace<  std::shared_ptr<const logic::Formula>  > ();
-        break;
-
-      case 54: // smtlib_problemitem
+      case 57: // smtlib_problemitem
         yylhs.value.emplace<  std::shared_ptr<const logic::ProblemItem>  > ();
         break;
 
-      case 60: // smtlib_quantvar
+      case 63: // smtlib_quantvar
         yylhs.value.emplace<  std::shared_ptr<const logic::Symbol>  > ();
         break;
 
-      case 62: // smtlib_term
+      case 59: // smtlib_term
         yylhs.value.emplace<  std::shared_ptr<const logic::Term>  > ();
         break;
 
-      case 78: // formula
-        yylhs.value.emplace<  std::shared_ptr<const program::BoolExpression>  > ();
+      case 69: // assignment_statement
+        yylhs.value.emplace<  std::shared_ptr<program::Assignment>  > ();
         break;
 
-      case 64: // function
-        yylhs.value.emplace<  std::shared_ptr<const program::Function>  > ();
+      case 73: // break_statement
+        yylhs.value.emplace<  std::shared_ptr<program::BreakStatement>  > ();
         break;
 
-      case 69: // if_else_statement
-        yylhs.value.emplace<  std::shared_ptr<const program::IfElse>  > ();
+      case 74: // continue_statement
+        yylhs.value.emplace<  std::shared_ptr<program::ContinueStatement>  > ();
         break;
 
-      case 68: // assignment_statement
-        yylhs.value.emplace<  std::shared_ptr<const program::IntAssignment>  > ();
+      case 81: // expr
+      case 82: // location
+        yylhs.value.emplace<  std::shared_ptr<program::Expression>  > ();
         break;
 
-      case 79: // expr
-      case 80: // location
-        yylhs.value.emplace<  std::shared_ptr<const program::IntExpression>  > ();
+      case 65: // function
+        yylhs.value.emplace<  std::shared_ptr<program::Function>  > ();
         break;
 
-      case 52: // program
-        yylhs.value.emplace<  std::shared_ptr<const program::Program>  > ();
+      case 70: // if_else_statement
+        yylhs.value.emplace<  std::shared_ptr<program::IfElseStatement>  > ();
         break;
 
-      case 75: // skip_statement
-        yylhs.value.emplace<  std::shared_ptr<const program::SkipStatement>  > ();
+      case 55: // program
+        yylhs.value.emplace<  std::shared_ptr<program::Program>  > ();
         break;
 
-      case 67: // statement
-        yylhs.value.emplace<  std::shared_ptr<const program::Statement>  > ();
+      case 75: // return_statement
+        yylhs.value.emplace<  std::shared_ptr<program::ReturnStatement>  > ();
         break;
 
-      case 77: // var_definition_head
-        yylhs.value.emplace<  std::shared_ptr<const program::Variable>  > ();
+      case 76: // skip_statement
+        yylhs.value.emplace<  std::shared_ptr<program::SkipStatement>  > ();
         break;
 
-      case 73: // while_statement
-        yylhs.value.emplace<  std::shared_ptr<const program::WhileStatement>  > ();
+      case 68: // statement
+        yylhs.value.emplace<  std::shared_ptr<program::Statement>  > ();
         break;
 
-      case 63: // function_list
-        yylhs.value.emplace<  std::vector< std::shared_ptr<const program::Function>>  > ();
+      case 80: // var_definition_head
+        yylhs.value.emplace<  std::shared_ptr<program::Variable>  > ();
         break;
 
-      case 55: // smtlib_formula_list
-        yylhs.value.emplace<  std::vector<std::shared_ptr<const logic::Formula>>  > ();
+      case 71: // while_statement
+        yylhs.value.emplace<  std::shared_ptr<program::WhileStatement>  > ();
         break;
 
-      case 53: // smtlib_problemitem_list
+      case 64: // function_list
+        yylhs.value.emplace<  std::vector< std::shared_ptr<program::Function>>  > ();
+        break;
+
+      case 56: // smtlib_problemitem_list
         yylhs.value.emplace<  std::vector<std::shared_ptr<const logic::ProblemItem> >  > ();
         break;
 
-      case 59: // smtlib_quantvar_list
+      case 62: // smtlib_quantvar_list
         yylhs.value.emplace<  std::vector<std::shared_ptr<const logic::Symbol>>  > ();
         break;
 
-      case 61: // smtlib_term_list
+      case 58: // smtlib_term_list
         yylhs.value.emplace<  std::vector<std::shared_ptr<const logic::Term>>  > ();
         break;
 
-      case 66: // statement_list
-        yylhs.value.emplace<  std::vector<std::shared_ptr<const program::Statement>>  > ();
+      case 67: // statement_list
+        yylhs.value.emplace<  std::vector<std::shared_ptr<program::Statement>>  > ();
         break;
 
-      case 76: // active_vars_dummy
-        yylhs.value.emplace<  std::vector<std::shared_ptr<const program::Variable>>  > ();
+      case 77: // active_vars_dummy
+        yylhs.value.emplace<  std::vector<std::shared_ptr<program::Variable>>  > ();
         break;
 
-      case 45: // "number"
+      case 48: // "number"
         yylhs.value.emplace< int > ();
         break;
 
-      case 42: // "program identifier"
-      case 43: // "smtlib identifier"
-      case 44: // "type identifier"
+      case 45: // "program identifier"
+      case 46: // "smtlib identifier"
+      case 47: // "type identifier"
         yylhs.value.emplace< std::string > ();
         break;
 
@@ -1215,843 +1104,905 @@ namespace parser {
           switch (yyn)
             {
   case 2:
-#line 154 "WhileParser.yy"
-  {
+#line 157 "WhileParser.yy"
+    {
     logic::Theory::declareTheories();
   }
-#line 1223 "../src/parser/WhileParser.cpp"
+#line 1112 "../src/parser/WhileParser.cpp"
     break;
 
   case 3:
-#line 158 "WhileParser.yy"
-  {
-    context.problemItems = yystack_[0].value.as <  std::vector<std::shared_ptr<const logic::ProblemItem> >  > ();
+#line 161 "WhileParser.yy"
+    {
+    parsing_context.problemItems = yystack_[0].value.as <  std::vector<std::shared_ptr<const logic::ProblemItem> >  > ();
   }
-#line 1231 "../src/parser/WhileParser.cpp"
+#line 1120 "../src/parser/WhileParser.cpp"
     break;
 
   case 4:
-#line 163 "WhileParser.yy"
-  {
+#line 166 "WhileParser.yy"
+    {
     if (yystack_[1].value.as < int > () < 1)
     {
       error(yystack_[1].location, "number of traces has to be greater than or equal to 1");
     }
 
-    context.numberOfTraces = (unsigned) yystack_[1].value.as < int > ();
+    parsing_context.numberOfTraces = (unsigned) yystack_[1].value.as < int > ();
     logic::Theory::declareTheories();
-    declareSymbolsForTraces(context.numberOfTraces);
+    declareSymbolsForTraces(parsing_context.numberOfTraces);
   }
-#line 1246 "../src/parser/WhileParser.cpp"
+#line 1135 "../src/parser/WhileParser.cpp"
     break;
 
   case 5:
-#line 174 "WhileParser.yy"
-  {
-        context.problemItems = yystack_[0].value.as <  std::vector<std::shared_ptr<const logic::ProblemItem> >  > ();
+#line 177 "WhileParser.yy"
+    {
+        parsing_context.problemItems = yystack_[0].value.as <  std::vector<std::shared_ptr<const logic::ProblemItem> >  > ();
   }
-#line 1254 "../src/parser/WhileParser.cpp"
+#line 1143 "../src/parser/WhileParser.cpp"
     break;
 
   case 6:
-#line 181 "WhileParser.yy"
-  { 
-    context.program = std::unique_ptr<const program::Program>(new program::Program(yystack_[0].value.as <  std::vector< std::shared_ptr<const program::Function>>  > ())); 
+#line 184 "WhileParser.yy"
+    { 
+    parsing_context.program = std::unique_ptr<program::Program>(new program::Program(yystack_[0].value.as <  std::vector< std::shared_ptr<program::Function>>  > ())); 
   }
-#line 1262 "../src/parser/WhileParser.cpp"
+#line 1151 "../src/parser/WhileParser.cpp"
     break;
 
   case 7:
-#line 187 "WhileParser.yy"
-         {yylhs.value.as <  std::vector<std::shared_ptr<const logic::ProblemItem> >  > () = std::vector<std::shared_ptr<const logic::ProblemItem>>();}
-#line 1268 "../src/parser/WhileParser.cpp"
+#line 190 "WhileParser.yy"
+    {yylhs.value.as <  std::vector<std::shared_ptr<const logic::ProblemItem> >  > () = std::vector<std::shared_ptr<const logic::ProblemItem>>();}
+#line 1157 "../src/parser/WhileParser.cpp"
     break;
 
   case 8:
-#line 188 "WhileParser.yy"
-                                             {yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::ProblemItem> >  > ().push_back(std::move(yystack_[0].value.as <  std::shared_ptr<const logic::ProblemItem>  > ())); yylhs.value.as <  std::vector<std::shared_ptr<const logic::ProblemItem> >  > () = std::move(yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::ProblemItem> >  > ());}
-#line 1274 "../src/parser/WhileParser.cpp"
+#line 191 "WhileParser.yy"
+    {yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::ProblemItem> >  > ().push_back(std::move(yystack_[0].value.as <  std::shared_ptr<const logic::ProblemItem>  > ())); yylhs.value.as <  std::vector<std::shared_ptr<const logic::ProblemItem> >  > () = std::move(yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::ProblemItem> >  > ());}
+#line 1163 "../src/parser/WhileParser.cpp"
     break;
 
   case 9:
-#line 193 "WhileParser.yy"
-  {
-    yylhs.value.as <  std::shared_ptr<const logic::ProblemItem>  > () = std::shared_ptr<const logic::Axiom>(new logic::Axiom(yystack_[1].value.as <  std::shared_ptr<const logic::Formula>  > (), "user-axiom-" + std::to_string(context.numberOfAxioms)));
-    context.numberOfAxioms++;
+#line 196 "WhileParser.yy"
+    {
+    yylhs.value.as <  std::shared_ptr<const logic::ProblemItem>  > () = std::shared_ptr<const logic::Axiom>(new logic::Axiom(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > (), "user-axiom-" + std::to_string(parsing_context.numberOfAxioms)));
+    parsing_context.numberOfAxioms++;
   }
-#line 1283 "../src/parser/WhileParser.cpp"
+#line 1172 "../src/parser/WhileParser.cpp"
     break;
 
   case 10:
-#line 199 "WhileParser.yy"
-  {
-    yylhs.value.as <  std::shared_ptr<const logic::ProblemItem>  > () = std::shared_ptr<const logic::Lemma>(new logic::Lemma(yystack_[1].value.as <  std::shared_ptr<const logic::Formula>  > (), "user-lemma-" + std::to_string(context.numberOfLemmas)));
-    context.numberOfLemmas++;
+#line 202 "WhileParser.yy"
+    {
+    yylhs.value.as <  std::shared_ptr<const logic::ProblemItem>  > () = std::shared_ptr<const logic::Lemma>(new logic::Lemma(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > (), "user-lemma-" + std::to_string(parsing_context.numberOfLemmas)));
+    parsing_context.numberOfLemmas++;
   }
-#line 1292 "../src/parser/WhileParser.cpp"
+#line 1181 "../src/parser/WhileParser.cpp"
     break;
 
   case 11:
-#line 205 "WhileParser.yy"
-  {
-    yylhs.value.as <  std::shared_ptr<const logic::ProblemItem>  > () = std::shared_ptr<const logic::Conjecture>(new logic::Conjecture(yystack_[1].value.as <  std::shared_ptr<const logic::Formula>  > (), "user-conjecture-" + std::to_string(context.numberOfConjectures)));
-    context.numberOfConjectures++;
+#line 208 "WhileParser.yy"
+    {
+    yylhs.value.as <  std::shared_ptr<const logic::ProblemItem>  > () = std::shared_ptr<const logic::Conjecture>(new logic::Conjecture(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > (), "user-conjecture-" + std::to_string(parsing_context.numberOfConjectures)));
+    parsing_context.numberOfConjectures++;
   }
-#line 1301 "../src/parser/WhileParser.cpp"
+#line 1190 "../src/parser/WhileParser.cpp"
     break;
 
   case 12:
-#line 211 "WhileParser.yy"
-         {yylhs.value.as <  std::vector<std::shared_ptr<const logic::Formula>>  > () = std::vector<std::shared_ptr<const logic::Formula>>();}
-#line 1307 "../src/parser/WhileParser.cpp"
+#line 215 "WhileParser.yy"
+    {yylhs.value.as <  std::vector<std::shared_ptr<const logic::Term>>  > () = std::vector<std::shared_ptr<const logic::Term>>();}
+#line 1196 "../src/parser/WhileParser.cpp"
     break;
 
   case 13:
-#line 212 "WhileParser.yy"
-                                     {yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::Formula>>  > ().push_back(std::move(yystack_[0].value.as <  std::shared_ptr<const logic::Formula>  > ())); yylhs.value.as <  std::vector<std::shared_ptr<const logic::Formula>>  > () = std::move(yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::Formula>>  > ());}
-#line 1313 "../src/parser/WhileParser.cpp"
+#line 216 "WhileParser.yy"
+    {yylhs.value.as <  std::vector<std::shared_ptr<const logic::Term>>  > () = std::vector<std::shared_ptr<const logic::Term>>(); yylhs.value.as <  std::vector<std::shared_ptr<const logic::Term>>  > ().push_back(yystack_[0].value.as <  std::shared_ptr<const logic::Term>  > ());}
+#line 1202 "../src/parser/WhileParser.cpp"
     break;
 
   case 14:
-#line 216 "WhileParser.yy"
-                                             { yylhs.value.as <  std::shared_ptr<const logic::Formula>  > () = logic::Theory::boolTrue();}
-#line 1319 "../src/parser/WhileParser.cpp"
+#line 217 "WhileParser.yy"
+    {yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::Term>>  > ().push_back(std::move(yystack_[0].value.as <  std::shared_ptr<const logic::Term>  > ())); yylhs.value.as <  std::vector<std::shared_ptr<const logic::Term>>  > () = std::move(yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::Term>>  > ());}
+#line 1208 "../src/parser/WhileParser.cpp"
     break;
 
   case 15:
-#line 217 "WhileParser.yy"
-                                             { yylhs.value.as <  std::shared_ptr<const logic::Formula>  > () = logic::Theory::boolFalse();}
-#line 1325 "../src/parser/WhileParser.cpp"
+#line 222 "WhileParser.yy"
+    {
+  if (!parsing_context.isDeclared(yystack_[0].value.as < std::string > ()))
+  {
+    error(yystack_[0].location, yystack_[0].value.as < std::string > () + " has not been declared");
+  }
+  auto symbol = parsing_context.fetch(yystack_[0].value.as < std::string > ());
+
+  if (symbol->argSorts.size() > 0)
+  {
+      error(yystack_[0].location, "Not enough arguments for term " + symbol->name);
+  }
+  if (symbol->rngSort == logic::Sorts::boolSort())
+  {
+    yylhs.value.as <  std::shared_ptr<const logic::Term>  > () = logic::Formulas::predicate(symbol, std::vector<std::shared_ptr<const logic::Term>>());
+  }
+  else
+  {
+    yylhs.value.as <  std::shared_ptr<const logic::Term>  > () = logic::Terms::func(symbol, std::vector<std::shared_ptr<const logic::Term>>());
+  }
+}
+#line 1233 "../src/parser/WhileParser.cpp"
     break;
 
   case 16:
-#line 219 "WhileParser.yy"
-  { 
-    auto leftSort = yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort;
-    auto rightSort = yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort;
-    
-    if(leftSort != rightSort)
+#line 243 "WhileParser.yy"
     {
-      error(yystack_[1].location, "Argument types " + leftSort->name + " and " + rightSort->name + " don't match!");
-    }
-    yylhs.value.as <  std::shared_ptr<const logic::Formula>  > () = logic::Formulas::equality(std::move(yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()), std::move(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()));
+    yylhs.value.as <  std::shared_ptr<const logic::Term>  > () = logic::Theory::intConstant(yystack_[0].value.as < int > ());
   }
-#line 1340 "../src/parser/WhileParser.cpp"
+#line 1241 "../src/parser/WhileParser.cpp"
     break;
 
   case 17:
-#line 230 "WhileParser.yy"
-{
-  if(yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort != logic::Sorts::intSort())
+#line 247 "WhileParser.yy"
+    {
+  if (!parsing_context.isDeclared(yystack_[2].value.as < std::string > ()))
   {
-    error(yystack_[2].location, "Left argument type needs to be Int");
+    error(yystack_[2].location, yystack_[2].value.as < std::string > () + " has not been declared");
   }
-  if(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort != logic::Sorts::intSort())
+  auto symbol = parsing_context.fetch(yystack_[2].value.as < std::string > ());
+
+  if (yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::Term>>  > ().size() < symbol->argSorts.size())
   {
-    error(yystack_[1].location, "Right argument type needs to be Int");
+      error(yystack_[1].location, "Not enough arguments for term " + symbol->name);
   }
-  yylhs.value.as <  std::shared_ptr<const logic::Formula>  > () = logic::Theory::intGreater(std::move(yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()), std::move(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()));
+  if (yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::Term>>  > ().size() > symbol->argSorts.size())
+  {
+      error(yystack_[1].location, "Too many arguments for term " + symbol->name);
+  }
+  for (int i = 0; i < symbol->argSorts.size(); ++i)
+  {
+      if (symbol->argSorts[i] != yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::Term>>  > ()[i]->symbol->rngSort)
+      {
+        error(yystack_[1].location, "Argument has type " + yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::Term>>  > ()[i]->symbol->rngSort->name + " instead of " + symbol->argSorts[i]->name);
+      }
+  }
+  if (symbol->rngSort == logic::Sorts::boolSort())
+  {
+    yylhs.value.as <  std::shared_ptr<const logic::Term>  > () = logic::Formulas::predicate(symbol, std::move(yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::Term>>  > ()));
+  }
+  else
+  {
+    yylhs.value.as <  std::shared_ptr<const logic::Term>  > () = logic::Terms::func(symbol, std::move(yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::Term>>  > ()));
+  }
 }
-#line 1356 "../src/parser/WhileParser.cpp"
+#line 1277 "../src/parser/WhileParser.cpp"
     break;
 
   case 18:
-#line 242 "WhileParser.yy"
-{
-  if(yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort != logic::Sorts::intSort())
+#line 279 "WhileParser.yy"
+    {
+  if (yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort != logic::Sorts::intSort())
   {
     error(yystack_[2].location, "Left argument type needs to be Int");
   }
-  if(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort != logic::Sorts::intSort())
+  if (yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort != logic::Sorts::intSort())
   {
     error(yystack_[1].location, "Right argument type needs to be Int");
-  } 
-  yylhs.value.as <  std::shared_ptr<const logic::Formula>  > () = logic::Theory::intGreaterEqual(std::move(yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()), std::move(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()));
+  }
+  yylhs.value.as <  std::shared_ptr<const logic::Term>  > () = logic::Theory::intAddition(std::move(yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()), std::move(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()));
 }
-#line 1372 "../src/parser/WhileParser.cpp"
+#line 1293 "../src/parser/WhileParser.cpp"
     break;
 
   case 19:
-#line 254 "WhileParser.yy"
-{ 
-  if(yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort != logic::Sorts::intSort())
+#line 291 "WhileParser.yy"
+    {
+  if (yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort != logic::Sorts::intSort())
   {
     error(yystack_[2].location, "Left argument type needs to be Int");
   }
-  if(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort != logic::Sorts::intSort())
+  if (yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort != logic::Sorts::intSort())
   {
     error(yystack_[1].location, "Right argument type needs to be Int");
-  } 
-  yylhs.value.as <  std::shared_ptr<const logic::Formula>  > () = logic::Theory::intLess(std::move(yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()), std::move(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()));
+  }
+  yylhs.value.as <  std::shared_ptr<const logic::Term>  > () = logic::Theory::intSubtraction(std::move(yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()), std::move(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()));
 }
-#line 1388 "../src/parser/WhileParser.cpp"
+#line 1309 "../src/parser/WhileParser.cpp"
     break;
 
   case 20:
-#line 266 "WhileParser.yy"
-{ 
-  if(yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort != logic::Sorts::intSort())
+#line 303 "WhileParser.yy"
+    {
+  if (yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort != logic::Sorts::intSort())
   {
     error(yystack_[2].location, "Left argument type needs to be Int");
   }
-  if(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort != logic::Sorts::intSort())
+  if (yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort != logic::Sorts::intSort())
   {
     error(yystack_[1].location, "Right argument type needs to be Int");
-  } 
-  yylhs.value.as <  std::shared_ptr<const logic::Formula>  > () = logic::Theory::intLessEqual(std::move(yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()), std::move(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()));
+  }
+  yylhs.value.as <  std::shared_ptr<const logic::Term>  > () = logic::Theory::intModulo(std::move(yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()), std::move(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()));
 }
-#line 1404 "../src/parser/WhileParser.cpp"
+#line 1325 "../src/parser/WhileParser.cpp"
     break;
 
   case 21:
-#line 277 "WhileParser.yy"
-                                             { yylhs.value.as <  std::shared_ptr<const logic::Formula>  > () = logic::Formulas::conjunction(std::move(yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::Formula>>  > ()));}
-#line 1410 "../src/parser/WhileParser.cpp"
+#line 315 "WhileParser.yy"
+    {
+  if (yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort != logic::Sorts::intSort())
+  {
+    error(yystack_[2].location, "Left argument type needs to be Int");
+  }
+  if (yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort != logic::Sorts::intSort())
+  {
+    error(yystack_[1].location, "Right argument type needs to be Int");
+  }
+  yylhs.value.as <  std::shared_ptr<const logic::Term>  > () = logic::Theory::intMultiplication(std::move(yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()), std::move(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()));
+}
+#line 1341 "../src/parser/WhileParser.cpp"
     break;
 
   case 22:
-#line 278 "WhileParser.yy"
-                                             { yylhs.value.as <  std::shared_ptr<const logic::Formula>  > () = logic::Formulas::disjunction(std::move(yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::Formula>>  > ()));}
-#line 1416 "../src/parser/WhileParser.cpp"
+#line 326 "WhileParser.yy"
+    { yylhs.value.as <  std::shared_ptr<const logic::Term>  > () = logic::Theory::boolTrue();}
+#line 1347 "../src/parser/WhileParser.cpp"
     break;
 
   case 23:
-#line 279 "WhileParser.yy"
-                                             { yylhs.value.as <  std::shared_ptr<const logic::Formula>  > () = logic::Formulas::negation(std::move(yystack_[1].value.as <  std::shared_ptr<const logic::Formula>  > ()));}
-#line 1422 "../src/parser/WhileParser.cpp"
+#line 327 "WhileParser.yy"
+    { yylhs.value.as <  std::shared_ptr<const logic::Term>  > () = logic::Theory::boolFalse();}
+#line 1353 "../src/parser/WhileParser.cpp"
     break;
 
   case 24:
-#line 280 "WhileParser.yy"
-                                                     { yylhs.value.as <  std::shared_ptr<const logic::Formula>  > () = logic::Formulas::implication(std::move(yystack_[2].value.as <  std::shared_ptr<const logic::Formula>  > ()), std::move(yystack_[1].value.as <  std::shared_ptr<const logic::Formula>  > ()));}
-#line 1428 "../src/parser/WhileParser.cpp"
+#line 329 "WhileParser.yy"
+    {
+    auto leftSort = yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort;
+    auto rightSort = yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort;
+
+    if (leftSort != rightSort)
+    {
+      error(yystack_[1].location, "Argument types " + leftSort->name + " and " + rightSort->name + " don't match!");
+    }
+    yylhs.value.as <  std::shared_ptr<const logic::Term>  > () = logic::Formulas::equality(std::move(yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()), std::move(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()));
+  }
+#line 1368 "../src/parser/WhileParser.cpp"
     break;
 
   case 25:
-#line 282 "WhileParser.yy"
+#line 340 "WhileParser.yy"
+    {
+  if (yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort != logic::Sorts::intSort())
   {
-    // TODO: propagate existing-var-error to parser and raise error
-    context.pushQuantifiedVars(yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::Symbol>>  > ());
+    error(yystack_[2].location, "Left argument type needs to be Int");
   }
-#line 1437 "../src/parser/WhileParser.cpp"
+  if (yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort != logic::Sorts::intSort())
+  {
+    error(yystack_[1].location, "Right argument type needs to be Int");
+  }
+  yylhs.value.as <  std::shared_ptr<const logic::Term>  > () = logic::Theory::intGreater(std::move(yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()), std::move(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()));
+}
+#line 1384 "../src/parser/WhileParser.cpp"
     break;
 
   case 26:
-#line 287 "WhileParser.yy"
-  { 
-    context.popQuantifiedVars();
-    yylhs.value.as <  std::shared_ptr<const logic::Formula>  > () = logic::Formulas::universal(std::move(yystack_[4].value.as <  std::vector<std::shared_ptr<const logic::Symbol>>  > ()), std::move(yystack_[1].value.as <  std::shared_ptr<const logic::Formula>  > ()));
+#line 352 "WhileParser.yy"
+    {
+  if (yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort != logic::Sorts::intSort())
+  {
+    error(yystack_[2].location, "Left argument type needs to be Int");
   }
-#line 1446 "../src/parser/WhileParser.cpp"
+  if (yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort != logic::Sorts::intSort())
+  {
+    error(yystack_[1].location, "Right argument type needs to be Int");
+  }
+  yylhs.value.as <  std::shared_ptr<const logic::Term>  > () = logic::Theory::intGreaterEqual(std::move(yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()), std::move(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()));
+}
+#line 1400 "../src/parser/WhileParser.cpp"
     break;
 
   case 27:
-#line 292 "WhileParser.yy"
+#line 364 "WhileParser.yy"
+    {
+  if (yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort != logic::Sorts::intSort())
   {
-    // TODO: propagate existing-var-error to parser and raise error
-    context.pushQuantifiedVars(yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::Symbol>>  > ());
+    error(yystack_[2].location, "Left argument type needs to be Int");
   }
-#line 1455 "../src/parser/WhileParser.cpp"
+  if (yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort != logic::Sorts::intSort())
+  {
+    error(yystack_[1].location, "Right argument type needs to be Int");
+  }
+  yylhs.value.as <  std::shared_ptr<const logic::Term>  > () = logic::Theory::intLess(std::move(yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()), std::move(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()));
+}
+#line 1416 "../src/parser/WhileParser.cpp"
     break;
 
   case 28:
-#line 297 "WhileParser.yy"
-  { 
-    context.popQuantifiedVars();
-    yylhs.value.as <  std::shared_ptr<const logic::Formula>  > () = logic::Formulas::existential(std::move(yystack_[4].value.as <  std::vector<std::shared_ptr<const logic::Symbol>>  > ()), std::move(yystack_[1].value.as <  std::shared_ptr<const logic::Formula>  > ()));
+#line 376 "WhileParser.yy"
+    {
+  if (yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort != logic::Sorts::intSort())
+  {
+    error(yystack_[2].location, "Left argument type needs to be Int");
   }
-#line 1464 "../src/parser/WhileParser.cpp"
+  if (yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort != logic::Sorts::intSort())
+  {
+    error(yystack_[1].location, "Right argument type needs to be Int");
+  }
+  yylhs.value.as <  std::shared_ptr<const logic::Term>  > () = logic::Theory::intLessEqual(std::move(yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()), std::move(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()));
+}
+#line 1432 "../src/parser/WhileParser.cpp"
     break;
 
   case 29:
-#line 304 "WhileParser.yy"
-                  {auto vec = std::vector<std::shared_ptr<const logic::Symbol>>(); vec.push_back(std::move(yystack_[0].value.as <  std::shared_ptr<const logic::Symbol>  > ())); yylhs.value.as <  std::vector<std::shared_ptr<const logic::Symbol>>  > () = std::move(vec);}
-#line 1470 "../src/parser/WhileParser.cpp"
+#line 387 "WhileParser.yy"
+    { yylhs.value.as <  std::shared_ptr<const logic::Term>  > () = logic::Formulas::conjunction(std::move(yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::Term>>  > ()));}
+#line 1438 "../src/parser/WhileParser.cpp"
     break;
 
   case 30:
-#line 305 "WhileParser.yy"
-                                       {yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::Symbol>>  > ().push_back(std::move(yystack_[0].value.as <  std::shared_ptr<const logic::Symbol>  > ())); yylhs.value.as <  std::vector<std::shared_ptr<const logic::Symbol>>  > () = std::move(yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::Symbol>>  > ());}
-#line 1476 "../src/parser/WhileParser.cpp"
+#line 388 "WhileParser.yy"
+    { yylhs.value.as <  std::shared_ptr<const logic::Term>  > () = logic::Formulas::disjunction(std::move(yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::Term>>  > ()));}
+#line 1444 "../src/parser/WhileParser.cpp"
     break;
 
   case 31:
-#line 310 "WhileParser.yy"
-  { 
-    if(context.isDeclared(yystack_[2].value.as < std::string > ()))
+#line 389 "WhileParser.yy"
+    { yylhs.value.as <  std::shared_ptr<const logic::Term>  > () = logic::Formulas::negation(std::move(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()));}
+#line 1450 "../src/parser/WhileParser.cpp"
+    break;
+
+  case 32:
+#line 390 "WhileParser.yy"
+    { yylhs.value.as <  std::shared_ptr<const logic::Term>  > () = logic::Formulas::implication(std::move(yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()), std::move(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()));}
+#line 1456 "../src/parser/WhileParser.cpp"
+    break;
+
+  case 33:
+#line 392 "WhileParser.yy"
+    {
+    // TODO: propagate existing-var-error to parser and raise error
+    parsing_context.pushQuantifiedVars(yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::Symbol>>  > ());
+  }
+#line 1465 "../src/parser/WhileParser.cpp"
+    break;
+
+  case 34:
+#line 397 "WhileParser.yy"
+    { 
+    parsing_context.popQuantifiedVars();
+    yylhs.value.as <  std::shared_ptr<const logic::Term>  > () = logic::Formulas::universal(std::move(yystack_[4].value.as <  std::vector<std::shared_ptr<const logic::Symbol>>  > ()), std::move(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()));
+  }
+#line 1474 "../src/parser/WhileParser.cpp"
+    break;
+
+  case 35:
+#line 402 "WhileParser.yy"
+    {
+    // TODO: propagate existing-var-error to parser and raise error
+    parsing_context.pushQuantifiedVars(yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::Symbol>>  > ());
+  }
+#line 1483 "../src/parser/WhileParser.cpp"
+    break;
+
+  case 36:
+#line 407 "WhileParser.yy"
+    { 
+    parsing_context.popQuantifiedVars();
+    yylhs.value.as <  std::shared_ptr<const logic::Term>  > () = logic::Formulas::existential(std::move(yystack_[4].value.as <  std::vector<std::shared_ptr<const logic::Symbol>>  > ()), std::move(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()));
+  }
+#line 1492 "../src/parser/WhileParser.cpp"
+    break;
+
+  case 37:
+#line 414 "WhileParser.yy"
+    {auto vec = std::vector<std::shared_ptr<const logic::Symbol>>(); vec.push_back(std::move(yystack_[0].value.as <  std::shared_ptr<const logic::Symbol>  > ())); yylhs.value.as <  std::vector<std::shared_ptr<const logic::Symbol>>  > () = std::move(vec);}
+#line 1498 "../src/parser/WhileParser.cpp"
+    break;
+
+  case 38:
+#line 415 "WhileParser.yy"
+    {yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::Symbol>>  > ().push_back(std::move(yystack_[0].value.as <  std::shared_ptr<const logic::Symbol>  > ())); yylhs.value.as <  std::vector<std::shared_ptr<const logic::Symbol>>  > () = std::move(yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::Symbol>>  > ());}
+#line 1504 "../src/parser/WhileParser.cpp"
+    break;
+
+  case 39:
+#line 420 "WhileParser.yy"
+    { 
+    if(parsing_context.isDeclared(yystack_[2].value.as < std::string > ()))
     {
       error(yystack_[2].location, yystack_[2].value.as < std::string > () + " has already been declared");
     }
-    if(yystack_[1].value.as < std::string > () == "Int")
-    { 
+    if (yystack_[1].value.as < std::string > () == "Int")
+    {
       yylhs.value.as <  std::shared_ptr<const logic::Symbol>  > () = logic::Signature::varSymbol(yystack_[2].value.as < std::string > (), logic::Sorts::intSort());
     }
-    else if(yystack_[1].value.as < std::string > () == "Bool")
+    else if (yystack_[1].value.as < std::string > () == "Bool")
     {
       yylhs.value.as <  std::shared_ptr<const logic::Symbol>  > () = logic::Signature::varSymbol(yystack_[2].value.as < std::string > (), logic::Sorts::boolSort());
     }
-    else if(yystack_[1].value.as < std::string > () == "Nat")
+    else if (yystack_[1].value.as < std::string > () == "Nat")
     {
       yylhs.value.as <  std::shared_ptr<const logic::Symbol>  > () = logic::Signature::varSymbol(yystack_[2].value.as < std::string > (), logic::Sorts::natSort());
     }
-    else if(yystack_[1].value.as < std::string > () == "Time")
+    else if (yystack_[1].value.as < std::string > () == "Time")
     {
       yylhs.value.as <  std::shared_ptr<const logic::Symbol>  > () = logic::Signature::varSymbol(yystack_[2].value.as < std::string > (), logic::Sorts::timeSort());
     }
     else
     {
-      if(yystack_[1].value.as < std::string > () != "Trace")
+      if (yystack_[1].value.as < std::string > () != "Trace")
       {
         error(yystack_[1].location, "Only the sorts Int, Bool, Time and Trace are supported");
       }
       yylhs.value.as <  std::shared_ptr<const logic::Symbol>  > () = logic::Signature::varSymbol(yystack_[2].value.as < std::string > (), logic::Sorts::traceSort());
     }
   }
-#line 1511 "../src/parser/WhileParser.cpp"
-    break;
-
-  case 32:
-#line 343 "WhileParser.yy"
-              {yylhs.value.as <  std::vector<std::shared_ptr<const logic::Term>>  > () = std::vector<std::shared_ptr<const logic::Term>>(); yylhs.value.as <  std::vector<std::shared_ptr<const logic::Term>>  > ().push_back(yystack_[0].value.as <  std::shared_ptr<const logic::Term>  > ());}
-#line 1517 "../src/parser/WhileParser.cpp"
-    break;
-
-  case 33:
-#line 344 "WhileParser.yy"
-                               {yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::Term>>  > ().push_back(std::move(yystack_[0].value.as <  std::shared_ptr<const logic::Term>  > ())); yylhs.value.as <  std::vector<std::shared_ptr<const logic::Term>>  > () = std::move(yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::Term>>  > ());}
-#line 1523 "../src/parser/WhileParser.cpp"
-    break;
-
-  case 34:
-#line 349 "WhileParser.yy"
-{
-  if(!context.isDeclared(yystack_[0].value.as < std::string > ()))
-  {
-    error(yystack_[0].location, yystack_[0].value.as < std::string > () + " has not been declared");
-  }
-  auto symbol = context.fetch(yystack_[0].value.as < std::string > ()); 
-
-  if(symbol->argSorts.size() > 0)
-  {
-      error(yystack_[0].location, "Not enough arguments for term " + symbol->name);
-  }
-  yylhs.value.as <  std::shared_ptr<const logic::Term>  > () = logic::Terms::func(symbol, std::vector<std::shared_ptr<const logic::Term>>());
-}
-#line 1541 "../src/parser/WhileParser.cpp"
-    break;
-
-  case 35:
-#line 363 "WhileParser.yy"
-  {
-    yylhs.value.as <  std::shared_ptr<const logic::Term>  > () = logic::Theory::intConstant(yystack_[0].value.as < int > ());
-  }
-#line 1549 "../src/parser/WhileParser.cpp"
-    break;
-
-  case 36:
-#line 367 "WhileParser.yy"
-{
-  if(!context.isDeclared(yystack_[2].value.as < std::string > ()))
-  {
-    error(yystack_[2].location, yystack_[2].value.as < std::string > () + " has not been declared");
-  }
-  auto symbol = context.fetch(yystack_[2].value.as < std::string > ()); 
-
-  if(yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::Term>>  > ().size() < symbol->argSorts.size())
-  {
-      error(yystack_[1].location, "Not enough arguments for term " + symbol->name);
-  }
-  if(yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::Term>>  > ().size() > symbol->argSorts.size())
-  {
-      error(yystack_[1].location, "Too many arguments for term " + symbol->name);
-  }
-  for (int i=0; i < symbol->argSorts.size(); ++i)
-  {
-      if(symbol->argSorts[i] != yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::Term>>  > ()[i]->symbol->rngSort)
-      {
-        error(yystack_[1].location, "Argument has type " + yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::Term>>  > ()[i]->symbol->rngSort->name + " instead of " + symbol->argSorts[i]->name);
-      }
-  }
-  yylhs.value.as <  std::shared_ptr<const logic::Term>  > () = logic::Terms::func(symbol, std::move(yystack_[1].value.as <  std::vector<std::shared_ptr<const logic::Term>>  > ()));
-}
-#line 1578 "../src/parser/WhileParser.cpp"
-    break;
-
-  case 37:
-#line 392 "WhileParser.yy"
-{
-  if(yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort != logic::Sorts::intSort())
-  {
-    error(yystack_[2].location, "Left argument type needs to be Int");
-  }
-  if(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort != logic::Sorts::intSort())
-  {
-    error(yystack_[1].location, "Right argument type needs to be Int");
-  } 
-  yylhs.value.as <  std::shared_ptr<const logic::Term>  > () = logic::Theory::intAddition(std::move(yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()), std::move(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()));
-}
-#line 1594 "../src/parser/WhileParser.cpp"
-    break;
-
-  case 38:
-#line 404 "WhileParser.yy"
-{
-  if(yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort != logic::Sorts::intSort())
-  {
-    error(yystack_[2].location, "Left argument type needs to be Int");
-  }
-  if(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort != logic::Sorts::intSort())
-  {
-    error(yystack_[1].location, "Right argument type needs to be Int");
-  } 
-  yylhs.value.as <  std::shared_ptr<const logic::Term>  > () = logic::Theory::intSubtraction(std::move(yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()), std::move(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()));
-}
-#line 1610 "../src/parser/WhileParser.cpp"
-    break;
-
-  case 39:
-#line 416 "WhileParser.yy"
-{
-  if(yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort != logic::Sorts::intSort())
-  {
-    error(yystack_[2].location, "Left argument type needs to be Int");
-  }
-  if(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort != logic::Sorts::intSort())
-  {
-    error(yystack_[1].location, "Right argument type needs to be Int");
-  } 
-  yylhs.value.as <  std::shared_ptr<const logic::Term>  > () = logic::Theory::intModulo(std::move(yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()), std::move(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()));
-}
-#line 1626 "../src/parser/WhileParser.cpp"
+#line 1539 "../src/parser/WhileParser.cpp"
     break;
 
   case 40:
-#line 428 "WhileParser.yy"
-{
-  if(yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort != logic::Sorts::intSort())
-  {
-    error(yystack_[2].location, "Left argument type needs to be Int");
-  }
-  if(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()->symbol->rngSort != logic::Sorts::intSort())
-  {
-    error(yystack_[1].location, "Right argument type needs to be Int");
-  } 
-  yylhs.value.as <  std::shared_ptr<const logic::Term>  > () = logic::Theory::intMultiplication(std::move(yystack_[2].value.as <  std::shared_ptr<const logic::Term>  > ()), std::move(yystack_[1].value.as <  std::shared_ptr<const logic::Term>  > ()));
-}
-#line 1642 "../src/parser/WhileParser.cpp"
+#line 453 "WhileParser.yy"
+    {auto v = std::vector< std::shared_ptr<program::Function>>(); v.push_back(std::move(yystack_[0].value.as <  std::shared_ptr<program::Function>  > ())); yylhs.value.as <  std::vector< std::shared_ptr<program::Function>>  > () = std::move(v);}
+#line 1545 "../src/parser/WhileParser.cpp"
     break;
 
   case 41:
-#line 442 "WhileParser.yy"
-                          {auto v = std::vector< std::shared_ptr<const program::Function>>(); v.push_back(std::move(yystack_[0].value.as <  std::shared_ptr<const program::Function>  > ())); yylhs.value.as <  std::vector< std::shared_ptr<const program::Function>>  > () = std::move(v);}
-#line 1648 "../src/parser/WhileParser.cpp"
+#line 454 "WhileParser.yy"
+    {yystack_[1].value.as <  std::vector< std::shared_ptr<program::Function>>  > ().push_back(std::move(yystack_[0].value.as <  std::shared_ptr<program::Function>  > ())); yylhs.value.as <  std::vector< std::shared_ptr<program::Function>>  > () = std::move(yystack_[1].value.as <  std::vector< std::shared_ptr<program::Function>>  > ());}
+#line 1551 "../src/parser/WhileParser.cpp"
     break;
 
   case 42:
-#line 443 "WhileParser.yy"
-                          {yystack_[1].value.as <  std::vector< std::shared_ptr<const program::Function>>  > ().push_back(std::move(yystack_[0].value.as <  std::shared_ptr<const program::Function>  > ())); yylhs.value.as <  std::vector< std::shared_ptr<const program::Function>>  > () = std::move(yystack_[1].value.as <  std::vector< std::shared_ptr<const program::Function>>  > ());}
-#line 1654 "../src/parser/WhileParser.cpp"
+#line 459 "WhileParser.yy"
+    {
+    parsing_context.pushProgramVars();
+  }
+#line 1559 "../src/parser/WhileParser.cpp"
     break;
 
   case 43:
-#line 448 "WhileParser.yy"
-  {
-    context.pushProgramVars();
+#line 463 "WhileParser.yy"
+    {
+    auto functionEndLocationName = yystack_[6].value.as < std::string > () + "_end";
+    parsing_context.locationToActiveVars[functionEndLocationName] = parsing_context.getActiveProgramVars();
+    parsing_context.popProgramVars();
+
+  	auto function = std::shared_ptr<program::Function>(new program::Function(yystack_[6].value.as < std::string > (), std::move(yystack_[1].value.as <  std::vector<std::shared_ptr<program::Statement>>  > ())));
+
+    // compute enclosing loops
+    parsing_context.addEnclosingLoops(*function);
+    yylhs.value.as <  std::shared_ptr<program::Function>  > () = function;
+
+    // declare symbols for loops (needs to be done here, since it depends on enclosingLoops)
+    declareSymbolsForFunction(function.get(), parsing_context.numberOfTraces);
   }
-#line 1662 "../src/parser/WhileParser.cpp"
+#line 1578 "../src/parser/WhileParser.cpp"
     break;
 
   case 44:
-#line 452 "WhileParser.yy"
-  {
-    auto functionEndLocationName = yystack_[6].value.as < std::string > () + "_end";
-    context.locationToActiveVars[functionEndLocationName] = context.getActiveProgramVars();
-    context.popProgramVars();
-
-  	auto function = std::shared_ptr<const program::Function>(new program::Function(yystack_[6].value.as < std::string > (), std::move(yystack_[1].value.as <  std::vector<std::shared_ptr<const program::Statement>>  > ())));
-
-    // compute enclosing loops
-    context.addEnclosingLoops(*function);
-    yylhs.value.as <  std::shared_ptr<const program::Function>  > () = function;
-
-    // declare symbols for loops (needs to be done here, since it depends on enclosingLoops)
-    declareSymbolsForFunction(function.get(), context.numberOfTraces);
-  }
-#line 1681 "../src/parser/WhileParser.cpp"
+#line 480 "WhileParser.yy"
+    {yylhs.value.as <  std::vector<std::shared_ptr<program::Statement>>  > () = std::vector<std::shared_ptr<program::Statement>>();}
+#line 1584 "../src/parser/WhileParser.cpp"
     break;
 
   case 45:
-#line 469 "WhileParser.yy"
-         {yylhs.value.as <  std::vector<std::shared_ptr<const program::Statement>>  > () = std::vector<std::shared_ptr<const program::Statement>>();}
-#line 1687 "../src/parser/WhileParser.cpp"
+#line 482 "WhileParser.yy"
+    {
+    auto locationName = yystack_[0].value.as <  std::shared_ptr<program::Statement>  > ()->location;
+    parsing_context.locationToActiveVars[locationName] = yystack_[1].value.as <  std::vector<std::shared_ptr<program::Variable>>  > ();
+    yystack_[2].value.as <  std::vector<std::shared_ptr<program::Statement>>  > ().push_back(std::move(yystack_[0].value.as <  std::shared_ptr<program::Statement>  > ())); yylhs.value.as <  std::vector<std::shared_ptr<program::Statement>>  > () = std::move(yystack_[2].value.as <  std::vector<std::shared_ptr<program::Statement>>  > ());
+  }
+#line 1594 "../src/parser/WhileParser.cpp"
     break;
 
   case 46:
-#line 471 "WhileParser.yy"
-  {
-    auto locationName = yystack_[0].value.as <  std::shared_ptr<const program::Statement>  > ()->location;
-    context.locationToActiveVars[locationName] = yystack_[1].value.as <  std::vector<std::shared_ptr<const program::Variable>>  > ();
-    yystack_[2].value.as <  std::vector<std::shared_ptr<const program::Statement>>  > ().push_back(std::move(yystack_[0].value.as <  std::shared_ptr<const program::Statement>  > ())); yylhs.value.as <  std::vector<std::shared_ptr<const program::Statement>>  > () = std::move(yystack_[2].value.as <  std::vector<std::shared_ptr<const program::Statement>>  > ());
+#line 488 "WhileParser.yy"
+    {
+    // dummy is not used here, but silences a shift-reduce conflict
+    parsing_context.addProgramVar(yystack_[1].value.as <  std::shared_ptr<program::Variable>  > ());
+    declareSymbolForProgramVar(yystack_[1].value.as <  std::shared_ptr<program::Variable>  > ().get());
+    yylhs.value.as <  std::vector<std::shared_ptr<program::Statement>>  > () = std::move(yystack_[3].value.as <  std::vector<std::shared_ptr<program::Statement>>  > ());
   }
-#line 1697 "../src/parser/WhileParser.cpp"
+#line 1605 "../src/parser/WhileParser.cpp"
     break;
 
   case 47:
-#line 477 "WhileParser.yy"
-  {
-    // dummy is not used here, but silences a shift-reduce conflict
-    context.addProgramVar(yystack_[1].value.as <  std::shared_ptr<const program::Variable>  > ());
-    declareSymbolForProgramVar(yystack_[1].value.as <  std::shared_ptr<const program::Variable>  > ().get());
-    yylhs.value.as <  std::vector<std::shared_ptr<const program::Statement>>  > () = std::move(yystack_[3].value.as <  std::vector<std::shared_ptr<const program::Statement>>  > ());
-  }
-#line 1708 "../src/parser/WhileParser.cpp"
+#line 497 "WhileParser.yy"
+    {yylhs.value.as <  std::shared_ptr<program::Statement>  > () = std::move(yystack_[0].value.as <  std::shared_ptr<program::Assignment>  > ());}
+#line 1611 "../src/parser/WhileParser.cpp"
     break;
 
   case 48:
-#line 486 "WhileParser.yy"
-                       {yylhs.value.as <  std::shared_ptr<const program::Statement>  > () = std::move(yystack_[0].value.as <  std::shared_ptr<const program::IntAssignment>  > ());}
-#line 1714 "../src/parser/WhileParser.cpp"
+#line 498 "WhileParser.yy"
+    {yylhs.value.as <  std::shared_ptr<program::Statement>  > () = std::move(yystack_[0].value.as <  std::shared_ptr<program::IfElseStatement>  > ());}
+#line 1617 "../src/parser/WhileParser.cpp"
     break;
 
   case 49:
-#line 487 "WhileParser.yy"
-                    {yylhs.value.as <  std::shared_ptr<const program::Statement>  > () = std::move(yystack_[0].value.as <  std::shared_ptr<const program::IfElse>  > ());}
-#line 1720 "../src/parser/WhileParser.cpp"
+#line 499 "WhileParser.yy"
+    {yylhs.value.as <  std::shared_ptr<program::Statement>  > () = std::move(yystack_[0].value.as <  std::shared_ptr<program::WhileStatement>  > ());}
+#line 1623 "../src/parser/WhileParser.cpp"
     break;
 
   case 50:
-#line 488 "WhileParser.yy"
-                  {yylhs.value.as <  std::shared_ptr<const program::Statement>  > () = std::move(yystack_[0].value.as <  std::shared_ptr<const program::WhileStatement>  > ());}
-#line 1726 "../src/parser/WhileParser.cpp"
+#line 500 "WhileParser.yy"
+    {yylhs.value.as <  std::shared_ptr<program::Statement>  > () = std::move(yystack_[0].value.as <  std::shared_ptr<program::BreakStatement>  > ());}
+#line 1629 "../src/parser/WhileParser.cpp"
     break;
 
   case 51:
-#line 489 "WhileParser.yy"
-                 {yylhs.value.as <  std::shared_ptr<const program::Statement>  > () = std::move(yystack_[0].value.as <  std::shared_ptr<const program::SkipStatement>  > ());}
-#line 1732 "../src/parser/WhileParser.cpp"
+#line 501 "WhileParser.yy"
+    {yylhs.value.as <  std::shared_ptr<program::Statement>  > () = std::move(yystack_[0].value.as <  std::shared_ptr<program::ContinueStatement>  > ());}
+#line 1635 "../src/parser/WhileParser.cpp"
     break;
 
   case 52:
-#line 494 "WhileParser.yy"
-  {
-    if(yystack_[3].value.as <  std::shared_ptr<const program::IntExpression>  > ()->type() == IntExpression::Type::IntVariableAccess)
+#line 502 "WhileParser.yy"
+    {yylhs.value.as <  std::shared_ptr<program::Statement>  > () = std::move(yystack_[0].value.as <  std::shared_ptr<program::ReturnStatement>  > ());}
+#line 1641 "../src/parser/WhileParser.cpp"
+    break;
+
+  case 53:
+#line 503 "WhileParser.yy"
+    {yylhs.value.as <  std::shared_ptr<program::Statement>  > () = std::move(yystack_[0].value.as <  std::shared_ptr<program::SkipStatement>  > ());}
+#line 1647 "../src/parser/WhileParser.cpp"
+    break;
+
+  case 54:
+#line 508 "WhileParser.yy"
     {
-      auto intVariableAccess = std::static_pointer_cast<const program::IntVariableAccess>(yystack_[3].value.as <  std::shared_ptr<const program::IntExpression>  > ());
-      if(intVariableAccess->var->isConstant)
+    if (typeid(*yystack_[3].value.as <  std::shared_ptr<program::Expression>  > ()) == typeid(VariableAccess))
+    {
+      auto variableAccess = std::static_pointer_cast<program::VariableAccess>(yystack_[3].value.as <  std::shared_ptr<program::Expression>  > ());
+      if (variableAccess->var->isConstant)
       {
-        error(yystack_[3].location, "Assignment to const var " + intVariableAccess->var->name);
+        error(yystack_[3].location, "Assignment to const var " + variableAccess->var->name);
       }
     }
     else
     {
-      assert(yystack_[3].value.as <  std::shared_ptr<const program::IntExpression>  > ()->type() == IntExpression::Type::IntArrayApplication);
-      auto intArrayApplication = std::static_pointer_cast<const program::IntArrayApplication>(yystack_[3].value.as <  std::shared_ptr<const program::IntExpression>  > ());
-      if(intArrayApplication->array->isConstant)
+      assert(typeid(*yystack_[3].value.as <  std::shared_ptr<program::Expression>  > ()) == typeid(ArrayApplication));
+      auto arrayApplication = std::static_pointer_cast<program::ArrayApplication>(yystack_[3].value.as <  std::shared_ptr<program::Expression>  > ());
+      if (arrayApplication->array->isConstant)
       {
-        error(yystack_[3].location, "Assignment to const var " + intArrayApplication->array->name);
+        error(yystack_[3].location, "Assignment to const var " + arrayApplication->array->name);
       }
     }
-    yylhs.value.as <  std::shared_ptr<const program::IntAssignment>  > () = std::shared_ptr<const program::IntAssignment>(new program::IntAssignment(yystack_[2].location.begin.line, std::move(yystack_[3].value.as <  std::shared_ptr<const program::IntExpression>  > ()), std::move(yystack_[1].value.as <  std::shared_ptr<const program::IntExpression>  > ())));
+    yylhs.value.as <  std::shared_ptr<program::Assignment>  > () = std::shared_ptr<program::Assignment>(new program::Assignment(yystack_[2].location.begin.line, std::move(yystack_[3].value.as <  std::shared_ptr<program::Expression>  > ()), std::move(yystack_[1].value.as <  std::shared_ptr<program::Expression>  > ())));
   }
-#line 1757 "../src/parser/WhileParser.cpp"
-    break;
-
-  case 53:
-#line 515 "WhileParser.yy"
-  {
-    // declare var
-    context.addProgramVar(yystack_[3].value.as <  std::shared_ptr<const program::Variable>  > ());
-    declareSymbolForProgramVar(yystack_[3].value.as <  std::shared_ptr<const program::Variable>  > ().get());
-
-    // construct location
-    if(yystack_[3].value.as <  std::shared_ptr<const program::Variable>  > ()->isArray)
-    {
-      error(yystack_[3].location, "Combined declaration and assignment not allowed, since " + yystack_[3].value.as <  std::shared_ptr<const program::Variable>  > ()->name + " is array variable");
-    }
-    auto intVariableAccess = std::shared_ptr<const program::IntVariableAccess>(new IntVariableAccess(std::move(yystack_[3].value.as <  std::shared_ptr<const program::Variable>  > ())));
-   
-    // build assignment
-    yylhs.value.as <  std::shared_ptr<const program::IntAssignment>  > () = std::shared_ptr<const program::IntAssignment>(new program::IntAssignment(yystack_[2].location.begin.line, std::move(intVariableAccess), std::move(yystack_[1].value.as <  std::shared_ptr<const program::IntExpression>  > ())));
-  }
-#line 1777 "../src/parser/WhileParser.cpp"
-    break;
-
-  case 54:
-#line 534 "WhileParser.yy"
-  {
-    context.pushProgramVars();
-  }
-#line 1785 "../src/parser/WhileParser.cpp"
+#line 1672 "../src/parser/WhileParser.cpp"
     break;
 
   case 55:
-#line 538 "WhileParser.yy"
-  {
-    context.popProgramVars();
+#line 529 "WhileParser.yy"
+    {
+    // declare var
+    parsing_context.addProgramVar(yystack_[3].value.as <  std::shared_ptr<program::Variable>  > ());
+    declareSymbolForProgramVar(yystack_[3].value.as <  std::shared_ptr<program::Variable>  > ().get());
+
+    // construct location
+    if (yystack_[3].value.as <  std::shared_ptr<program::Variable>  > ()->isArray)
+    {
+      error(yystack_[3].location, "Combined declaration and assignment not allowed, since " + yystack_[3].value.as <  std::shared_ptr<program::Variable>  > ()->name + " is array variable");
+    }
+    auto variableAccess = std::shared_ptr<program::VariableAccess>(new VariableAccess(std::move(yystack_[3].value.as <  std::shared_ptr<program::Variable>  > ())));
+
+    // build assignment
+    yylhs.value.as <  std::shared_ptr<program::Assignment>  > () = std::shared_ptr<program::Assignment>(new program::Assignment(yystack_[2].location.begin.line, std::move(variableAccess), std::move(yystack_[1].value.as <  std::shared_ptr<program::Expression>  > ())));
   }
-#line 1793 "../src/parser/WhileParser.cpp"
+#line 1692 "../src/parser/WhileParser.cpp"
     break;
 
   case 56:
-#line 542 "WhileParser.yy"
-  {
-    context.pushProgramVars();
+#line 550 "WhileParser.yy"
+    {
+    auto leftEndLocationName = "l" + std::to_string(yystack_[9].location.begin.line) + "_lEnd";
+    auto rightEndLocationName = "l" + std::to_string(yystack_[9].location.begin.line) + "_rEnd";
+    parsing_context.locationToActiveVars[leftEndLocationName] = yystack_[2].value.as <  std::vector<std::shared_ptr<program::Variable>>  > ();
+    parsing_context.locationToActiveVars[rightEndLocationName] = parsing_context.getActiveProgramVars();
+    std::vector<std::shared_ptr<program::Statement>> emptyElse;
+    auto skipStatement = std::shared_ptr<program::SkipStatement>(new program::SkipStatement(0));
+    parsing_context.locationToActiveVars[skipStatement->location] = parsing_context.getActiveProgramVars();
+    emptyElse.push_back(std::move(skipStatement));
+    yylhs.value.as <  std::shared_ptr<program::IfElseStatement>  > () = std::shared_ptr<program::IfElseStatement>(new program::IfElseStatement(yystack_[9].location.begin.line, std::move(yystack_[7].value.as <  std::shared_ptr<program::Expression>  > ()), std::move(yystack_[3].value.as <  std::vector<std::shared_ptr<program::Statement>>  > ()), std::move(emptyElse)));
   }
-#line 1801 "../src/parser/WhileParser.cpp"
+#line 1708 "../src/parser/WhileParser.cpp"
     break;
 
   case 57:
-#line 546 "WhileParser.yy"
-  {
-    context.popProgramVars();
-
-    auto leftEndLocationName = "l" + std::to_string(yystack_[15].location.begin.line) + "_lEnd";
-    auto rightEndLocationName = "l" + std::to_string(yystack_[15].location.begin.line) + "_rEnd";
-    context.locationToActiveVars[leftEndLocationName] = yystack_[8].value.as <  std::vector<std::shared_ptr<const program::Variable>>  > ();
-    context.locationToActiveVars[rightEndLocationName] = yystack_[1].value.as <  std::vector<std::shared_ptr<const program::Variable>>  > ();
-    yylhs.value.as <  std::shared_ptr<const program::IfElse>  > () = std::shared_ptr<const program::IfElse>(new program::IfElse(yystack_[15].location.begin.line, std::move(yystack_[13].value.as <  std::shared_ptr<const program::BoolExpression>  > ()), std::move(yystack_[9].value.as <  std::vector<std::shared_ptr<const program::Statement>>  > ()), std::move(yystack_[2].value.as <  std::vector<std::shared_ptr<const program::Statement>>  > ())));
+#line 566 "WhileParser.yy"
+    {
+    auto leftEndLocationName = "l" + std::to_string(yystack_[16].location.begin.line) + "_lEnd";
+    auto rightEndLocationName = "l" + std::to_string(yystack_[16].location.begin.line) + "_rEnd";
+    parsing_context.locationToActiveVars[leftEndLocationName] = yystack_[9].value.as <  std::vector<std::shared_ptr<program::Variable>>  > ();
+    parsing_context.locationToActiveVars[rightEndLocationName] = yystack_[2].value.as <  std::vector<std::shared_ptr<program::Variable>>  > ();
+    yylhs.value.as <  std::shared_ptr<program::IfElseStatement>  > () = std::shared_ptr<program::IfElseStatement>(new program::IfElseStatement(yystack_[16].location.begin.line, std::move(yystack_[14].value.as <  std::shared_ptr<program::Expression>  > ()), std::move(yystack_[10].value.as <  std::vector<std::shared_ptr<program::Statement>>  > ()), std::move(yystack_[3].value.as <  std::vector<std::shared_ptr<program::Statement>>  > ())));
   }
-#line 1815 "../src/parser/WhileParser.cpp"
+#line 1720 "../src/parser/WhileParser.cpp"
     break;
 
   case 58:
-#line 559 "WhileParser.yy"
-  {
-    context.pushProgramVars();
+#line 577 "WhileParser.yy"
+    {
+    parsing_context.pushProgramVars();
   }
-#line 1823 "../src/parser/WhileParser.cpp"
+#line 1728 "../src/parser/WhileParser.cpp"
     break;
 
   case 59:
-#line 563 "WhileParser.yy"
-  {
-    context.popProgramVars();
-    yylhs.value.as <  std::shared_ptr<const program::WhileStatement>  > () = std::shared_ptr<const program::WhileStatement>(new program::WhileStatement(yystack_[5].location.begin.line, std::move(yystack_[4].value.as <  std::shared_ptr<const program::BoolExpression>  > ()), std::move(yystack_[1].value.as <  std::vector<std::shared_ptr<const program::Statement>>  > ())));
+#line 581 "WhileParser.yy"
+    {
+    parsing_context.popProgramVars();
+    yylhs.value.as <  std::shared_ptr<program::WhileStatement>  > () = std::shared_ptr<program::WhileStatement>(new program::WhileStatement(yystack_[5].location.begin.line, std::move(yystack_[4].value.as <  std::shared_ptr<program::Expression>  > ()), std::move(yystack_[1].value.as <  std::vector<std::shared_ptr<program::Statement>>  > ())));
   }
-#line 1832 "../src/parser/WhileParser.cpp"
+#line 1737 "../src/parser/WhileParser.cpp"
     break;
 
   case 60:
-#line 570 "WhileParser.yy"
-            {yylhs.value.as <  std::shared_ptr<const program::SkipStatement>  > () = std::shared_ptr<const program::SkipStatement>(new program::SkipStatement(yystack_[1].location.begin.line));}
-#line 1838 "../src/parser/WhileParser.cpp"
+#line 589 "WhileParser.yy"
+    {
+    yylhs.value.as <  std::shared_ptr<program::BreakStatement>  > () = std::shared_ptr<program::BreakStatement>(new program::BreakStatement(yystack_[0].location.begin.line));
+  }
+#line 1745 "../src/parser/WhileParser.cpp"
     break;
 
   case 61:
-#line 575 "WhileParser.yy"
-  {
-    yylhs.value.as <  std::vector<std::shared_ptr<const program::Variable>>  > () = context.getActiveProgramVars(); 
+#line 595 "WhileParser.yy"
+    {
+    yylhs.value.as <  std::shared_ptr<program::ContinueStatement>  > () = std::shared_ptr<program::ContinueStatement>(new program::ContinueStatement(yystack_[0].location.begin.line));
   }
-#line 1846 "../src/parser/WhileParser.cpp"
+#line 1753 "../src/parser/WhileParser.cpp"
     break;
 
   case 62:
-#line 582 "WhileParser.yy"
-  {
-    if(yystack_[1].value.as < std::string > () == "Bool")
+#line 601 "WhileParser.yy"
     {
-      error(yystack_[1].location, "Program variables of type Bool are not supported");
-    }
-    if(yystack_[1].value.as < std::string > () == "Nat" || yystack_[1].value.as < std::string > () == "Time" || yystack_[1].value.as < std::string > () == "Trace")
-    {
-      error(yystack_[1].location, "Program variables can't have type " + yystack_[1].value.as < std::string > ());
-    }
-    yylhs.value.as <  std::shared_ptr<const program::Variable>  > () = std::shared_ptr<const program::Variable>(new program::Variable(yystack_[0].value.as < std::string > (), false, false, context.numberOfTraces));
+    yylhs.value.as <  std::shared_ptr<program::ReturnStatement>  > () = std::shared_ptr<program::ReturnStatement>(new program::ReturnStatement(yystack_[1].location.begin.line, std::move(yystack_[1].value.as <  std::shared_ptr<program::Expression>  > ())));
   }
-#line 1862 "../src/parser/WhileParser.cpp"
+#line 1761 "../src/parser/WhileParser.cpp"
     break;
 
   case 63:
-#line 594 "WhileParser.yy"
-  {
-    if(yystack_[1].value.as < std::string > () == "Bool")
-    {
-      error(yystack_[2].location, "Program variables of type Bool are not supported");
-    }
-    if(yystack_[1].value.as < std::string > () == "Nat" || yystack_[1].value.as < std::string > () == "Time" || yystack_[1].value.as < std::string > () == "Trace")
-    {
-      error(yystack_[1].location, "Program variables can't have type " + yystack_[1].value.as < std::string > ());
-    }
-    yylhs.value.as <  std::shared_ptr<const program::Variable>  > () = std::shared_ptr<const program::Variable>(new program::Variable(yystack_[0].value.as < std::string > (), true, false, context.numberOfTraces));
-  }
-#line 1878 "../src/parser/WhileParser.cpp"
+#line 607 "WhileParser.yy"
+    {yylhs.value.as <  std::shared_ptr<program::SkipStatement>  > () = std::shared_ptr<program::SkipStatement>(new program::SkipStatement(yystack_[1].location.begin.line));}
+#line 1767 "../src/parser/WhileParser.cpp"
     break;
 
   case 64:
-#line 606 "WhileParser.yy"
-  {
-    if(yystack_[3].value.as < std::string > () == "Bool")
+#line 612 "WhileParser.yy"
     {
-      error(yystack_[3].location, "Program variables of type Bool are not supported");
-    }
-    if(yystack_[3].value.as < std::string > () == "Nat" || yystack_[3].value.as < std::string > () == "Time" || yystack_[3].value.as < std::string > () == "Trace")
-    {
-      error(yystack_[3].location, "Program variables can't have type " + yystack_[3].value.as < std::string > ());
-    }
-    yylhs.value.as <  std::shared_ptr<const program::Variable>  > () = std::shared_ptr<const program::Variable>(new program::Variable(yystack_[0].value.as < std::string > (), false, true, context.numberOfTraces));
+    yylhs.value.as <  std::vector<std::shared_ptr<program::Variable>>  > () = parsing_context.getActiveProgramVars();
   }
-#line 1894 "../src/parser/WhileParser.cpp"
+#line 1775 "../src/parser/WhileParser.cpp"
     break;
 
   case 65:
-#line 618 "WhileParser.yy"
-  {
-    if(yystack_[3].value.as < std::string > () == "Bool")
+#line 619 "WhileParser.yy"
     {
-      error(yystack_[4].location, "Program variables of type Bool are not supported");
-    }
-    if(yystack_[3].value.as < std::string > () == "Nat" || yystack_[3].value.as < std::string > () == "Time" || yystack_[3].value.as < std::string > () == "Trace")
-    {
-      error(yystack_[3].location, "Program variables can't have type " + yystack_[3].value.as < std::string > ());
-    }
-    yylhs.value.as <  std::shared_ptr<const program::Variable>  > () = std::shared_ptr<const program::Variable>(new program::Variable(yystack_[0].value.as < std::string > (), true, true, context.numberOfTraces));
+    parsing_context.pushProgramVars();
   }
-#line 1910 "../src/parser/WhileParser.cpp"
+#line 1783 "../src/parser/WhileParser.cpp"
     break;
 
   case 66:
-#line 632 "WhileParser.yy"
-                           { yylhs.value.as <  std::shared_ptr<const program::BoolExpression>  > () = std::move(yystack_[1].value.as <  std::shared_ptr<const program::BoolExpression>  > ()); }
-#line 1916 "../src/parser/WhileParser.cpp"
+#line 626 "WhileParser.yy"
+    {
+    parsing_context.popProgramVars();
+  }
+#line 1791 "../src/parser/WhileParser.cpp"
     break;
 
   case 67:
 #line 633 "WhileParser.yy"
-                           { yylhs.value.as <  std::shared_ptr<const program::BoolExpression>  > () = std::shared_ptr<const program::BooleanConstant>(new program::BooleanConstant(true)); }
-#line 1922 "../src/parser/WhileParser.cpp"
+    {
+    if (yystack_[1].value.as < std::string > () == "Bool")
+    {
+      yylhs.value.as <  std::shared_ptr<program::Variable>  > () = std::shared_ptr<program::Variable>(new program::BoolVariable(yystack_[0].value.as < std::string > (), false, false, parsing_context.numberOfTraces));
+    }
+    else if (yystack_[1].value.as < std::string > () == "Nat" || yystack_[1].value.as < std::string > () == "Time" || yystack_[1].value.as < std::string > () == "Trace")
+    {
+      error(yystack_[1].location, "Program variables can't have type " + yystack_[1].value.as < std::string > ());
+    }
+    else
+    {
+      yylhs.value.as <  std::shared_ptr<program::Variable>  > () = std::shared_ptr<program::Variable>(new program::IntVariable(yystack_[0].value.as < std::string > (), false, false, parsing_context.numberOfTraces));
+    }
+  }
+#line 1810 "../src/parser/WhileParser.cpp"
     break;
 
   case 68:
-#line 634 "WhileParser.yy"
-                           { yylhs.value.as <  std::shared_ptr<const program::BoolExpression>  > () = std::shared_ptr<const program::BooleanConstant>(new program::BooleanConstant(false)); }
-#line 1928 "../src/parser/WhileParser.cpp"
+#line 648 "WhileParser.yy"
+    {
+    if (yystack_[1].value.as < std::string > () == "Bool")
+    {
+      yylhs.value.as <  std::shared_ptr<program::Variable>  > () = std::shared_ptr<program::Variable>(new program::BoolVariable(yystack_[0].value.as < std::string > (), true, false, parsing_context.numberOfTraces));
+    }
+    else if (yystack_[1].value.as < std::string > () == "Nat" || yystack_[1].value.as < std::string > () == "Time" || yystack_[1].value.as < std::string > () == "Trace")
+    {
+      error(yystack_[1].location, "Program variables can't have type " + yystack_[1].value.as < std::string > ());
+    }
+    else
+    {
+      yylhs.value.as <  std::shared_ptr<program::Variable>  > () = std::shared_ptr<program::Variable>(new program::IntVariable(yystack_[0].value.as < std::string > (), true, false, parsing_context.numberOfTraces));
+    }
+  }
+#line 1829 "../src/parser/WhileParser.cpp"
     break;
 
   case 69:
-#line 635 "WhileParser.yy"
-                           { yylhs.value.as <  std::shared_ptr<const program::BoolExpression>  > () = std::shared_ptr<const program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::GT, std::move(yystack_[2].value.as <  std::shared_ptr<const program::IntExpression>  > ()), std::move(yystack_[0].value.as <  std::shared_ptr<const program::IntExpression>  > ())));}
-#line 1934 "../src/parser/WhileParser.cpp"
+#line 663 "WhileParser.yy"
+    {
+    if (yystack_[3].value.as < std::string > () == "Bool")
+    {
+      yylhs.value.as <  std::shared_ptr<program::Variable>  > () = std::shared_ptr<program::Variable>(new program::BoolVariable(yystack_[0].value.as < std::string > (), false, true, parsing_context.numberOfTraces));
+    }
+    else if (yystack_[3].value.as < std::string > () == "Nat" || yystack_[3].value.as < std::string > () == "Time" || yystack_[3].value.as < std::string > () == "Trace")
+    {
+      error(yystack_[3].location, "Program variables can't have type " + yystack_[3].value.as < std::string > ());
+    }
+    else
+    {
+      yylhs.value.as <  std::shared_ptr<program::Variable>  > () = std::shared_ptr<program::Variable>(new program::IntVariable(yystack_[0].value.as < std::string > (), false, true, parsing_context.numberOfTraces));
+    }
+  }
+#line 1848 "../src/parser/WhileParser.cpp"
     break;
 
   case 70:
-#line 636 "WhileParser.yy"
-                           { yylhs.value.as <  std::shared_ptr<const program::BoolExpression>  > () = std::shared_ptr<const program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::GE, std::move(yystack_[2].value.as <  std::shared_ptr<const program::IntExpression>  > ()), std::move(yystack_[0].value.as <  std::shared_ptr<const program::IntExpression>  > ())));}
-#line 1940 "../src/parser/WhileParser.cpp"
+#line 678 "WhileParser.yy"
+    {
+    if (yystack_[3].value.as < std::string > () == "Bool")
+    {
+      yylhs.value.as <  std::shared_ptr<program::Variable>  > () = std::shared_ptr<program::Variable>(new program::BoolVariable(yystack_[0].value.as < std::string > (), true, true, parsing_context.numberOfTraces));
+    }
+    else if (yystack_[3].value.as < std::string > () == "Nat" || yystack_[3].value.as < std::string > () == "Time" || yystack_[3].value.as < std::string > () == "Trace")
+    {
+      error(yystack_[3].location, "Program variables can't have type " + yystack_[3].value.as < std::string > ());
+    }
+    else
+    {
+      yylhs.value.as <  std::shared_ptr<program::Variable>  > () = std::shared_ptr<program::Variable>(new program::IntVariable(yystack_[0].value.as < std::string > (), true, true, parsing_context.numberOfTraces));
+    }
+  }
+#line 1867 "../src/parser/WhileParser.cpp"
     break;
 
   case 71:
-#line 637 "WhileParser.yy"
-                           { yylhs.value.as <  std::shared_ptr<const program::BoolExpression>  > () = std::shared_ptr<const program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::LT, std::move(yystack_[2].value.as <  std::shared_ptr<const program::IntExpression>  > ()), std::move(yystack_[0].value.as <  std::shared_ptr<const program::IntExpression>  > ())));}
-#line 1946 "../src/parser/WhileParser.cpp"
+#line 695 "WhileParser.yy"
+    { yylhs.value.as <  std::shared_ptr<program::Expression>  > () = std::move(yystack_[1].value.as <  std::shared_ptr<program::Expression>  > ()); }
+#line 1873 "../src/parser/WhileParser.cpp"
     break;
 
   case 72:
-#line 638 "WhileParser.yy"
-                           { yylhs.value.as <  std::shared_ptr<const program::BoolExpression>  > () = std::shared_ptr<const program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::LE, std::move(yystack_[2].value.as <  std::shared_ptr<const program::IntExpression>  > ()), std::move(yystack_[0].value.as <  std::shared_ptr<const program::IntExpression>  > ())));}
-#line 1952 "../src/parser/WhileParser.cpp"
+#line 696 "WhileParser.yy"
+    { yylhs.value.as <  std::shared_ptr<program::Expression>  > () = std::move(yystack_[0].value.as <  std::shared_ptr<program::Expression>  > ()); }
+#line 1879 "../src/parser/WhileParser.cpp"
     break;
 
   case 73:
-#line 639 "WhileParser.yy"
-                           { yylhs.value.as <  std::shared_ptr<const program::BoolExpression>  > () = std::shared_ptr<const program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::EQ, std::move(yystack_[2].value.as <  std::shared_ptr<const program::IntExpression>  > ()), std::move(yystack_[0].value.as <  std::shared_ptr<const program::IntExpression>  > ())));}
-#line 1958 "../src/parser/WhileParser.cpp"
+#line 697 "WhileParser.yy"
+    { yylhs.value.as <  std::shared_ptr<program::Expression>  > () = std::shared_ptr<program::BooleanConstant>(new program::BooleanConstant(true)); }
+#line 1885 "../src/parser/WhileParser.cpp"
     break;
 
   case 74:
-#line 640 "WhileParser.yy"
-                           { auto formula = std::shared_ptr<const program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::EQ, std::move(yystack_[2].value.as <  std::shared_ptr<const program::IntExpression>  > ()), std::move(yystack_[0].value.as <  std::shared_ptr<const program::IntExpression>  > ())));
-                             yylhs.value.as <  std::shared_ptr<const program::BoolExpression>  > () = std::shared_ptr<const program::BooleanNot>(new program::BooleanNot(std::move(formula)));}
-#line 1965 "../src/parser/WhileParser.cpp"
+#line 698 "WhileParser.yy"
+    { yylhs.value.as <  std::shared_ptr<program::Expression>  > () = std::shared_ptr<program::BooleanConstant>(new program::BooleanConstant(false)); }
+#line 1891 "../src/parser/WhileParser.cpp"
     break;
 
   case 75:
-#line 642 "WhileParser.yy"
-                           { yylhs.value.as <  std::shared_ptr<const program::BoolExpression>  > () = std::shared_ptr<const program::BooleanAnd>(new program::BooleanAnd(std::move(yystack_[2].value.as <  std::shared_ptr<const program::BoolExpression>  > ()), std::move(yystack_[0].value.as <  std::shared_ptr<const program::BoolExpression>  > ())));}
-#line 1971 "../src/parser/WhileParser.cpp"
+#line 699 "WhileParser.yy"
+    { yylhs.value.as <  std::shared_ptr<program::Expression>  > () = std::shared_ptr<program::ArithmeticConstant>(new program::ArithmeticConstant(std::move(yystack_[0].value.as < int > ())));}
+#line 1897 "../src/parser/WhileParser.cpp"
     break;
 
   case 76:
-#line 643 "WhileParser.yy"
-                           { yylhs.value.as <  std::shared_ptr<const program::BoolExpression>  > () = std::shared_ptr<const program::BooleanOr>(new program::BooleanOr(std::move(yystack_[2].value.as <  std::shared_ptr<const program::BoolExpression>  > ()), std::move(yystack_[0].value.as <  std::shared_ptr<const program::BoolExpression>  > ())));}
-#line 1977 "../src/parser/WhileParser.cpp"
+#line 700 "WhileParser.yy"
+    { yylhs.value.as <  std::shared_ptr<program::Expression>  > () = std::shared_ptr<program::Multiplication>(new program::Multiplication(std::move(yystack_[2].value.as <  std::shared_ptr<program::Expression>  > ()), std::move(yystack_[0].value.as <  std::shared_ptr<program::Expression>  > ())));}
+#line 1903 "../src/parser/WhileParser.cpp"
     break;
 
   case 77:
-#line 644 "WhileParser.yy"
-                           { yylhs.value.as <  std::shared_ptr<const program::BoolExpression>  > () = std::shared_ptr<const program::BooleanNot>(new program::BooleanNot(std::move(yystack_[0].value.as <  std::shared_ptr<const program::BoolExpression>  > ())));}
-#line 1983 "../src/parser/WhileParser.cpp"
+#line 701 "WhileParser.yy"
+    { yylhs.value.as <  std::shared_ptr<program::Expression>  > () = std::shared_ptr<program::Addition>(new program::Addition(std::move(yystack_[2].value.as <  std::shared_ptr<program::Expression>  > ()), std::move(yystack_[0].value.as <  std::shared_ptr<program::Expression>  > ())));}
+#line 1909 "../src/parser/WhileParser.cpp"
     break;
 
   case 78:
-#line 648 "WhileParser.yy"
-                           { yylhs.value.as <  std::shared_ptr<const program::IntExpression>  > () = std::move(yystack_[1].value.as <  std::shared_ptr<const program::IntExpression>  > ()); }
-#line 1989 "../src/parser/WhileParser.cpp"
+#line 702 "WhileParser.yy"
+    { yylhs.value.as <  std::shared_ptr<program::Expression>  > () = std::shared_ptr<program::Subtraction>(new program::Subtraction(std::move(yystack_[2].value.as <  std::shared_ptr<program::Expression>  > ()), std::move(yystack_[0].value.as <  std::shared_ptr<program::Expression>  > ())));}
+#line 1915 "../src/parser/WhileParser.cpp"
     break;
 
   case 79:
-#line 649 "WhileParser.yy"
-                           { yylhs.value.as <  std::shared_ptr<const program::IntExpression>  > () = std::move(yystack_[0].value.as <  std::shared_ptr<const program::IntExpression>  > ()); }
-#line 1995 "../src/parser/WhileParser.cpp"
+#line 703 "WhileParser.yy"
+    { yylhs.value.as <  std::shared_ptr<program::Expression>  > () = std::shared_ptr<program::Modulo>(new program::Modulo(std::move(yystack_[2].value.as <  std::shared_ptr<program::Expression>  > ()), std::move(yystack_[0].value.as <  std::shared_ptr<program::Expression>  > ())));}
+#line 1921 "../src/parser/WhileParser.cpp"
     break;
 
   case 80:
-#line 650 "WhileParser.yy"
-                           { yylhs.value.as <  std::shared_ptr<const program::IntExpression>  > () = std::shared_ptr<const program::ArithmeticConstant>(new program::ArithmeticConstant(std::move(yystack_[0].value.as < int > ())));}
-#line 2001 "../src/parser/WhileParser.cpp"
+#line 705 "WhileParser.yy"
+    { yylhs.value.as <  std::shared_ptr<program::Expression>  > () = std::shared_ptr<program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::GT, std::move(yystack_[2].value.as <  std::shared_ptr<program::Expression>  > ()), std::move(yystack_[0].value.as <  std::shared_ptr<program::Expression>  > ())));}
+#line 1927 "../src/parser/WhileParser.cpp"
     break;
 
   case 81:
-#line 651 "WhileParser.yy"
-                           { yylhs.value.as <  std::shared_ptr<const program::IntExpression>  > () = std::shared_ptr<const program::Multiplication>(new program::Multiplication(std::move(yystack_[2].value.as <  std::shared_ptr<const program::IntExpression>  > ()),std::move(yystack_[0].value.as <  std::shared_ptr<const program::IntExpression>  > ())));}
-#line 2007 "../src/parser/WhileParser.cpp"
+#line 706 "WhileParser.yy"
+    { yylhs.value.as <  std::shared_ptr<program::Expression>  > () = std::shared_ptr<program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::GE, std::move(yystack_[2].value.as <  std::shared_ptr<program::Expression>  > ()), std::move(yystack_[0].value.as <  std::shared_ptr<program::Expression>  > ())));}
+#line 1933 "../src/parser/WhileParser.cpp"
     break;
 
   case 82:
-#line 652 "WhileParser.yy"
-                           { yylhs.value.as <  std::shared_ptr<const program::IntExpression>  > () = std::shared_ptr<const program::Addition>(new program::Addition(std::move(yystack_[2].value.as <  std::shared_ptr<const program::IntExpression>  > ()),std::move(yystack_[0].value.as <  std::shared_ptr<const program::IntExpression>  > ())));}
-#line 2013 "../src/parser/WhileParser.cpp"
+#line 707 "WhileParser.yy"
+    { yylhs.value.as <  std::shared_ptr<program::Expression>  > () = std::shared_ptr<program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::LT, std::move(yystack_[2].value.as <  std::shared_ptr<program::Expression>  > ()), std::move(yystack_[0].value.as <  std::shared_ptr<program::Expression>  > ())));}
+#line 1939 "../src/parser/WhileParser.cpp"
     break;
 
   case 83:
-#line 653 "WhileParser.yy"
-                           { yylhs.value.as <  std::shared_ptr<const program::IntExpression>  > () = std::shared_ptr<const program::Subtraction>(new program::Subtraction(std::move(yystack_[2].value.as <  std::shared_ptr<const program::IntExpression>  > ()),std::move(yystack_[0].value.as <  std::shared_ptr<const program::IntExpression>  > ())));}
-#line 2019 "../src/parser/WhileParser.cpp"
+#line 708 "WhileParser.yy"
+    { yylhs.value.as <  std::shared_ptr<program::Expression>  > () = std::shared_ptr<program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::LE, std::move(yystack_[2].value.as <  std::shared_ptr<program::Expression>  > ()), std::move(yystack_[0].value.as <  std::shared_ptr<program::Expression>  > ())));}
+#line 1945 "../src/parser/WhileParser.cpp"
     break;
 
   case 84:
-#line 654 "WhileParser.yy"
-                           { yylhs.value.as <  std::shared_ptr<const program::IntExpression>  > () = std::shared_ptr<const program::Modulo>(new program::Modulo(std::move(yystack_[2].value.as <  std::shared_ptr<const program::IntExpression>  > ()),std::move(yystack_[0].value.as <  std::shared_ptr<const program::IntExpression>  > ())));}
-#line 2025 "../src/parser/WhileParser.cpp"
+#line 709 "WhileParser.yy"
+    { yylhs.value.as <  std::shared_ptr<program::Expression>  > () = std::shared_ptr<program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::EQ, std::move(yystack_[2].value.as <  std::shared_ptr<program::Expression>  > ()), std::move(yystack_[0].value.as <  std::shared_ptr<program::Expression>  > ())));}
+#line 1951 "../src/parser/WhileParser.cpp"
     break;
 
   case 85:
-#line 659 "WhileParser.yy"
-  { 
-  	auto var = context.getProgramVar(yystack_[0].value.as < std::string > ());
+#line 710 "WhileParser.yy"
+    { auto formula = std::shared_ptr<program::ArithmeticComparison>(new program::ArithmeticComparison(program::ArithmeticComparison::Kind::EQ, std::move(yystack_[2].value.as <  std::shared_ptr<program::Expression>  > ()), std::move(yystack_[0].value.as <  std::shared_ptr<program::Expression>  > ())));
+                             yylhs.value.as <  std::shared_ptr<program::Expression>  > () = std::shared_ptr<program::BooleanNot>(new program::BooleanNot(std::move(formula)));}
+#line 1958 "../src/parser/WhileParser.cpp"
+    break;
+
+  case 86:
+#line 712 "WhileParser.yy"
+    { yylhs.value.as <  std::shared_ptr<program::Expression>  > () = std::shared_ptr<program::BooleanAnd>(new program::BooleanAnd(std::move(yystack_[2].value.as <  std::shared_ptr<program::Expression>  > ()), std::move(yystack_[0].value.as <  std::shared_ptr<program::Expression>  > ())));}
+#line 1964 "../src/parser/WhileParser.cpp"
+    break;
+
+  case 87:
+#line 713 "WhileParser.yy"
+    { yylhs.value.as <  std::shared_ptr<program::Expression>  > () = std::shared_ptr<program::BooleanOr>(new program::BooleanOr(std::move(yystack_[2].value.as <  std::shared_ptr<program::Expression>  > ()), std::move(yystack_[0].value.as <  std::shared_ptr<program::Expression>  > ())));}
+#line 1970 "../src/parser/WhileParser.cpp"
+    break;
+
+  case 88:
+#line 714 "WhileParser.yy"
+    { yylhs.value.as <  std::shared_ptr<program::Expression>  > () = std::shared_ptr<program::BooleanNot>(new program::BooleanNot(std::move(yystack_[0].value.as <  std::shared_ptr<program::Expression>  > ())));}
+#line 1976 "../src/parser/WhileParser.cpp"
+    break;
+
+  case 89:
+#line 720 "WhileParser.yy"
+    { 
+  	auto var = parsing_context.getProgramVar(yystack_[0].value.as < std::string > ());
     if(var->isArray)
     {
       error(yystack_[0].location, "Array variable " + var->name + " needs index for access");
     }
-    yylhs.value.as <  std::shared_ptr<const program::IntExpression>  > () = std::shared_ptr<const program::IntVariableAccess>(new IntVariableAccess(std::move(var)));
+    yylhs.value.as <  std::shared_ptr<program::Expression>  > () = std::shared_ptr<program::VariableAccess>(new VariableAccess(std::move(var)));
   }
-#line 2038 "../src/parser/WhileParser.cpp"
+#line 1989 "../src/parser/WhileParser.cpp"
     break;
 
-  case 86:
-#line 668 "WhileParser.yy"
-  {
-	  auto var = context.getProgramVar(yystack_[3].value.as < std::string > ());
+  case 90:
+#line 729 "WhileParser.yy"
+    {
+	  auto var = parsing_context.getProgramVar(yystack_[3].value.as < std::string > ());
     if(!var->isArray)
     {
       error(yystack_[3].location, "Variable " + var->name + " is not an array");
     }
-	  yylhs.value.as <  std::shared_ptr<const program::IntExpression>  > () = std::shared_ptr<const program::IntArrayApplication>(new IntArrayApplication(std::move(var), std::move(yystack_[1].value.as <  std::shared_ptr<const program::IntExpression>  > ())));
+    yylhs.value.as <  std::shared_ptr<program::Expression>  > () = std::shared_ptr<program::ArrayApplication>(new ArrayApplication(std::move(var), std::move(yystack_[1].value.as <  std::shared_ptr<program::Expression>  > ())));
   }
-#line 2051 "../src/parser/WhileParser.cpp"
+#line 2002 "../src/parser/WhileParser.cpp"
     break;
 
 
-#line 2055 "../src/parser/WhileParser.cpp"
+#line 2006 "../src/parser/WhileParser.cpp"
 
             default:
               break;
@@ -2133,11 +2084,11 @@ namespace parser {
       stack_symbol_type error_token;
       for (;;)
         {
-          yyn = yypact_[+yystack_[0].state];
+          yyn = yypact_[yystack_[0].state];
           if (!yy_pact_value_is_default_ (yyn))
             {
-              yyn += yy_error_token_;
-              if (0 <= yyn && yyn <= yylast_ && yycheck_[yyn] == yy_error_token_)
+              yyn += yyterror_;
+              if (0 <= yyn && yyn <= yylast_ && yycheck_[yyn] == yyterror_)
                 {
                   yyn = yytable_[yyn];
                   if (0 < yyn)
@@ -2159,7 +2110,7 @@ namespace parser {
       YYLLOC_DEFAULT (error_token.location, yyerror_range, 2);
 
       // Shift the error token.
-      error_token.state = state_type (yyn);
+      error_token.state = yyn;
       yypush_ ("Shifting", YY_MOVE (error_token));
     }
     goto yynewstate;
@@ -2230,7 +2181,7 @@ namespace parser {
   {
     // Number of reported tokens (one for the "unexpected", one per
     // "expected").
-    std::ptrdiff_t yycount = 0;
+    size_t yycount = 0;
     // Its maximum.
     enum { YYERROR_VERBOSE_ARGS_MAXIMUM = 5 };
     // Arguments of yyformat.
@@ -2254,18 +2205,18 @@ namespace parser {
        - Of course, the expected token list depends on states to have
          correct lookahead information, and it depends on the parser not
          to perform extra reductions after fetching a lookahead from the
-         scanner and before detecting a syntax error.  Thus, state merging
-         (from LALR or IELR) and default reductions corrupt the expected
-         token list.  However, the list is correct for canonical LR with
-         one exception: it will still contain any token that will not be
-         accepted due to an error action in a later state.
+         scanner and before detecting a syntax error.  Thus, state
+         merging (from LALR or IELR) and default reductions corrupt the
+         expected token list.  However, the list is correct for
+         canonical LR with one exception: it will still contain any
+         token that will not be accepted due to an error action in a
+         later state.
     */
     if (!yyla.empty ())
       {
-        symbol_number_type yytoken = yyla.type_get ();
+        int yytoken = yyla.type_get ();
         yyarg[yycount++] = yytname_[yytoken];
-
-        int yyn = yypact_[+yystate];
+        int yyn = yypact_[yystate];
         if (!yy_pact_value_is_default_ (yyn))
           {
             /* Start YYX at -YYN if negative to avoid negative indexes in
@@ -2276,7 +2227,7 @@ namespace parser {
             int yychecklim = yylast_ - yyn + 1;
             int yyxend = yychecklim < yyntokens_ ? yychecklim : yyntokens_;
             for (int yyx = yyxbegin; yyx < yyxend; ++yyx)
-              if (yycheck_[yyx + yyn] == yyx && yyx != yy_error_token_
+              if (yycheck_[yyx + yyn] == yyx && yyx != yyterror_
                   && !yy_table_value_is_error_ (yytable_[yyx + yyn]))
                 {
                   if (yycount == YYERROR_VERBOSE_ARGS_MAXIMUM)
@@ -2309,7 +2260,7 @@ namespace parser {
 
     std::string yyres;
     // Argument number.
-    std::ptrdiff_t yyi = 0;
+    size_t yyi = 0;
     for (char const* yyp = yyformat; *yyp; ++yyp)
       if (yyp[0] == '%' && yyp[1] == 's' && yyi < yycount)
         {
@@ -2322,192 +2273,217 @@ namespace parser {
   }
 
 
-  const short WhileParser::yypact_ninf_ = -179;
+  const short WhileParser::yypact_ninf_ = -196;
 
   const signed char WhileParser::yytable_ninf_ = -1;
 
   const short
   WhileParser::yypact_[] =
   {
-      -1,   -17,    46,    55,    27,  -179,    59,  -179,    55,  -179,
-      67,    92,    94,  -179,  -179,    98,   147,  -179,    55,   105,
-     111,   111,   111,  -179,  -179,  -179,  -179,   106,   100,   116,
-     123,    94,  -179,    37,    37,    37,    37,    37,  -179,  -179,
-     111,   111,   135,   152,  -179,  -179,  -179,   188,    70,  -179,
-    -179,    37,    37,    37,    37,    37,    96,   179,   193,   111,
-     195,   195,  -179,     9,    37,    37,    37,    37,    37,   196,
-     197,   198,   199,   200,  -179,  -179,  -179,  -179,   201,   164,
-     189,  -179,   191,   203,     5,   202,   171,   204,    39,  -179,
-    -179,  -179,  -179,  -179,     2,   211,    37,    37,    37,    37,
-      -6,  -179,  -179,  -179,  -179,  -179,  -179,  -179,   174,  -179,
-    -179,  -179,     5,  -179,  -179,     5,     5,  -179,   159,   153,
-    -179,  -179,    41,    24,   206,  -179,    24,  -179,    24,   209,
-     210,   212,   213,  -179,  -179,   214,   111,   111,    97,   104,
-     132,  -179,     5,     5,   208,    24,    24,    24,    24,    24,
-      24,    24,    24,    24,    24,   215,  -179,    24,   173,   185,
-     128,   145,  -179,  -179,  -179,  -179,  -179,   216,   218,  -179,
-    -179,  -179,  -179,   205,  -179,  -179,    74,    74,  -179,   177,
-     177,   177,   177,   177,   177,   190,   149,  -179,  -179,  -179,
-    -179,  -179,  -179,   220,   217,  -179,  -179,  -179,  -179,    62,
-    -179,   224,  -179,   221,  -179,  -179,    79,  -179
+      21,     9,    69,    58,    28,  -196,    32,  -196,    58,  -196,
+      63,    77,    80,  -196,  -196,    81,   -32,  -196,    58,    86,
+      98,    98,    98,  -196,  -196,  -196,  -196,   125,  -196,  -196,
+      90,   111,   116,    80,  -196,    98,    98,    98,    98,    98,
+      98,    98,    98,    98,    98,    98,    98,    98,    99,   118,
+      98,  -196,  -196,  -196,   114,    98,    98,    98,    98,    98,
+      98,    98,    98,    98,    47,  -196,    60,   119,    98,   121,
+     121,    95,  -196,   188,   122,   123,   124,   127,   130,   140,
+     141,   142,   143,  -196,  -196,  -196,  -196,   150,    94,     0,
+    -196,    45,  -196,   152,    52,   147,   148,    52,   149,   131,
+     161,   -12,  -196,  -196,  -196,  -196,  -196,  -196,  -196,  -196,
+       6,   174,  -196,  -196,  -196,  -196,  -196,  -196,  -196,  -196,
+    -196,  -196,   133,  -196,  -196,  -196,    52,  -196,  -196,    52,
+      52,  -196,   285,  -196,  -196,  -196,   245,  -196,   -11,    52,
+     172,  -196,    52,  -196,    52,   166,    98,    98,    92,   214,
+    -196,    52,    52,    52,    52,    52,    52,    52,    52,    52,
+      52,    52,    52,   173,  -196,   175,  -196,   231,   145,   259,
+     273,  -196,   178,   186,  -196,  -196,  -196,    43,    43,  -196,
+       7,     7,     7,     7,   318,   318,   308,   297,  -196,   157,
+    -196,  -196,  -196,  -196,  -196,  -196,   185,   187,  -196,  -196,
+    -196,  -196,   164,  -196,   197,  -196,   190,  -196,  -196,   176,
+    -196,  -196
   };
 
-  const signed char
+  const unsigned char
   WhileParser::yydefact_[] =
   {
-       2,     0,     0,     0,     0,     1,     0,     7,     6,    41,
-       0,     0,     3,    42,     4,     0,     0,     8,     0,     0,
-       0,     0,     0,     7,    43,    14,    15,     0,     0,     0,
-       0,     5,    45,     0,     0,     0,     0,     0,    12,    12,
-       0,     0,     0,     0,     9,    10,    11,    61,     0,    34,
-      35,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,    44,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,    21,    13,    22,    23,     0,     0,
-       0,    29,     0,     0,     0,     0,     0,    85,     0,    46,
-      48,    49,    50,    51,     0,     0,     0,     0,     0,     0,
-       0,    32,    16,    17,    18,    19,    20,    24,     0,    25,
-      30,    27,     0,    67,    68,     0,     0,    80,    58,     0,
-      79,    60,     0,     0,     0,    62,     0,    47,     0,     0,
-       0,     0,     0,    36,    33,     0,     0,     0,     0,     0,
-       0,    77,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,     0,     0,    63,     0,     0,     0,
-       0,     0,    40,    37,    38,    39,    31,     0,     0,    54,
-      66,    78,    76,    75,    45,    81,    82,    83,    84,    69,
-      70,    71,    72,    73,    74,     0,     0,    86,    64,    53,
-      52,    26,    28,     0,    61,    65,    45,    59,    61,     0,
-      55,     0,    56,     0,    45,    61,     0,    57
+       2,     0,     0,     0,     0,     1,     0,     7,     6,    40,
+       0,     0,     3,    41,     4,     0,     0,     8,     0,     0,
+       0,     0,     0,     7,    42,    22,    23,     0,    15,    16,
+       0,     0,     0,     5,    44,     0,     0,     0,     0,     0,
+       0,     0,     0,     0,    12,    12,     0,     0,     0,     0,
+      12,     9,    10,    11,    64,     0,     0,     0,     0,     0,
+       0,     0,     0,     0,     0,    13,     0,     0,     0,     0,
+       0,     0,    43,     0,     0,     0,     0,     0,     0,     0,
+       0,     0,     0,    29,    14,    30,    31,     0,     0,     0,
+      37,     0,    17,     0,     0,     0,     0,     0,     0,     0,
+      89,     0,    45,    47,    48,    49,    50,    51,    52,    53,
+       0,     0,    24,    21,    18,    19,    20,    25,    26,    27,
+      28,    32,     0,    33,    38,    35,     0,    73,    74,     0,
+       0,    75,    58,    72,    60,    61,     0,    63,     0,     0,
+       0,    67,     0,    46,     0,     0,     0,     0,     0,     0,
+      88,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+       0,     0,     0,     0,    62,     0,    68,     0,     0,     0,
+       0,    39,     0,     0,    65,    71,    76,    77,    78,    79,
+      80,    81,    82,    83,    84,    85,    87,    86,    44,     0,
+      90,    69,    55,    54,    34,    36,     0,    64,    70,    44,
+      59,    64,     0,    66,    56,    65,     0,    44,    64,     0,
+      66,    57
   };
 
   const short
   WhileParser::yypgoto_[] =
   {
-    -179,  -179,  -179,  -179,   219,   222,  -179,   207,   -19,  -179,
-    -179,   178,     4,  -179,   -23,  -179,   230,  -179,  -170,  -179,
-    -179,  -179,  -179,  -179,  -179,  -179,  -179,  -179,  -178,  -179,
-     -18,   -90,   -63
+    -196,  -196,  -196,  -196,   192,   182,  -196,   -38,   -19,  -196,
+    -196,   144,   -43,  -196,   204,  -196,   -96,  -196,  -196,  -196,
+    -196,  -196,  -196,  -196,  -196,  -196,  -195,     8,     5,  -196,
+     -72,   -73
   };
 
   const short
   WhileParser::yydefgoto_[] =
   {
-      -1,     2,     3,    18,     7,    12,    17,    56,    75,   136,
-     137,    80,    81,   100,    51,     8,     9,    32,    47,    89,
-      90,    91,   193,   201,   203,    92,   144,    93,    63,    94,
-     118,   119,   120
+      -1,     2,     3,    18,     7,    12,    17,    64,    65,   146,
+     147,    89,    90,     8,     9,    34,    54,   102,   103,   104,
+     105,   163,   106,   107,   108,   109,    73,   196,   204,   110,
+     132,   133
   };
 
   const unsigned char
   WhileParser::yytable_[] =
   {
-      95,    28,    29,    30,   194,    48,   133,   126,   113,   114,
-       1,    52,    53,    54,    55,    83,   115,    84,    85,   127,
-     199,    58,    59,   116,     4,   140,   198,   206,    69,    70,
-      71,    72,    73,   158,   205,   157,   160,    49,   161,    50,
-      78,    96,    97,    98,    99,   101,     5,    87,    48,    86,
-     117,    87,   124,    88,   155,   175,   176,   177,   178,   179,
-     180,   181,   182,   183,   184,     6,    87,   186,    83,   117,
-      84,    85,    10,   129,   130,   131,   132,   134,   200,    14,
-      49,   125,    50,   156,   110,    83,   110,    84,    85,    64,
-      65,    66,    67,   145,   138,   207,   148,   139,   141,    25,
-      26,    11,    86,    15,    87,    16,    88,    27,    74,   169,
-      19,    33,    44,    68,    25,    26,   170,   167,   168,    86,
-      24,    87,    27,    88,   172,   173,   142,   143,    45,    34,
-      35,    36,    37,   142,   143,    46,    95,    38,    39,    40,
-      41,    42,    43,    95,   171,   189,    60,   145,   146,   147,
-     148,   145,   146,   147,   148,   149,   150,   151,   152,   153,
-     154,   171,   190,    61,   145,   146,   147,   148,   145,   146,
-     147,   148,   145,   146,   147,   148,   149,   150,   151,   152,
-     153,   154,    25,    26,    20,    21,    22,   187,   142,   143,
-      27,    76,   145,   146,   147,   148,   145,   146,   147,   148,
-      79,   109,    79,   111,    62,    77,    79,   108,   102,   103,
-     104,   105,   106,   107,   112,   122,   128,   123,   135,   121,
-     159,   162,   163,   174,   164,   165,   166,   188,   191,   185,
-     192,   202,   195,   197,   142,   196,   204,    23,    13,    82,
-       0,     0,     0,     0,     0,    31,    57
+     111,    30,    31,    32,   140,   165,   202,    66,    20,    21,
+      22,   142,    71,   209,    88,   123,    55,    56,    57,    58,
+      59,    60,    61,    62,    63,   136,   143,    67,    68,   151,
+     152,   153,   154,   141,   166,     1,    74,    75,    76,    77,
+      78,    79,    80,    81,    82,    84,   124,    84,   124,    87,
+      25,    26,    84,     4,   148,   127,   128,   149,   150,    88,
+     125,    27,    83,    25,    26,   151,   129,   167,   154,     5,
+     169,     6,   170,   130,    27,    85,    10,    11,    14,   176,
+     177,   178,   179,   180,   181,   182,   183,   184,   185,   186,
+     187,    15,   197,    28,    16,    29,    19,   100,    25,    26,
+     131,    25,    26,   201,    24,    51,    28,   174,    29,    27,
+      92,   208,    27,    69,   151,   152,   153,   154,   155,   156,
+     157,   158,   159,   160,   161,   162,    52,   172,   173,   111,
+      35,    53,    70,    72,    86,    88,   111,   112,   113,   114,
+     122,    28,   115,    29,    28,   116,    29,    36,    37,    38,
+      39,    40,    41,    42,    43,   117,   118,   119,   120,    44,
+      45,    46,    47,    48,    49,   121,   126,   134,   135,   137,
+      93,    50,    94,    95,    96,    97,    98,   139,   138,   144,
+     145,   171,    93,   203,    94,    95,    96,    97,    98,   168,
+     191,   188,   189,   194,    93,   210,    94,    95,    96,    97,
+      98,   195,   198,   199,   205,    33,   200,    99,   207,   100,
+      23,   101,    13,   206,    91,   211,     0,     0,     0,    99,
+       0,   100,     0,   101,     0,     0,     0,     0,     0,   175,
+       0,    99,     0,   100,     0,   101,   151,   152,   153,   154,
+     155,   156,   157,   158,   159,   160,   161,   162,   190,     0,
+       0,     0,     0,   151,   152,   153,   154,   155,   156,   157,
+     158,   159,   160,   161,   162,   164,     0,   151,   152,   153,
+     154,   155,   156,   157,   158,   159,   160,   161,   162,   192,
+       0,   151,   152,   153,   154,   155,   156,   157,   158,   159,
+     160,   161,   162,   193,     0,   151,   152,   153,   154,   155,
+     156,   157,   158,   159,   160,   161,   162,   151,   152,   153,
+     154,   155,   156,   157,   158,   159,   160,   161,   162,   151,
+     152,   153,   154,   155,   156,   157,   158,   159,   160,   161,
+     151,   152,   153,   154,   155,   156,   157,   158,   159,   160,
+     151,   152,   153,   154,   155,   156,   157,   158
   };
 
   const short
   WhileParser::yycheck_[] =
   {
-      63,    20,    21,    22,   174,    11,    12,     5,     3,     4,
-      11,    34,    35,    36,    37,     6,    11,     8,     9,    17,
-     198,    40,    41,    18,    41,   115,   196,   205,    51,    52,
-      53,    54,    55,   123,   204,    11,   126,    43,   128,    45,
-      59,    64,    65,    66,    67,    68,     0,    42,    11,    40,
-      45,    42,    13,    44,    13,   145,   146,   147,   148,   149,
-     150,   151,   152,   153,   154,    10,    42,   157,     6,    45,
-       8,     9,    45,    96,    97,    98,    99,   100,    16,    12,
-      43,    42,    45,    42,    80,     6,    82,     8,     9,    19,
-      20,    21,    22,    19,   112,    16,    22,   115,   116,     3,
-       4,    42,    40,    11,    42,    11,    44,    11,    12,    12,
-      12,     5,    12,    43,     3,     4,    12,   136,   137,    40,
-      15,    42,    11,    44,   142,   143,    29,    30,    12,    23,
-      24,    25,    26,    29,    30,    12,   199,    31,    32,    33,
-      34,    35,    36,   206,    12,    17,    11,    19,    20,    21,
-      22,    19,    20,    21,    22,    23,    24,    25,    26,    27,
-      28,    12,    17,    11,    19,    20,    21,    22,    19,    20,
-      21,    22,    19,    20,    21,    22,    23,    24,    25,    26,
-      27,    28,     3,     4,    37,    38,    39,    14,    29,    30,
-      11,    12,    19,    20,    21,    22,    19,    20,    21,    22,
-      11,    12,    11,    12,    16,    12,    11,    43,    12,    12,
-      12,    12,    12,    12,    11,    44,     5,    13,    44,    17,
-      14,    12,    12,    15,    12,    12,    12,    42,    12,    14,
-      12,     7,    42,    16,    29,    15,    15,    18,     8,    61,
-      -1,    -1,    -1,    -1,    -1,    23,    39
+      73,    20,    21,    22,    16,    16,   201,    45,    40,    41,
+      42,     5,    50,   208,    14,    15,    35,    36,    37,    38,
+      39,    40,    41,    42,    43,    97,    20,    46,    47,    22,
+      23,    24,    25,    45,    45,    14,    55,    56,    57,    58,
+      59,    60,    61,    62,    63,    64,    89,    66,    91,    68,
+       3,     4,    71,    44,   126,     3,     4,   129,   130,    14,
+      15,    14,    15,     3,     4,    22,    14,   139,    25,     0,
+     142,    13,   144,    21,    14,    15,    48,    45,    15,   151,
+     152,   153,   154,   155,   156,   157,   158,   159,   160,   161,
+     162,    14,   188,    46,    14,    48,    15,    45,     3,     4,
+      48,     3,     4,   199,    18,    15,    46,    15,    48,    14,
+      15,   207,    14,    14,    22,    23,    24,    25,    26,    27,
+      28,    29,    30,    31,    32,    33,    15,   146,   147,   202,
+       5,    15,    14,    19,    15,    14,   209,    15,    15,    15,
+      46,    46,    15,    48,    46,    15,    48,    22,    23,    24,
+      25,    26,    27,    28,    29,    15,    15,    15,    15,    34,
+      35,    36,    37,    38,    39,    15,    14,    20,    20,    20,
+       6,    46,     8,     9,    10,    11,    12,    16,    47,     5,
+      47,    15,     6,    19,     8,     9,    10,    11,    12,    17,
+      45,    18,    17,    15,     6,    19,     8,     9,    10,    11,
+      12,    15,    45,    18,     7,    23,    19,    43,    18,    45,
+      18,    47,     8,   205,    70,   210,    -1,    -1,    -1,    43,
+      -1,    45,    -1,    47,    -1,    -1,    -1,    -1,    -1,    15,
+      -1,    43,    -1,    45,    -1,    47,    22,    23,    24,    25,
+      26,    27,    28,    29,    30,    31,    32,    33,    17,    -1,
+      -1,    -1,    -1,    22,    23,    24,    25,    26,    27,    28,
+      29,    30,    31,    32,    33,    20,    -1,    22,    23,    24,
+      25,    26,    27,    28,    29,    30,    31,    32,    33,    20,
+      -1,    22,    23,    24,    25,    26,    27,    28,    29,    30,
+      31,    32,    33,    20,    -1,    22,    23,    24,    25,    26,
+      27,    28,    29,    30,    31,    32,    33,    22,    23,    24,
+      25,    26,    27,    28,    29,    30,    31,    32,    33,    22,
+      23,    24,    25,    26,    27,    28,    29,    30,    31,    32,
+      22,    23,    24,    25,    26,    27,    28,    29,    30,    31,
+      22,    23,    24,    25,    26,    27,    28,    29
   };
 
-  const signed char
+  const unsigned char
   WhileParser::yystos_[] =
   {
-       0,    11,    49,    50,    41,     0,    10,    52,    63,    64,
-      45,    42,    53,    64,    12,    11,    11,    54,    51,    12,
-      37,    38,    39,    52,    15,     3,     4,    11,    56,    56,
-      56,    53,    65,     5,    23,    24,    25,    26,    31,    32,
-      33,    34,    35,    36,    12,    12,    12,    66,    11,    43,
-      45,    62,    62,    62,    62,    62,    55,    55,    56,    56,
-      11,    11,    16,    76,    19,    20,    21,    22,    43,    62,
-      62,    62,    62,    62,    12,    56,    12,    12,    56,    11,
-      59,    60,    59,     6,     8,     9,    40,    42,    44,    67,
-      68,    69,    73,    75,    77,    80,    62,    62,    62,    62,
-      61,    62,    12,    12,    12,    12,    12,    12,    43,    12,
-      60,    12,    11,     3,     4,    11,    18,    45,    78,    79,
-      80,    17,    44,    13,    13,    42,     5,    17,     5,    62,
-      62,    62,    62,    12,    62,    44,    57,    58,    78,    78,
-      79,    78,    29,    30,    74,    19,    20,    21,    22,    23,
-      24,    25,    26,    27,    28,    13,    42,    11,    79,    14,
-      79,    79,    12,    12,    12,    12,    12,    56,    56,    12,
-      12,    12,    78,    78,    15,    79,    79,    79,    79,    79,
-      79,    79,    79,    79,    79,    14,    79,    14,    42,    17,
-      17,    12,    12,    70,    66,    42,    15,    16,    66,    76,
-      16,    71,     7,    72,    15,    66,    76,    16
+       0,    14,    52,    53,    44,     0,    13,    55,    64,    65,
+      48,    45,    56,    65,    15,    14,    14,    57,    54,    15,
+      40,    41,    42,    55,    18,     3,     4,    14,    46,    48,
+      59,    59,    59,    56,    66,     5,    22,    23,    24,    25,
+      26,    27,    28,    29,    34,    35,    36,    37,    38,    39,
+      46,    15,    15,    15,    67,    59,    59,    59,    59,    59,
+      59,    59,    59,    59,    58,    59,    58,    59,    59,    14,
+      14,    58,    19,    77,    59,    59,    59,    59,    59,    59,
+      59,    59,    59,    15,    59,    15,    15,    59,    14,    62,
+      63,    62,    15,     6,     8,     9,    10,    11,    12,    43,
+      45,    47,    68,    69,    70,    71,    73,    74,    75,    76,
+      80,    82,    15,    15,    15,    15,    15,    15,    15,    15,
+      15,    15,    46,    15,    63,    15,    14,     3,     4,    14,
+      21,    48,    81,    82,    20,    20,    81,    20,    47,    16,
+      16,    45,     5,    20,     5,    47,    60,    61,    81,    81,
+      81,    22,    23,    24,    25,    26,    27,    28,    29,    30,
+      31,    32,    33,    72,    20,    16,    45,    81,    17,    81,
+      81,    15,    59,    59,    15,    15,    81,    81,    81,    81,
+      81,    81,    81,    81,    81,    81,    81,    81,    18,    17,
+      17,    45,    20,    20,    15,    15,    78,    67,    45,    18,
+      19,    67,    77,    19,    79,     7,    78,    18,    67,    77,
+      19,    79
   };
 
-  const signed char
+  const unsigned char
   WhileParser::yyr1_[] =
   {
-       0,    48,    50,    49,    51,    49,    52,    53,    53,    54,
-      54,    54,    55,    55,    56,    56,    56,    56,    56,    56,
-      56,    56,    56,    56,    56,    57,    56,    58,    56,    59,
-      59,    60,    61,    61,    62,    62,    62,    62,    62,    62,
-      62,    63,    63,    65,    64,    66,    66,    66,    67,    67,
-      67,    67,    68,    68,    70,    71,    72,    69,    74,    73,
-      75,    76,    77,    77,    77,    77,    78,    78,    78,    78,
-      78,    78,    78,    78,    78,    78,    78,    78,    79,    79,
-      79,    79,    79,    79,    79,    80,    80
+       0,    51,    53,    52,    54,    52,    55,    56,    56,    57,
+      57,    57,    58,    58,    58,    59,    59,    59,    59,    59,
+      59,    59,    59,    59,    59,    59,    59,    59,    59,    59,
+      59,    59,    59,    60,    59,    61,    59,    62,    62,    63,
+      64,    64,    66,    65,    67,    67,    67,    68,    68,    68,
+      68,    68,    68,    68,    69,    69,    70,    70,    72,    71,
+      73,    74,    75,    76,    77,    78,    79,    80,    80,    80,
+      80,    81,    81,    81,    81,    81,    81,    81,    81,    81,
+      81,    81,    81,    81,    81,    81,    81,    81,    81,    82,
+      82
   };
 
-  const signed char
+  const unsigned char
   WhileParser::yyr2_[] =
   {
        0,     2,     0,     3,     0,     7,     1,     0,     2,     4,
-       4,     4,     0,     2,     1,     1,     5,     5,     5,     5,
-       5,     4,     4,     4,     5,     0,     8,     0,     8,     1,
-       2,     4,     1,     2,     1,     1,     4,     5,     5,     5,
-       5,     1,     2,     0,     8,     0,     3,     4,     1,     1,
-       1,     1,     4,     4,     0,     0,     0,    16,     0,     6,
-       2,     0,     2,     3,     4,     5,     3,     1,     1,     3,
-       3,     3,     3,     3,     3,     3,     3,     2,     3,     1,
-       1,     3,     3,     3,     3,     1,     4
+       4,     4,     0,     1,     2,     1,     1,     4,     5,     5,
+       5,     5,     1,     1,     5,     5,     5,     5,     5,     4,
+       4,     4,     5,     0,     8,     0,     8,     1,     2,     4,
+       1,     2,     0,     8,     0,     3,     4,     1,     1,     1,
+       1,     1,     1,     1,     4,     4,    10,    17,     0,     6,
+       2,     2,     3,     2,     0,     0,     0,     2,     3,     4,
+       5,     3,     1,     1,     1,     1,     3,     3,     3,     3,
+       3,     3,     3,     3,     3,     3,     3,     3,     2,     1,
+       4
   };
 
 
@@ -2518,36 +2494,38 @@ namespace parser {
   const WhileParser::yytname_[] =
   {
   "\"EOF\"", "error", "$undefined", "\"true\"", "\"false\"", "\"=\"",
-  "\"if\"", "\"else\"", "\"while\"", "\"skip\"", "\"func\"", "\"(\"",
-  "\")\"", "\"[\"", "\"]\"", "\"{\"", "\"}\"", "\";\"", "\"!\"", "\"*\"",
-  "\"+\"", "\"-\"", "\"mod\"", "\">\"", "\">=\"", "\"<\"", "\"<=\"",
-  "\"==\"", "\"!=\"", "\"||\"", "\"&&\"", "\"and\"", "\"or\"", "\"not\"",
-  "\"=>\"", "\"forall\"", "\"exists\"", "\"axiom\"", "\"lemma\"",
-  "\"conjecture\"", "\"const\"", "\"set-traces\"",
-  "\"program identifier\"", "\"smtlib identifier\"", "\"type identifier\"",
-  "\"number\"", "DIV", "UMINUS", "$accept", "problem", "$@1", "$@2",
-  "program", "smtlib_problemitem_list", "smtlib_problemitem",
-  "smtlib_formula_list", "smtlib_formula", "$@3", "$@4",
-  "smtlib_quantvar_list", "smtlib_quantvar", "smtlib_term_list",
-  "smtlib_term", "function_list", "function", "$@5", "statement_list",
-  "statement", "assignment_statement", "if_else_statement", "$@6", "$@7",
-  "$@8", "while_statement", "$@9", "skip_statement", "active_vars_dummy",
-  "var_definition_head", "formula", "expr", "location", YY_NULLPTR
+  "\"if\"", "\"else\"", "\"while\"", "\"break\"", "\"continue\"",
+  "\"return\"", "\"skip\"", "\"func\"", "\"(\"", "\")\"", "\"[\"", "\"]\"",
+  "\"{\"", "\"}\"", "\";\"", "\"!\"", "\"*\"", "\"+\"", "\"-\"", "\"mod\"",
+  "\">\"", "\">=\"", "\"<\"", "\"<=\"", "\"==\"", "\"!=\"", "\"||\"",
+  "\"&&\"", "\"and\"", "\"or\"", "\"not\"", "\"=>\"", "\"forall\"",
+  "\"exists\"", "\"axiom\"", "\"lemma\"", "\"conjecture\"", "\"const\"",
+  "\"set-traces\"", "\"program identifier\"", "\"smtlib identifier\"",
+  "\"type identifier\"", "\"number\"", "DIV", "UMINUS", "$accept",
+  "problem", "$@1", "$@2", "program", "smtlib_problemitem_list",
+  "smtlib_problemitem", "smtlib_term_list", "smtlib_term", "$@3", "$@4",
+  "smtlib_quantvar_list", "smtlib_quantvar", "function_list", "function",
+  "$@5", "statement_list", "statement", "assignment_statement",
+  "if_else_statement", "while_statement", "$@6", "break_statement",
+  "continue_statement", "return_statement", "skip_statement",
+  "active_vars_dummy", "push_dummy", "pop_dummy", "var_definition_head",
+  "expr", "location", YY_NULLPTR
   };
 
 #if YYDEBUG
-  const short
+  const unsigned short
   WhileParser::yyrline_[] =
   {
-       0,   154,   154,   154,   163,   162,   180,   187,   188,   192,
-     198,   204,   211,   212,   216,   217,   218,   229,   241,   253,
-     265,   277,   278,   279,   280,   282,   281,   292,   291,   304,
-     305,   309,   343,   344,   348,   362,   366,   391,   403,   415,
-     427,   442,   443,   448,   447,   469,   470,   476,   486,   487,
-     488,   489,   493,   514,   534,   538,   542,   533,   559,   558,
-     570,   574,   581,   593,   605,   617,   632,   633,   634,   635,
-     636,   637,   638,   639,   640,   642,   643,   644,   648,   649,
-     650,   651,   652,   653,   654,   658,   667
+       0,   157,   157,   157,   166,   165,   183,   190,   191,   195,
+     201,   207,   215,   216,   217,   221,   242,   246,   278,   290,
+     302,   314,   326,   327,   328,   339,   351,   363,   375,   387,
+     388,   389,   390,   392,   391,   402,   401,   414,   415,   419,
+     453,   454,   459,   458,   480,   481,   487,   497,   498,   499,
+     500,   501,   502,   503,   507,   528,   547,   561,   577,   576,
+     588,   595,   601,   607,   611,   618,   625,   632,   647,   662,
+     677,   695,   696,   697,   698,   699,   700,   701,   702,   703,
+     705,   706,   707,   708,   709,   710,   712,   713,   714,   719,
+     728
   };
 
   // Print the state stack on the debug stream.
@@ -2559,7 +2537,7 @@ namespace parser {
            i = yystack_.begin (),
            i_end = yystack_.end ();
          i != i_end; ++i)
-      *yycdebug_ << ' ' << int (i->state);
+      *yycdebug_ << ' ' << i->state;
     *yycdebug_ << '\n';
   }
 
@@ -2567,7 +2545,7 @@ namespace parser {
   void
   WhileParser::yy_reduce_print_ (int yyrule)
   {
-    int yylno = yyrline_[yyrule];
+    unsigned yylno = yyrline_[yyrule];
     int yynrhs = yyr2_[yyrule];
     // Print the symbols being reduced, and their result.
     *yycdebug_ << "Reducing stack by rule " << yyrule - 1
@@ -2582,15 +2560,14 @@ namespace parser {
 
 #line 4 "WhileParser.yy"
 } // parser
-#line 2586 "../src/parser/WhileParser.cpp"
+#line 2564 "../src/parser/WhileParser.cpp"
 
-#line 678 "WhileParser.yy"
+#line 739 "WhileParser.yy"
 
 void parser::WhileParser::error(const location_type& l,
                               const std::string& m)
 {
   std::cout << "Error while parsing location " << l << ":\n" << m << std::endl;
-  context.errorFlag = true;
+  parsing_context.errorFlag = true;
   exit(1);
 }
-
