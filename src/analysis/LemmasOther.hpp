@@ -67,16 +67,16 @@ class LoopConditionAnalysisLemmas: public ProgramTraverser<
   LoopConditionAnalysisLemmas(
     program::Program& program,
     std::unordered_map<std::string,
-                    std::vector<std::shared_ptr<const program::Variable>>>
-                    locationToActiveVars,
-                    unsigned numberOfTraces,
-                    std::vector<std::shared_ptr<const logic::Axiom>> programSemantics): 
-                        ProgramTraverser<std::vector<std::shared_ptr<const logic::ProblemItem>>>(
-                            program, 
-                            locationToActiveVars, 
-                            numberOfTraces
-                        ),
-        programSemantics(programSemantics) {}
+                       std::vector<std::shared_ptr<program::Variable>>> 
+        locationToActiveVars,
+    unsigned numberOfTraces,
+    std::vector<std::shared_ptr<const logic::Axiom>> programSemantics): 
+            ProgramTraverser<std::vector<std::shared_ptr<const logic::ProblemItem>>>(
+                program, 
+                locationToActiveVars, 
+                numberOfTraces
+            ),
+    programSemantics(programSemantics) {}
 
  private:
   std::vector<std::shared_ptr<const logic::Axiom>> programSemantics;
