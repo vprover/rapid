@@ -19,7 +19,7 @@
 namespace analysis {
 
 std::vector<std::shared_ptr<const logic::ProblemItem>> generateTraceLemmas(
-    const program::Program& program,
+    program::Program& program,
     std::unordered_map<std::string,
                        std::vector<std::shared_ptr<program::Variable>>>
         locationToActiveVars,
@@ -28,7 +28,7 @@ std::vector<std::shared_ptr<const logic::ProblemItem>> generateTraceLemmas(
     InlinedVariableValues& inlinedVarValues);
 
 std::vector<std::shared_ptr<const logic::ProblemItem>> generateNonTraceLemmas(
-    const program::Program& program,
+    program::Program& program,
     std::unordered_map<std::string,
                        std::vector<std::shared_ptr<program::Variable>>>
         locationToActiveVars,

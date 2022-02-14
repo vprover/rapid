@@ -18,7 +18,7 @@ namespace analysis {
 #pragma mark - High level methods
 
 std::vector<std::shared_ptr<const logic::ProblemItem>> generateTraceLemmas(
-    const program::Program& program,
+    program::Program& program,
     std::unordered_map<std::string,
                        std::vector<std::shared_ptr<program::Variable>>>
         locationToActiveVars,

@@ -230,7 +230,7 @@ void LoopConditionAnalysisLemmas::generateOutputFor(
 
             auto nameSuffix = leftStr + "-" + statement->location;
 
-            auto densityDef = getDensityDefinition(
+            auto densityDef = analysis::getDensityDefinition(
                 freeVarSymbols, left, nameSuffix, itSymbol, it, lStartIt,
                 lStartSuccOfIt, n, trace, lessThan);
 

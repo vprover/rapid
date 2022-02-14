@@ -36,7 +36,7 @@ class AtLeastOneIterationLemmas
           std::vector<std::shared_ptr<const logic::ProblemItem>>> {
  public:
   AtLeastOneIterationLemmas(
-      const program::Program& program,
+      program::Program& program,
       std::unordered_map<std::string,
                          std::vector<std::shared_ptr<program::Variable>>>
           locationToActiveVars,

@@ -82,7 +82,7 @@ std::shared_ptr<const logic::Term> getDensityFormula(
 
 std::shared_ptr<const logic::Term> getDensityDefinition(
     std::vector<std::shared_ptr<const logic::Symbol>> freeVarSymbols,
-    const std::shared_ptr<const program::Expression> expr,
+    const std::shared_ptr<program::Expression> expr,
     std::string nameSuffix, std::shared_ptr<const logic::Symbol> itSymbol,
     std::shared_ptr<const logic::LVariable> it,
     std::shared_ptr<const logic::Term> lStartIt,
@@ -93,7 +93,7 @@ std::shared_ptr<const logic::Term> getDensityDefinition(
 // TODO remove duplication
 std::shared_ptr<const logic::Term> getDensityDefinition(
     std::vector<std::shared_ptr<const logic::Symbol>> freeVarSymbols,
-    const std::shared_ptr<const program::Variable> var, std::string nameSuffix,
+    const std::shared_ptr<program::Variable> var, std::string nameSuffix,
     std::shared_ptr<const logic::Symbol> itSymbol,
     std::shared_ptr<const logic::LVariable> it,
     std::shared_ptr<const logic::Term> lStartIt,
