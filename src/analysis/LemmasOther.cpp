@@ -251,7 +251,7 @@ void LoopConditionAnalysisLemmas::generateOutputFor(
 
             // TODO don't understand all this implicit explicit business
             items.push_back(std::make_shared<logic::Lemma>(
-                lemma, leftStr + "-" + rightStr + "-" + "equality-axiom" + std::to_string(rand()),
+                lemma, leftStr + "-" + rightStr + "-" + "equality-axiom",
                 logic::ProblemItem::Visibility::Implicit));
           }
         }

@@ -80,7 +80,7 @@ Semantics::generateSemantics() {
 
       // postcondition mode
       // TODO: handling for multiple traces
-      if (util::Configuration::instance().postcondition()) {
+      if (util::Configuration::instance().invariantGeneration()) {
         for (auto i = coloredSymbols.begin(); i != coloredSymbols.end(); ++i) {
           auto var = i->second;
           auto variable = var.get();
