@@ -103,11 +103,12 @@ class Conjecture : public ProblemItem {
 class ReasoningTask {
  public:
   ReasoningTask(std::vector<std::shared_ptr<const ProblemItem>> axioms,
-                std::shared_ptr<const Conjecture> conjecture)
-      : axioms(axioms), conjecture(conjecture) {}
+                std::shared_ptr<const Conjecture> conjecture, bool isPostcondition = false)
+      : axioms(axioms), conjecture(conjecture), isPostcondition(isPostcondition) {}
 
   const std::vector<std::shared_ptr<const ProblemItem>> axioms;
   const std::shared_ptr<const Conjecture> conjecture;
+  const bool isPostcondition;
 
   /*
    * generate a new file in the directory 'dirPath' and output the reasoning
@@ -126,6 +127,8 @@ class ReasoningTask {
  private:
   void outputSMTLIB(std::ostream& ostr) const;
   void outputTPTP(std::ostream& ostr) const;
+  std::string toTargetSymbolsSMTLIB(std::string formula) const;
+  std::string toTargetSymbolsTPTP(std::string formula) const;
 };
 
 /* represents a list of axioms, lemmas and conjectures,

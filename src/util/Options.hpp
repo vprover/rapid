@@ -80,6 +80,7 @@ class Configuration {
         _tptp("-tptp", false),
         _hol("-hol", false),
         _overwriteExisting("-overwriteExisting", true),
+        _invariantGeneration("-invariantGeneration", false),
         _allOptions() {
     registerOption(&_outputDir);
 
@@ -115,6 +116,9 @@ class Configuration {
     registerOption(&_hol);
     // overwrite existing smt-files
     registerOption(&_overwriteExisting);
+    // triggers invariant generation mode, makes inlineLemmas, postcondition automatically true, 
+    // removes value evolution trace lemmas but adds unique-update lemma
+    registerOption(&_invariantGeneration);
   }
 
   bool setAllValues(int argc, char* argv[]);
@@ -127,8 +131,19 @@ class Configuration {
   bool inlineSemantics() { return _inlineSemantics.getValue(); }
   bool lemmaPredicates() { return _lemmaPredicates.getValue(); }
   bool integerIterations() { return _integerIterations.getValue(); }
-  bool inlineLemmas() { return _inlineLemmas.getValue(); }
-  bool postcondition() { return _postcondition.getValue(); }
+  bool invariantGeneration() { return _invariantGeneration.getValue(); }
+  bool inlineLemmas() { 
+    if (_invariantGeneration.getValue()){
+      return true; 
+    }
+    return _inlineLemmas.getValue(); 
+  }
+  bool postcondition() { 
+    if (_invariantGeneration.getValue()){
+      return true; 
+    }
+    return _postcondition.getValue(); 
+  }
   bool lemmaless() { return _lemmaless.getValue(); }
   bool tptp() { return _tptp.getValue(); }
   bool hol() { return _hol.getValue(); }
@@ -150,6 +165,7 @@ class Configuration {
   BooleanOption _tptp;
   BooleanOption _hol;
   BooleanOption _overwriteExisting;
+  BooleanOption _invariantGeneration;
 
   std::map<std::string, Option*> _allOptions;
 

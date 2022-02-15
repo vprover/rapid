@@ -19,13 +19,15 @@ void outputUsage() {
   std::cout
       << "Usage: rapid "
       << "-dir <outputDir> "
-      << "[-inlineSemantics on|off] "
-      << "[-lemmaPredicates on|off] "
-      << "[-nat on|off] "
-      << "[-integerIterations on|off]"
-      << "[-inlineLemmas on|off]"
-      << "[-postcondition on|off]"
-      << "[-overwriteExisting on|off] "
+      << "[-inlineSemantics on|off] (default on) "
+      << "[-lemmaPredicates on|off] (default on) "
+      << "[-nat on|off] (default on) "
+      << "[-invariantGeneration on|off] (default off)"
+      << "[-integerIterations on|off] (default off)"
+      << "[-lemmaless on|off] (default off)"
+      << "[-inlineLemmas on|off] (default off, on with invariantGeneration)"
+      << "[-postcondition on|off] (default off, on with invariantGeneration)"
+      << "[-overwriteExisting on|off] (default on)"
       << "<filename>" << std::endl;
 }
 
@@ -106,18 +108,6 @@ int main(int argc, char *argv[]) {
             task.outputTPTPToDir(outputDir, preamble.str());
           } else {
             task.outputSMTLIBToDir(outputDir, preamble.str());
-          }
-        }
-
-        if (util::Configuration::instance().postcondition()) {
-          for (const auto& task : tasks) {
-            if (task.conjecture.get()->name.find("user-conjecture") !=
-                std::string::npos) {
-              std::stringstream preamble;
-              preamble << util::Output::comment << *parserResult.program
-                       << util::Output::nocomment;
-              task.outputTPTPToDir(outputDir, preamble.str());
-            }
           }
         }
       }

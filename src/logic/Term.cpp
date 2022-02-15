@@ -109,28 +109,6 @@ std::string FuncTerm::toTPTP(unsigned indentation) const {
       for (unsigned i = 0; i < subterms.size(); i++) {
         str += subterms[i]->toTPTP(0);
         str += (i == subterms.size() - 1) ? ")" : ",";
-
-        // replace trace logic function terms with target symbols for postcondition
-        if (util::Configuration::instance().postcondition() && str.find("main_end") != std::string::npos) {
-          std::string toReplace("(main_end");
-          std::string replacement("_final(");
-          size_t pos = str.find(toReplace);
-          str = str.replace(pos, toReplace.length(), replacement);
-
-          // remove () for constants
-          std::string toReplace2("()");
-          std::string replacement2("");
-          size_t pos2 = str.find(toReplace2);
-          if (pos2 != std::string::npos)
-            str = str.replace(pos2, toReplace2.length(), replacement2);
-
-          // replace (, for function terms with (
-          std::string toReplace3("(,");
-          std::string replacement3("(");
-          size_t pos3 = str.find(toReplace3);
-          if (pos3 != std::string::npos)
-            str = str.replace(pos3, toReplace3.length(), replacement3);
-        }
       }
     }
     return str;
