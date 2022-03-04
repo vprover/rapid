@@ -5,11 +5,22 @@ struct Node {
 
 func main() {
   Node* head = NULL;
-  Node* n = malloc();
-  n->next = head;
-  n->data = 20;
+  Int len = 20;
+  Int dat = 1;
+
+  Node* node = malloc();
+  node->next = NULL;
+  node->data = dat;
+  node->next = head;
+  head = node;
+
+  node = malloc();
+  node->next = NULL;
+  node->data = dat;
+  node->next = head;
+  head = node;
 }
 
 (conjecture
-  (= (deref main_end head) null_loc)
+  (= (value main_end head) null_loc)
 )

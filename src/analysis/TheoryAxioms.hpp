@@ -33,6 +33,21 @@ class TheoryAxioms {
       std::vector<std::shared_ptr<const logic::Axiom>>& axioms);
   void addDisjointnessAxioms(
       std::vector<std::shared_ptr<const logic::Axiom>>& axioms);
+
+  void addListAxioms(
+      std::vector<std::shared_ptr<const logic::Axiom>>& axioms);
+  void addAcyclicListAxioms(
+      std::vector<std::shared_ptr<const logic::Axiom>>& axioms);
+  void addCyclicListAxioms(
+      std::vector<std::shared_ptr<const logic::Axiom>>& axioms);
+
+  void addEmptySetAxiom(
+      std::vector<std::shared_ptr<const logic::Axiom>>& axioms);
+  void addSetUnionAxiom(
+      std::vector<std::shared_ptr<const logic::Axiom>>& axioms);
+  void addSingletonAxiom(
+      std::vector<std::shared_ptr<const logic::Axiom>>& axioms);
+
 };
 }  // namespace analysis
 #endif

@@ -821,6 +821,17 @@ std::shared_ptr<const logic::Formula> allVarEqual(
   
   auto valueAtTp1 = logic::Theory::valueAt(timePoint1, loc);
   auto valueAtTp2 = logic::Theory::valueAt(timePoint2, loc);
+
+  if(util::Configuration::instance().useLists() == "acyclic"){
+    auto isAcyclicListTp1 = logic::Theory::isAcyclicList(loc, timePoint1); 
+    auto isAcyclicListTp2 = logic::Theory::isAcyclicList(loc, timePoint2); 
+  
+    auto listLocsTp1 = logic::Theory::acyclicListLocs(loc, timePoint1);
+    auto listLocsTp2 = logic::Theory::acyclicListLocs(loc, timePoint2); 
+    conjuncts.push_back(logic::Formulas::equivalence(isAcyclicListTp1, isAcyclicListTp2));    
+    conjuncts.push_back(logic::Formulas::equality(listLocsTp1, listLocsTp2));
+  } //TODO cyclic case
+
   conjuncts.push_back(logic::Formulas::equality(valueAtTp1, valueAtTp2));
 
   return logic::Formulas::universal({locSymbol},logic::Formulas::conjunction(conjuncts, label));

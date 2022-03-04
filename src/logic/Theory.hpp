@@ -72,6 +72,23 @@ class Theory {
   static std::shared_ptr<const FuncTerm> mallocFun(
       std::shared_ptr<const Term> timePoint);
 
+  static std::shared_ptr<const Formula> isList(
+      std::shared_ptr<const Term> loc1,
+      std::shared_ptr<const Term> loc2,
+      std::shared_ptr<const Term> tp); 
+  static std::shared_ptr<const FuncTerm> listLocs(
+      std::shared_ptr<const Term> loc1,
+      std::shared_ptr<const Term> loc2,
+      std::shared_ptr<const Term> tp);  
+  static std::shared_ptr<const Formula> isAcyclicList(
+      std::shared_ptr<const Term> loc,
+      std::shared_ptr<const Term> tp); 
+  static std::shared_ptr<const FuncTerm> acyclicListLocs(
+      std::shared_ptr<const Term> loc,
+      std::shared_ptr<const Term> tp);  
+
+  static std::shared_ptr<const Formula> heapLoc(
+      std::shared_ptr<const Term> location); 
   static std::shared_ptr<const Formula> framePred(
       std::shared_ptr<const Term> location,
       std::shared_ptr<const Term> t1,
@@ -106,6 +123,18 @@ class Theory {
       std::shared_ptr<const logic::Symbol> memLocVarSym2,
       std::shared_ptr<const logic::Symbol> sizeSym);
 
+
+  // Set based reasoning
+  
+  static std::shared_ptr<const FuncTerm> emptySet(); 
+  static std::shared_ptr<const FuncTerm> setUnion(
+      std::shared_ptr<const Term> s1,
+      std::shared_ptr<const Term> s2); 
+  static std::shared_ptr<const FuncTerm> singleton(
+      std::shared_ptr<const Term> elem); 
+  static std::shared_ptr<const Formula> in(
+      std::shared_ptr<const Term> elem,
+      std::shared_ptr<const Term> set);
 
   static std::shared_ptr<const FuncTerm> zero();
   static std::shared_ptr<const FuncTerm> succ(std::shared_ptr<const Term> t);

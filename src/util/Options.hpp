@@ -77,6 +77,7 @@ class Configuration {
         _axiomatiseToInt("-axToInt", false),
         _memSafetyMode("-memSafetyMode", false),
         _explodeMemRegions("-explodeMemRegions", false),
+        _useListPredicate("-useLists", {"off", "acyclic", "cyclic"}, "off"),
         _lemmaPredicates("-lemmaPredicates", true),
         _integerIterations("-integerIterations", false),
         _inlineLemmas("-inlineLemmas", false),
@@ -91,8 +92,17 @@ class Configuration {
     registerOption(&_inlineSemantics);
     registerOption(&_variableDifferences);
     registerOption(&_axiomatiseToInt);
+    // Try and find memory safety bugs. May not
+    // be fully functional at the moment. Even when functional,
+    // could only find bugs that were on every execution path
     registerOption(&_memSafetyMode);
+    // Rather than reasoning that particular mem location is not
+    // in a range (! X. lb <= x < ub. var != x), we explode
+    // the range. Works better for small ranges
     registerOption(&_explodeMemRegions);
+
+    registerOption(&_useListPredicate);
+
     // uses lemma predicates for Rapid Vampire
     registerOption(&_lemmaPredicates);
 
@@ -124,13 +134,12 @@ class Configuration {
   bool generateBenchmark() { return _generateBenchmark.getValue(); }
   bool nativeNat() { return _nativeNat.getValue(); }
   bool inlineSemantics() { return _inlineSemantics.getValue(); }
-
   bool variableDifferences() { return _variableDifferences.getValue(); }
   bool axiomatiseToInt() { return _axiomatiseToInt.getValue(); }
   bool memSafetyMode() { return _memSafetyMode.getValue(); }
   bool explodeMemRegions() { return _explodeMemRegions.getValue(); }
+  std::string useLists() { return _useListPredicate.getValue(); }
 
-  void setDontInline() { _inlineSemantics.setValue("off"); }
   bool lemmaPredicates() { return _lemmaPredicates.getValue(); }
   bool integerIterations() { return _integerIterations.getValue(); }
   bool inlineLemmas() { return _inlineLemmas.getValue(); }
@@ -138,6 +147,9 @@ class Configuration {
   bool outputTraceLemmas() { return _outputTraceLemmas.getValue(); }
   bool tptp() { return _tptp.getValue(); }
   bool hol() { return _hol.getValue(); }
+
+  void setDontInline() { _inlineSemantics.setValue("off"); }
+
 
   static Configuration& instance() { return _instance; }
 
@@ -150,6 +162,8 @@ class Configuration {
   BooleanOption _axiomatiseToInt;
   BooleanOption _memSafetyMode;
   BooleanOption _explodeMemRegions;
+  MultiChoiceOption _useListPredicate;
+
   BooleanOption _lemmaPredicates;
   BooleanOption _integerIterations;
   BooleanOption _inlineLemmas;

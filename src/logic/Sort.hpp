@@ -63,6 +63,7 @@ class Sorts {
   static Sort* arraySort() { return fetchOrDeclare("Arr"); }
   static Sort* timeSort() { return fetchOrDeclare("Time"); }
   static Sort* traceSort() { return fetchOrDeclare("Trace"); }
+  static Sort* intSetSort() { return fetchOrDeclare("IntSet"); }
   static Sort* structSort(std::string name,
     std::vector<std::pair<std::string, std::string>> selectors);
   static Sort* fetch(std::string name);

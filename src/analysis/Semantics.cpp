@@ -167,8 +167,8 @@ Semantics::generateSemantics() {
   auto tpVar = logic::Terms::var(tp);  
   auto tpVar2 = logic::Terms::var(tp2);
 
-  auto memLocSymbol = locVarSymbol("mem-loc");
-  auto memLocSymbol2 = locVarSymbol("mem-loc2");
+  auto memLocSymbol = locVarSymbol("m1");
+  auto memLocSymbol2 = locVarSymbol("m2");
 
   auto memLocVar = logic::Terms::var(memLocSymbol);
   auto memLocVar2 = logic::Terms::var(memLocSymbol2);
@@ -184,33 +184,15 @@ Semantics::generateSemantics() {
   for (int i = 0; i < allVars.size(); i++) {
     auto var = allVars[i];
     auto varAsTerm = logic::Terms::func(logic::Signature::fetch(var->name), {});
+
+    // no local variable is a heap location
+    auto notHeapLoc = logic::Formulas::negation(logic::Theory::heapLoc(varAsTerm));
+    uniqueVars.push_back(notHeapLoc);
+
     // no variable is equal to the null location
     auto notNull =
         logic::Formulas::disequality(varAsTerm, logic::Theory::nullLoc());
     uniqueVars.push_back(notNull);
-
-    // adding axioms to ensure disjointness between stack and heap allocated memory
-    for(unsigned k = 0; k < mallocStatements.size(); k++){
-      std::shared_ptr<const logic::Formula> notMalloc;
-      auto mallocStatement = mallocStatements[k].first;
-
-      std::vector<std::shared_ptr<const logic::Symbol>> varSyms;
-      mallocStatement = rectifyVars(mallocStatement, varSyms);
-
-      int size = mallocStatements[k].second;
-      if(size > 1){
-        if(util::Configuration::instance().explodeMemRegions() && size < SMALL_STRUCT_SIZE){
-          notMalloc = explode(varAsTerm, 1, mallocStatement, size); 
-        } else {
-          needDisjoint2Axiom = true;
-          auto sizeTerm = logic::Theory::intConstant(size);
-          notMalloc = logic::Theory::disjoint2(varAsTerm, mallocStatement, sizeTerm);          
-        }
-      } else {
-        notMalloc = logic::Formulas::disequality(varAsTerm, mallocStatement);
-      }
-      uniqueVars.push_back(logic::Formulas::universalSimp(varSyms, notMalloc));
-    }
 
     //pairwise disjointness of variables
     for (int j = i + 1; j < allVars.size(); j++) {
@@ -261,8 +243,33 @@ Semantics::generateSemantics() {
         vecUnion<std::shared_ptr<const logic::Symbol>>(varSyms, varSyms2), imp));      
     }
 
-    //TODO not null axiom?
+    // Is heap location and is not null
+    std::shared_ptr<const logic::Formula> notNull;
+    std::shared_ptr<const logic::Formula> isHeapLoc;    
+    if(size > 1){
+      if(util::Configuration::instance().explodeMemRegions() && size < SMALL_STRUCT_SIZE){
+         notNull = explode(mallocStatement, size, logic::Theory::nullLoc(), 1); 
+       
+        std::vector<std::shared_ptr<const logic::Formula>> forms;    
+        forms.push_back(logic::Theory::heapLoc(mallocStatement));
+        for(unsigned i = 1; i < size; i++){
+          forms.push_back(logic::Theory::heapLoc(
+            logic::Theory::intAddition(mallocStatement, logic::Theory::intConstant(i))));
+        }
+        isHeapLoc = logic::Formulas::conjunctionSimp(forms);         
+      } else {
+        needDisjoint2Axiom = true;
+        notNull = logic::Theory::disjoint2(mallocStatement, sizeTerm, logic::Theory::nullLoc());
+        //TODO isHeapLoc
+      }
+    } else {
+      notNull = logic::Formulas::disequality(mallocStatement, logic::Theory::nullLoc());
+      isHeapLoc = logic::Theory::heapLoc(mallocStatement);        
+    }    
+    uniqueVars.push_back(logic::Formulas::universalSimp(varSyms, notNull));
+    uniqueVars.push_back(logic::Formulas::universalSimp(varSyms, isHeapLoc));
 
+    // No two memory regions are the same
     for (int l = k + 1; l < mallocStatements.size(); l++) {
       auto mallocStatement2 = mallocStatements[l].first;
       int size2 = mallocStatements[l].second;    

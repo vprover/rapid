@@ -29,6 +29,19 @@ std::vector<std::shared_ptr<const logic::Axiom>> TheoryAxioms::generate() {
     addDisjointnessAxioms(axioms);
   }
 
+  if(util::Configuration::instance().useLists() != "off") {
+    // TODO, add option to use predicates instead of sets
+    addEmptySetAxiom(axioms);
+    addSetUnionAxiom(axioms);
+    addSingletonAxiom(axioms);
+    addListAxioms(axioms);
+    if(util::Configuration::instance().useLists() == "acyclic"){
+      addAcyclicListAxioms(axioms);
+    } else {
+      addCyclicListAxioms(axioms);
+    }
+  }
+
   return axioms;
 }
 
@@ -190,4 +203,150 @@ void TheoryAxioms::addDisjointnessAxioms(
 
   // NOTE: all other clauses for this axiom are already subsumed by other axioms
 }
+
+
+void TheoryAxioms::addListAxioms(
+    std::vector<std::shared_ptr<const logic::Axiom>>& axioms) {
+
+  auto xSym = logic::Signature::varSymbol("x", logic::Sorts::intSort());
+  auto ySym = logic::Signature::varSymbol("y", logic::Sorts::intSort());
+  auto zSym = logic::Signature::varSymbol("z", logic::Sorts::intSort());
+  auto x = logic::Terms::var(xSym);
+  auto y = logic::Terms::var(ySym);
+  auto z = logic::Terms::var(zSym);
+  auto succx = logic::Theory::intAddition(x, logic::Theory::intConstant(1));
+
+  auto tpVarSym = logic::Signature::varSymbol("tp", logic::Sorts::timeSort());
+  auto tp = logic::Terms::var(tpVarSym);  
+
+  auto isList1 = logic::Theory::isList(x, y, tp);
+  auto isList2 = logic::Theory::isList(z, y, tp);
+
+  auto equalxy = logic::Formulas::equality(x, y);
+  auto valueAtSuccx = logic::Theory::valueAt(tp, succx);
+  auto equalzValueSuccx = logic::Formulas::equality(z, valueAtSuccx);
+
+  auto xIsHeap = logic::Theory::heapLoc(x);
+  auto succxIsHeap = logic::Theory::heapLoc(succx);
+
+  auto conj1 = logic::Formulas::conjunction({isList2, equalzValueSuccx}); 
+  auto recursiveCase = logic::Formulas::existential({zSym}, conj1);
+
+  auto conj2 = logic::Formulas::conjunction({xIsHeap, succxIsHeap, recursiveCase});
+  auto disj = logic::Formulas::disjunction({equalxy, conj2});
+
+  auto listDef = logic::Formulas::equivalence(isList1, disj);
+  listDef = logic::Formulas::universal({xSym, ySym, tpVarSym}, listDef);
+  axioms.push_back(std::make_shared<const logic::Axiom>(
+      listDef, "Definition of a list")); 
+
+  // axiom defining locations in a list
+  auto listLocsxy = logic::Theory::listLocs(x, y, tp);
+  auto listLocsEmpty = logic::Formulas::equality(listLocsxy, logic::Theory::emptySet());
+
+  auto notList = logic::Formulas::negation(isList1);
+  auto disj1 = logic::Formulas::disjunction({notList, equalxy});
+  auto imp1 = logic::Formulas::implication(disj1, listLocsEmpty);
+
+  auto notEqualxy = logic::Formulas::negation(equalxy);
+  auto conj3 = logic::Formulas::conjunction({isList1, notEqualxy});
+
+  auto singletonx = logic::Theory::singleton(x);
+  auto singletonSuccx = logic::Theory::singleton(succx);
+  auto unionSingletons = logic::Theory::setUnion(singletonx, singletonSuccx);
+
+  auto listLocsTail = logic::Theory::listLocs(valueAtSuccx, y, tp);
+  auto allLocs = logic::Theory::setUnion(unionSingletons, listLocsTail);
+  auto listLocsDef = logic::Formulas::equality(listLocsxy, allLocs);
+  auto imp2 = logic::Formulas::implication(conj3, listLocsDef);
+
+  auto conjOfImps = logic::Formulas::conjunction({imp1, imp2});
+  auto axiom = logic::Formulas::universal({xSym, ySym, tpVarSym}, conjOfImps);
+  axioms.push_back(std::make_shared<const logic::Axiom>(
+      axiom, "Definition of locations in a list"));
+}
+
+void TheoryAxioms::addAcyclicListAxioms(
+    std::vector<std::shared_ptr<const logic::Axiom>>& axioms) {
+
+  auto xSym = logic::Signature::varSymbol("x", logic::Sorts::intSort());
+  auto x = logic::Terms::var(xSym);
+
+  auto tpVarSym = logic::Signature::varSymbol("tp", logic::Sorts::timeSort());
+  auto tp = logic::Terms::var(tpVarSym); 
+
+  auto isAcyclicList = logic::Theory::isAcyclicList(x, tp);  
+  auto nullLoc = logic::Theory::nullLoc();
+  auto isList = logic::Theory::isList(x, nullLoc, tp);
+
+  auto def = logic::Formulas::equivalence(isAcyclicList, isList);
+  def = logic::Formulas::universal({xSym, tpVarSym}, def);
+  axioms.push_back(std::make_shared<const logic::Axiom>(
+      def, "Definition of an acyclic list"));
+
+  auto acyclicListLocs = logic::Theory::acyclicListLocs(x, tp);
+  auto listLocs = logic::Theory::listLocs(x, nullLoc, tp);
+
+  auto def2 = logic::Formulas::equality(acyclicListLocs, listLocs);
+  def2 = logic::Formulas::universal({xSym, tpVarSym}, def2);
+  axioms.push_back(std::make_shared<const logic::Axiom>(
+      def2, "Definition of acyclic list locations"));
+}
+
+
+void TheoryAxioms::addCyclicListAxioms(
+    std::vector<std::shared_ptr<const logic::Axiom>>& axioms) {
+
+}
+
+
+void TheoryAxioms::addEmptySetAxiom(
+    std::vector<std::shared_ptr<const logic::Axiom>>& axioms)
+{
+  auto xSym = logic::Signature::varSymbol("x", logic::Sorts::intSort());
+  auto x = logic::Terms::var(xSym);
+
+  auto xnotinempty = logic::Formulas::negation(logic::Theory::in(x, logic::Theory::emptySet()));
+  xnotinempty = logic::Formulas::universal({xSym}, xnotinempty);
+  axioms.push_back(std::make_shared<const logic::Axiom>(
+      xnotinempty, "Definition of the empty set")); 
+}
+
+void TheoryAxioms::addSetUnionAxiom(
+    std::vector<std::shared_ptr<const logic::Axiom>>& axioms)
+{
+  auto xSym = logic::Signature::varSymbol("x", logic::Sorts::intSort());
+  auto x = logic::Terms::var(xSym);
+
+  auto s1Sym = logic::Signature::varSymbol("s1", logic::Sorts::intSetSort());
+  auto s1 = logic::Terms::var(s1Sym);
+
+  auto s2Sym = logic::Signature::varSymbol("s2", logic::Sorts::intSetSort());
+  auto s2 = logic::Terms::var(s2Sym);
+
+  auto unions1s2 = logic::Theory::setUnion(s1, s2);
+  auto xInUnion = logic::Theory::in(x, unions1s2);
+  auto xIns1 = logic::Theory::in(x, s1);
+  auto xIns2 = logic::Theory::in(x, s2);
+  auto disj = logic::Formulas::disjunction({xIns1, xIns2});
+  auto def = logic::Formulas::equivalence(xInUnion, disj);
+  def = logic::Formulas::universal({xSym, s1Sym, s2Sym}, def);
+  axioms.push_back(std::make_shared<const logic::Axiom>(
+      def, "Definition of set union"));   
+}
+
+void TheoryAxioms::addSingletonAxiom(
+    std::vector<std::shared_ptr<const logic::Axiom>>& axioms)
+{
+  auto xSym = logic::Signature::varSymbol("x", logic::Sorts::intSort());
+  auto x = logic::Terms::var(xSym);
+  
+  auto xsingleton = logic::Theory::singleton(x);
+  auto def = logic::Theory::in(x, xsingleton);
+  def = logic::Formulas::universal({xSym}, def);
+  //TODO, do we want to exclude everything != x from the set?
+  axioms.push_back(std::make_shared<const logic::Axiom>(
+      def, "Definition of a singleton set")); 
+}
+
 }  // namespace analysis

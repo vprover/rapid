@@ -200,6 +200,42 @@ std::shared_ptr<const FuncTerm> Theory::valueAt(
   return Terms::func(funcName, subterms, Sorts::intSort(), false);
 }
 
+std::shared_ptr<const Formula> Theory::isList(
+      std::shared_ptr<const Term> loc1,
+      std::shared_ptr<const Term> loc2,
+      std::shared_ptr<const Term> tp)
+{
+  return Formulas::predicate("is_list", {loc1, loc2, tp});    
+} 
+
+std::shared_ptr<const FuncTerm> Theory::listLocs(
+  std::shared_ptr<const Term> loc1,
+  std::shared_ptr<const Term> loc2,
+  std::shared_ptr<const Term> tp)
+{
+  return Terms::func("list_locs", {loc1, loc2, tp}, Sorts::intSetSort(), false);
+}
+
+std::shared_ptr<const Formula> Theory::isAcyclicList(
+      std::shared_ptr<const Term> loc,
+      std::shared_ptr<const Term> tp)
+{
+  return Formulas::predicate("is_acyclic_list", {loc, tp});    
+} 
+
+std::shared_ptr<const FuncTerm> Theory::acyclicListLocs(
+  std::shared_ptr<const Term> loc,
+  std::shared_ptr<const Term> tp)
+{
+  return Terms::func("acyclic_list_locs", {loc, tp}, Sorts::intSetSort(), false);
+}
+
+std::shared_ptr<const Formula> Theory::heapLoc(
+  std::shared_ptr<const Term> location)
+{
+  return Formulas::predicate("heap_loc", {location});  
+} 
+
 std::shared_ptr<const Formula> Theory::framePred(
       std::shared_ptr<const Term> location,
       std::shared_ptr<const Term> t1,
@@ -210,25 +246,62 @@ std::shared_ptr<const Formula> Theory::framePred(
 std::shared_ptr<logic::Axiom> Theory::frameAxiom(
       std::shared_ptr<const logic::Symbol> tpVarSym1,
       std::shared_ptr<const logic::Symbol> tpVarSym2,
-      std::shared_ptr<const logic::Symbol> memLocVarSym) 
+      std::shared_ptr<const logic::Symbol> m1VarSym) 
 {
-  auto memLocVariable = logic::Terms::var(memLocVarSym);
+  auto m1Var = logic::Terms::var(m1VarSym);
   auto tpVar = logic::Terms::var(tpVarSym1);  
   auto tpVar2 = logic::Terms::var(tpVarSym2);
 
-  auto framePred = logic::Theory::framePred(memLocVariable, tpVar, tpVar2);
-  auto loc = logic::Signature::varSymbol("m-loc", logic::Sorts::intSort());
-  auto locVar = logic::Terms::var(loc); 
+  auto framePred = Theory::framePred(m1Var, tpVar, tpVar2);
+  auto m2VarSym = Signature::varSymbol("m2", logic::Sorts::intSort());
+  auto m2Var = Terms::var(m2VarSym); 
 
-  auto notEqual = logic::Formulas::disequality(memLocVariable, locVar);
-  auto rhs = logic::Formulas::equality(
-    logic::Theory::valueAt(tpVar, locVar),
-    logic::Theory::valueAt(tpVar2, locVar));
-  rhs =  logic::Formulas::implicationSimp(notEqual, rhs);
-  rhs =  logic::Formulas::universal({loc}, rhs);
+  auto isHeapM1 = heapLoc(m1Var);
+  auto isHeapM2 = heapLoc(m2Var);
+  auto notIsHeapM1 = Formulas::negation(isHeapM1);
+  auto notIsHeapM2 = Formulas::negation(isHeapM2);
+  
+  auto locsNotEqual = Formulas::disequality(m1Var, m2Var);
+  auto holdsValue = Formulas::equality(
+    valueAt(tpVar, m2Var), 
+    valueAt(tpVar2, m2Var));
 
-  auto frameDefinition = logic::Formulas::universal({memLocVarSym,tpVarSym1,tpVarSym2 },
-    logic::Formulas::equivalenceSimp(framePred, rhs));
+  auto conj1 = Formulas::conjunction({notIsHeapM1, notIsHeapM2, locsNotEqual});
+  auto imp1 = Formulas::implication(conj1, holdsValue);
+ 
+  auto listThingsStaySame = Formulas::trueFormula();
+  auto guardedListsStaySame = Formulas::trueFormula();
+  if(util::Configuration::instance().useLists() == "acyclic"){
+    auto isListTp1 = isAcyclicList(m2Var, tpVar); 
+    auto isListTp2 = isAcyclicList(m2Var, tpVar2);
+    auto isListStaysSame = Formulas::equivalence(isListTp1, isListTp2);
+
+    auto ListLocsTp1 = acyclicListLocs(m2Var, tpVar);  
+    auto ListLocsTp2 = acyclicListLocs(m2Var, tpVar2);  
+    auto listLocsStaySame = Formulas::equality(ListLocsTp1, ListLocsTp2);
+    listThingsStaySame = Formulas::conjunction({isListStaysSame, listLocsStaySame});
+
+    auto notInListLocs = Formulas::negation(in(m1Var, ListLocsTp1));
+    guardedListsStaySame = Formulas::implication(notInListLocs, listThingsStaySame);
+  } //TODO cyclic
+
+  auto conj2a = Formulas::conjunction({isHeapM1, notIsHeapM2});
+  auto conj2b = Formulas::conjunction({notIsHeapM1, isHeapM2});
+  auto disj = Formulas::disjunction({conj2a, conj2b});
+  auto imp2 = Formulas::implication(disj, 
+    Formulas::conjunctionSimp({holdsValue, listThingsStaySame}));
+
+  auto conj3 = Formulas::conjunction({isHeapM1, isHeapM2});
+  auto imp3 = Formulas::implication(locsNotEqual, holdsValue);
+
+  auto imp4 = Formulas::implication(conj3, 
+    Formulas::conjunctionSimp({imp3, guardedListsStaySame}));
+
+  auto conj = Formulas::conjunctionSimp({imp1, imp2, imp4});
+  conj = Formulas::universal({m2VarSym}, conj);
+
+  auto frameDefinition = Formulas::universal({m1VarSym,tpVarSym1,tpVarSym2 },
+    Formulas::equivalenceSimp(framePred, conj));
   return std::make_shared<logic::Axiom>(
     frameDefinition, "Definition of the frame axiom",
     logic::ProblemItem::Visibility::Implicit);
@@ -322,6 +395,30 @@ std::shared_ptr<const FuncTerm> Theory::mallocFun(
 
   return Terms::func("malloc", {timePoint}, Sorts::intSort(), false, 
     logic::Symbol::SymbolType::MallocFunc);
+}
+
+// Set based reasoning
+  
+std::shared_ptr<const FuncTerm> Theory::emptySet() {
+  return Terms::func("empty", {}, Sorts::intSetSort(), false);
+} 
+
+std::shared_ptr<const FuncTerm> Theory::setUnion(
+  std::shared_ptr<const Term> s1,
+  std::shared_ptr<const Term> s2) {
+
+  return Terms::func("union", {s1, s2}, Sorts::intSetSort(), false);
+} 
+
+std::shared_ptr<const FuncTerm> Theory::singleton(
+  std::shared_ptr<const Term> elem) {
+  return Terms::func("singleton", {elem}, Sorts::intSetSort(), false);
+}
+
+std::shared_ptr<const Formula> Theory::in(
+  std::shared_ptr<const Term> elem,
+  std::shared_ptr<const Term> set) {
+  return Formulas::predicate("in", {elem, set});
 }
 
 std::tuple<std::shared_ptr<logic::Definition>,
