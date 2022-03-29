@@ -67,6 +67,10 @@ std::string Symbol::declareSymbolSMTLIB() const {
         res = "(declare-time-point ";
       }
 
+      if(symbolType == SymbolType::MallocFunc) {
+        res = "(declare-malloc-func ";        
+      }
+
       if (symbolType == SymbolType::FinalLoopCount) {
         res = "(declare-final-loop-count ";
       }

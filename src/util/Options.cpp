@@ -35,12 +35,19 @@ bool Configuration::setAllValues(int argc, char* argv[]) {
 
   // ignore first argument (program name) and last (input file)
   while (i < argc - 1) {
+
+    if(strcmp(argv[i], "-help") ==0){
+      outputOptionsHelp();
+      return false;
+    }
+
     auto it = _allOptions.find(std::string(argv[i]));
     if (it != _allOptions.end()) {
       if (!(*it).second->setValue(argv[i + 1])) {
         b = false;
         std::cout << argv[i + 1] << " is not a correct value for option "
-                  << argv[i] << std::endl;
+                  << argv[i] << " try running with -help to see options and values available" << std::endl;
+
       }
     } else {
       b = false;
@@ -51,6 +58,39 @@ bool Configuration::setAllValues(int argc, char* argv[]) {
   return b;
 }
 
+void Configuration::outputOptionsHelp()
+{
+  std::cout << "\nRapid Options: \n" << std::endl;
+
+  auto iter = _allOptions.begin();
+  while (iter != _allOptions.end()) {
+    auto option = iter->second;
+    auto description = option->description();
+    if(description == ""){
+      description = "[missing description]";
+    }
+
+    if(option->experimental()){
+      std::cout << "[EXPERIMENTAL] ";
+    }
+    std::cout << option->name() + ", ";
+    if(option->isBooleanOption()){
+      std::cout << "{on, off}";
+    }
+    if(option->isMultiChoiceOption()){
+      MultiChoiceOption* mcoption = static_cast<MultiChoiceOption*>(option);
+      std::cout << "{";
+      bool first = true;
+      for(auto& choice : mcoption->choices()){
+        std::cout << (!first ? ", " : "") << choice;
+        first = false;
+      }
+      std::cout << "}";
+    }
+    std::cout << "\n   " << description << std::endl;
+    ++iter; 
+  }
+}
 void Configuration::registerOption(Option* o) {
   _allOptions.insert(std::pair<std::string, Option*>(o->name(), o));
 }

@@ -20,7 +20,7 @@ void AtLeastOneIterationLemmas::generateOutputFor(
   auto it = iteratorTermForLoop(statement);
 
   auto lStartZero =
-      timepointForLoopStatement(statement, logic::Theory::natZero());
+      timepointForLoopStatement(statement, logic::Theory::zero());
 
   auto conjunctLeft = integerIts ? 
       logic::Theory::intLessEqual(logic::Theory::intZero(), it) :

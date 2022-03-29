@@ -492,7 +492,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     //[*...*]x = term
     if (!isIntArrayApp(lhs) && !isRefExpr(rhs)) {
       lhsTerm = toTerm(lhs, l2, trace, l1);
-      rhsTerm = toTerm(rhs, l1, trace);
+      rhsTerm = toTerm(rhs, l1, trace, l1);
     }
 
     //[*...*]x = #y

@@ -79,13 +79,23 @@ class Theory {
   static std::shared_ptr<const FuncTerm> listLocs(
       std::shared_ptr<const Term> loc1,
       std::shared_ptr<const Term> loc2,
-      std::shared_ptr<const Term> tp);  
+      std::shared_ptr<const Term> tp);
+  static std::shared_ptr<const Formula> listLocsPred(
+      std::shared_ptr<const Term> loc1,
+      std::shared_ptr<const Term> loc2,
+      std::shared_ptr<const Term> tp,
+      std::shared_ptr<const Term> loc3      
+    );
   static std::shared_ptr<const Formula> isAcyclicList(
       std::shared_ptr<const Term> loc,
       std::shared_ptr<const Term> tp); 
   static std::shared_ptr<const FuncTerm> acyclicListLocs(
       std::shared_ptr<const Term> loc,
       std::shared_ptr<const Term> tp);  
+  static std::shared_ptr<const Formula>  acyclicListLocsPred(
+      std::shared_ptr<const Term> loc1,
+      std::shared_ptr<const Term> tp,
+      std::shared_ptr<const Term> loc2);  
 
   static std::shared_ptr<const Formula> heapLoc(
       std::shared_ptr<const Term> location); 

@@ -115,7 +115,7 @@ rectifyVars(
   
   std::vector<std::shared_ptr<const logic::Term>> vars;
   for(unsigned i = startingFrom; i < tpaf->subterms.size() + startingFrom; i++){
-    auto rectifiedVar = natVarSymbol("it" + std::to_string(i));
+    auto rectifiedVar = itVarSymbol("it" + std::to_string(i));
     varSyms.push_back(rectifiedVar);
     vars.push_back(logic::Terms::var(rectifiedVar));
   }
@@ -826,10 +826,20 @@ std::shared_ptr<const logic::Formula> allVarEqual(
     auto isAcyclicListTp1 = logic::Theory::isAcyclicList(loc, timePoint1); 
     auto isAcyclicListTp2 = logic::Theory::isAcyclicList(loc, timePoint2); 
   
-    auto listLocsTp1 = logic::Theory::acyclicListLocs(loc, timePoint1);
-    auto listLocsTp2 = logic::Theory::acyclicListLocs(loc, timePoint2); 
+    if(util::Configuration::instance().useLocSets()){  
+      auto listLocsTp1 = logic::Theory::acyclicListLocs(loc, timePoint1);
+      auto listLocsTp2 = logic::Theory::acyclicListLocs(loc, timePoint2); 
+      conjuncts.push_back(logic::Formulas::equality(listLocsTp1, listLocsTp2));
+    } else {
+      auto xSym = logic::Signature::varSymbol("x", logic::Sorts::intSort());
+      auto x = logic::Terms::var(xSym);
+    
+      auto acyclicListLocs1 = logic::Theory::acyclicListLocsPred(loc, timePoint1, x);
+      auto acyclicListLocs2 = logic::Theory::acyclicListLocsPred(loc, timePoint2, x);
+      auto equal = logic::Formulas::equivalence(acyclicListLocs1, acyclicListLocs2);
+      conjuncts.push_back(logic::Formulas::universal({xSym}, equal));      
+    }
     conjuncts.push_back(logic::Formulas::equivalence(isAcyclicListTp1, isAcyclicListTp2));    
-    conjuncts.push_back(logic::Formulas::equality(listLocsTp1, listLocsTp2));
   } //TODO cyclic case
 
   conjuncts.push_back(logic::Formulas::equality(valueAtTp1, valueAtTp2));

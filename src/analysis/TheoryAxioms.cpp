@@ -30,10 +30,11 @@ std::vector<std::shared_ptr<const logic::Axiom>> TheoryAxioms::generate() {
   }
 
   if(util::Configuration::instance().useLists() != "off") {
-    // TODO, add option to use predicates instead of sets
-    addEmptySetAxiom(axioms);
-    addSetUnionAxiom(axioms);
-    addSingletonAxiom(axioms);
+    if(util::Configuration::instance().useLocSets()){
+      addEmptySetAxiom(axioms);
+      addSetUnionAxiom(axioms);
+      addSingletonAxiom(axioms);
+    }
     addListAxioms(axioms);
     if(util::Configuration::instance().useLists() == "acyclic"){
       addAcyclicListAxioms(axioms);
@@ -241,29 +242,46 @@ void TheoryAxioms::addListAxioms(
       listDef, "Definition of a list")); 
 
   // axiom defining locations in a list
-  auto listLocsxy = logic::Theory::listLocs(x, y, tp);
-  auto listLocsEmpty = logic::Formulas::equality(listLocsxy, logic::Theory::emptySet());
-
   auto notList = logic::Formulas::negation(isList1);
   auto disj1 = logic::Formulas::disjunction({notList, equalxy});
-  auto imp1 = logic::Formulas::implication(disj1, listLocsEmpty);
 
   auto notEqualxy = logic::Formulas::negation(equalxy);
   auto conj3 = logic::Formulas::conjunction({isList1, notEqualxy});
 
-  auto singletonx = logic::Theory::singleton(x);
-  auto singletonSuccx = logic::Theory::singleton(succx);
-  auto unionSingletons = logic::Theory::setUnion(singletonx, singletonSuccx);
+  std::shared_ptr<const Formula> imp1, imp2;
+  if(util::Configuration::instance().useLocSets()){
+    auto listLocsxy = logic::Theory::listLocs(x, y, tp);
+    auto listLocsEmpty = logic::Formulas::equality(listLocsxy, logic::Theory::emptySet());
+    imp1 = logic::Formulas::implication(disj1, listLocsEmpty);
 
-  auto listLocsTail = logic::Theory::listLocs(valueAtSuccx, y, tp);
-  auto allLocs = logic::Theory::setUnion(unionSingletons, listLocsTail);
-  auto listLocsDef = logic::Formulas::equality(listLocsxy, allLocs);
-  auto imp2 = logic::Formulas::implication(conj3, listLocsDef);
+    auto singletonx = logic::Theory::singleton(x);
+    auto singletonSuccx = logic::Theory::singleton(succx);
+    auto unionSingletons = logic::Theory::setUnion(singletonx, singletonSuccx);
+
+    auto listLocsTail = logic::Theory::listLocs(valueAtSuccx, y, tp);
+    auto allLocs = logic::Theory::setUnion(unionSingletons, listLocsTail);
+    auto listLocsDef = logic::Formulas::equality(listLocsxy, allLocs);
+    imp2 = logic::Formulas::implication(conj3, listLocsDef);
+  } else {
+    auto listLocsxyz = logic::Theory::listLocsPred(x, y, tp, z);
+    imp1 = logic::Formulas::implication(disj1, 
+      logic::Formulas::universal({zSym}, 
+        logic::Formulas::negation(listLocsxyz)));
+
+    auto listLocsxyx = logic::Theory::listLocsPred(x, y, tp, x);
+    auto listLocsxySuccx = logic::Theory::listLocsPred(x, y, tp, succx);
+    auto listLocsTails = logic::Theory::listLocsPred(valueAtSuccx, y, tp, z);
+    auto inTailImpInList = logic::Formulas::implication(listLocsTails, listLocsxyz);
+    inTailImpInList = logic::Formulas::universal({zSym}, inTailImpInList);
+    auto locationsInList = logic::Formulas::conjunction(
+      {listLocsxyx, listLocsxySuccx, inTailImpInList});
+    imp2 = logic::Formulas::implication(conj3, locationsInList);
+  }
 
   auto conjOfImps = logic::Formulas::conjunction({imp1, imp2});
   auto axiom = logic::Formulas::universal({xSym, ySym, tpVarSym}, conjOfImps);
   axioms.push_back(std::make_shared<const logic::Axiom>(
-      axiom, "Definition of locations in a list"));
+      axiom, "Definition of locations in a list"));  
 }
 
 void TheoryAxioms::addAcyclicListAxioms(
@@ -284,13 +302,25 @@ void TheoryAxioms::addAcyclicListAxioms(
   axioms.push_back(std::make_shared<const logic::Axiom>(
       def, "Definition of an acyclic list"));
 
-  auto acyclicListLocs = logic::Theory::acyclicListLocs(x, tp);
-  auto listLocs = logic::Theory::listLocs(x, nullLoc, tp);
+  // axiom defining locations in an acyclic list
+  std::shared_ptr<const Formula> def2;  
+  if(util::Configuration::instance().useLocSets()){  
+    auto acyclicListLocs = logic::Theory::acyclicListLocs(x, tp);
+    auto listLocs = logic::Theory::listLocs(x, nullLoc, tp);
 
-  auto def2 = logic::Formulas::equality(acyclicListLocs, listLocs);
-  def2 = logic::Formulas::universal({xSym, tpVarSym}, def2);
+    def2 = logic::Formulas::equality(acyclicListLocs, listLocs);
+    def2 = logic::Formulas::universal({xSym, tpVarSym}, def2);
+  } else {
+    auto ySym = logic::Signature::varSymbol("y", logic::Sorts::intSort());
+    auto y = logic::Terms::var(ySym);
+
+    auto acyclicListLocs = logic::Theory::acyclicListLocsPred(x, tp, y);
+    auto listLocs = logic::Theory::listLocsPred(x, nullLoc, tp, y);
+    def2 = logic::Formulas::equivalence(acyclicListLocs, listLocs);
+    def2 = logic::Formulas::universal({xSym, ySym, tpVarSym}, def2);
+  }
   axioms.push_back(std::make_shared<const logic::Axiom>(
-      def2, "Definition of acyclic list locations"));
+        def2, "Definition of acyclic list locations"));  
 }
 
 

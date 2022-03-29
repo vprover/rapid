@@ -70,8 +70,11 @@ std::shared_ptr<const logic::Symbol> tpVarSymbol(std::string varName) {
   return logic::Signature::varSymbol(varName, logic::Sorts::timeSort());  
 }
 
-std::shared_ptr<const logic::Symbol> natVarSymbol(std::string varName) {
-  return logic::Signature::varSymbol(varName, logic::Sorts::natSort());  
+std::shared_ptr<const logic::Symbol> itVarSymbol(std::string varName) {
+  auto sort = util::Configuration::instance().integerIterations() ?
+    logic::Sorts::intSort() :
+    logic::Sorts::natSort();
+  return logic::Signature::varSymbol(varName, sort);  
 }
 
 std::shared_ptr<const logic::Symbol> posVarSymbol() {

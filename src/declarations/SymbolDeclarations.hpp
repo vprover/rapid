@@ -24,7 +24,7 @@ std::shared_ptr<const logic::Symbol> posVarSymbol();
 std::shared_ptr<const logic::Symbol> locVarSymbol();  // memory location
 std::shared_ptr<const logic::Symbol> locVarSymbol(std::string varName);  // memory location
 std::shared_ptr<const logic::Symbol> tpVarSymbol(std::string varName);
-std::shared_ptr<const logic::Symbol> natVarSymbol(std::string varName);
+std::shared_ptr<const logic::Symbol> itVarSymbol(std::string varName);
 
 std::shared_ptr<const logic::Symbol> intIteratorSymbol(
     const program::WhileStatement* whileStatement);

@@ -11,20 +11,31 @@ namespace util {
 class Option {
  public:
   std::string name() { return _name; }
+  std::string description(){ return _description; }
+  bool experimental(){ return _experimental; }
 
   // return true if the value was succesfully set
   virtual bool setValue(std::string v) = 0;
 
- protected:
-  Option(std::string name) : _name(name) {}
+  virtual bool isBooleanOption() { return false; }
+  virtual bool isMultiChoiceOption() { return false; }
 
+ protected:
+  Option(std::string name, std::string description, bool experimental = false) : 
+    _name(name), _description(description), _experimental(experimental) {}
+
+  bool _experimental;
+  std::string _description;
   std::string _name;
 };
 
 class BooleanOption : public Option {
  public:
-  BooleanOption(std::string name, bool defaultValue)
-      : Option(name), _value(defaultValue) {}
+  BooleanOption(std::string name, std::string description, 
+               bool defaultValue, bool experimental = false)
+      : Option(name, description, experimental), _value(defaultValue) {}
+
+  virtual bool isBooleanOption() { return true; }
 
   bool setValue(std::string v);
 
@@ -36,8 +47,9 @@ class BooleanOption : public Option {
 
 class StringOption : public Option {
  public:
-  StringOption(std::string name, std::string defaultValue)
-      : Option(name), _value(defaultValue) {}
+  StringOption(std::string name, std::string description, 
+               std::string defaultValue)
+      : Option(name, description), _value(defaultValue) {}
 
   bool setValue(std::string v) {
     _value = v;
@@ -52,9 +64,15 @@ class StringOption : public Option {
 
 class MultiChoiceOption : public Option {
  public:
-  MultiChoiceOption(std::string name, std::vector<std::string> choices,
+  MultiChoiceOption(std::string name, std::string description, 
+                    std::vector<std::string> choices,
                     std::string defaultValue)
-      : Option(name), _value(defaultValue), _choices(choices) {}
+      : Option(name, description), _value(defaultValue), _choices(choices) {}
+
+  virtual bool isMultiChoiceOption() { return true; }
+  std::vector<std::string> choices(){
+    return _choices;
+  }
 
   bool setValue(std::string v);
 
@@ -69,22 +87,25 @@ class MultiChoiceOption : public Option {
 class Configuration {
  public:
   Configuration()
-      : _outputDir("-dir", ""),
-        _generateBenchmark("-generateBenchmark", false),
-        _nativeNat("-nat", true),
-        _inlineSemantics("-inlineSemantics", true),
-        _variableDifferences("-varDiff", false),
-        _axiomatiseToInt("-axToInt", false),
-        _memSafetyMode("-memSafetyMode", false),
-        _explodeMemRegions("-explodeMemRegions", false),
-        _useListPredicate("-useLists", {"off", "acyclic", "cyclic"}, "off"),
-        _lemmaPredicates("-lemmaPredicates", true),
-        _integerIterations("-integerIterations", false),
-        _inlineLemmas("-inlineLemmas", false),
-        _postcondition("-postcondition", false),
-        _outputTraceLemmas("-outputTraceLemmas", false),
-        _tptp("-tptp", false),
-        _hol("-hol", false),
+      : _outputDir("-dir", "directory in which to store the SMT file", ""),
+        _generateBenchmark("-generateBenchmark", "", false),
+        _nativeNat("-nat", "use natural numbers to denote loop iterations", true),
+        _inlineSemantics("-inlineSemantics", "", true),
+        _variableDifferences("-varDiff", "", false),
+        _axiomatiseToInt("-axToInt", "axiomatises the toInt function which converts nats to ints", false),
+        _memSafetyMode("-memSafetyMode", "adds axioms in attempt to reason about memory safety", false, true),
+        _explodeMemRegions("-explodeMemRegions", 
+          "explicit list regions in memory instead of using ranges", false),
+        _useListPredicate("-useLists", "", {"off", "acyclic", "cyclic"}, "off"),
+        _useLocSets("-useLocSets", 
+          "use sets isntead of predicates to determine locations within a data structure", true),
+        _lemmaPredicates("-lemmaPredicates", "", true),
+        _integerIterations("-integerIterations", "use integers to denote loop iterations", false),
+        _inlineLemmas("-inlineLemmas", "", false),
+        _postcondition("-postcondition", "",  false),
+        _outputTraceLemmas("-outputTraceLemmas", "output trace lemmas", false),
+        _tptp("-tptp", "output theorem proving problem in TPTP syntax", false),
+        _hol("-hol", "output theorem proving problem using HOL", false, true),
         _allOptions() {
     registerOption(&_outputDir);
     registerOption(&_generateBenchmark);
@@ -102,6 +123,8 @@ class Configuration {
     registerOption(&_explodeMemRegions);
 
     registerOption(&_useListPredicate);
+
+    registerOption(&_useLocSets);
 
     // uses lemma predicates for Rapid Vampire
     registerOption(&_lemmaPredicates);
@@ -126,7 +149,9 @@ class Configuration {
     registerOption(&_hol);
   }
 
+  //TODO check for incompatible or nonsensical options
   bool setAllValues(int argc, char* argv[]);
+  void outputOptionsHelp();
 
   Option* getOption(std::string name);
 
@@ -139,6 +164,7 @@ class Configuration {
   bool memSafetyMode() { return _memSafetyMode.getValue(); }
   bool explodeMemRegions() { return _explodeMemRegions.getValue(); }
   std::string useLists() { return _useListPredicate.getValue(); }
+  bool useLocSets() { return _useLocSets.getValue(); }
 
   bool lemmaPredicates() { return _lemmaPredicates.getValue(); }
   bool integerIterations() { return _integerIterations.getValue(); }
@@ -163,6 +189,7 @@ class Configuration {
   BooleanOption _memSafetyMode;
   BooleanOption _explodeMemRegions;
   MultiChoiceOption _useListPredicate;
+  BooleanOption _useLocSets;
 
   BooleanOption _lemmaPredicates;
   BooleanOption _integerIterations;

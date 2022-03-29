@@ -194,7 +194,7 @@ void StaticAnalysisLemmas::generateOutputFor(
 
   auto lStartIt = timepointForLoopStatement(statement, it);
   auto lStartZero =
-      timepointForLoopStatement(statement, logic::Theory::natZero());
+      timepointForLoopStatement(statement, logic::Theory::zero());
 
   auto posSymbol = posVarSymbol();
   auto pos = posVar();

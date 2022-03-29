@@ -216,6 +216,15 @@ std::shared_ptr<const FuncTerm> Theory::listLocs(
   return Terms::func("list_locs", {loc1, loc2, tp}, Sorts::intSetSort(), false);
 }
 
+std::shared_ptr<const Formula> Theory::listLocsPred(
+  std::shared_ptr<const Term> loc1,
+  std::shared_ptr<const Term> loc2,
+  std::shared_ptr<const Term> tp,
+  std::shared_ptr<const Term> loc3)
+{
+  return Formulas::predicate("in_list_locs", {loc1, loc2, tp, loc3});      
+}
+
 std::shared_ptr<const Formula> Theory::isAcyclicList(
       std::shared_ptr<const Term> loc,
       std::shared_ptr<const Term> tp)
@@ -228,6 +237,14 @@ std::shared_ptr<const FuncTerm> Theory::acyclicListLocs(
   std::shared_ptr<const Term> tp)
 {
   return Terms::func("acyclic_list_locs", {loc, tp}, Sorts::intSetSort(), false);
+}
+
+std::shared_ptr<const Formula>  Theory::acyclicListLocsPred(
+      std::shared_ptr<const Term> loc1,
+      std::shared_ptr<const Term> tp,
+      std::shared_ptr<const Term> loc2)
+{
+  return Formulas::predicate("in_acyclic_list_locs", {loc1, tp, loc2});  
 }
 
 std::shared_ptr<const Formula> Theory::heapLoc(
@@ -275,13 +292,24 @@ std::shared_ptr<logic::Axiom> Theory::frameAxiom(
     auto isListTp1 = isAcyclicList(m2Var, tpVar); 
     auto isListTp2 = isAcyclicList(m2Var, tpVar2);
     auto isListStaysSame = Formulas::equivalence(isListTp1, isListTp2);
+    
+    std::shared_ptr<const Formula> listLocsStaySame, notInListLocs;  
+    if(util::Configuration::instance().useLocSets()){
+      auto ListLocsTp1 = acyclicListLocs(m2Var, tpVar);  
+      auto ListLocsTp2 = acyclicListLocs(m2Var, tpVar2);  
+      listLocsStaySame = Formulas::equality(ListLocsTp1, ListLocsTp2);
+      notInListLocs = Formulas::negation(in(m1Var, ListLocsTp1));
+    } else {
+      auto xSym = logic::Signature::varSymbol("x", logic::Sorts::intSort());
+      auto x = logic::Terms::var(xSym);
 
-    auto ListLocsTp1 = acyclicListLocs(m2Var, tpVar);  
-    auto ListLocsTp2 = acyclicListLocs(m2Var, tpVar2);  
-    auto listLocsStaySame = Formulas::equality(ListLocsTp1, ListLocsTp2);
+      auto ListLocsTp1 = acyclicListLocsPred(m2Var, tpVar, x);  
+      auto ListLocsTp2 = acyclicListLocsPred(m2Var, tpVar2, x);
+      listLocsStaySame = Formulas::equivalence(ListLocsTp1, ListLocsTp2);
+      listLocsStaySame = Formulas::universal({xSym}, listLocsStaySame);
+      notInListLocs = Formulas::negation(acyclicListLocsPred(m2Var, tpVar, m1Var));
+    }
     listThingsStaySame = Formulas::conjunction({isListStaysSame, listLocsStaySame});
-
-    auto notInListLocs = Formulas::negation(in(m1Var, ListLocsTp1));
     guardedListsStaySame = Formulas::implication(notInListLocs, listThingsStaySame);
   } //TODO cyclic
 
