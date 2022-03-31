@@ -232,7 +232,7 @@ std::shared_ptr<const Symbol> Signature::fetchOrAdd(
                                name, argSorts, rngSort, noDeclaration, typ))));
   auto symbol = pair.first->second;
 
-  if (pair.second) {
+  if (pair.second) { 
     _signatureOrderedByInsertion.push_back(symbol);
   }
   // if a symbol with the name already exist, make sure it has the same sorts

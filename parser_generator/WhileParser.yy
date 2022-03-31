@@ -694,7 +694,11 @@ type_dec:
     if(!parsing_context.validTypeName($1)){
       error(@1, "Not a valid type identifier");
     }
-    $$ = parsing_context.getExprType($1);
+    if(parsing_context.getNameOfStrucBeingParsed() == $1){
+      $$ = nullptr;
+    } else {
+      $$ = parsing_context.getExprType($1);
+    }
   }
 | TYPE
   {
@@ -718,12 +722,23 @@ type_dec:
 struct_dec:
   STRUCT STRUCT_NAME LCUR
   {
-    parsing_context.addTypeName($2);
+    bool added = parsing_context.addTypeName($2);
+    parsing_context.parsingStruct($2);
+    if(!added){
+      error(@2, "A struct with name " + $2 + " has already been declared!");    
+    }
   }
   field_list RCUR SCOL
   {
-    auto structType = std::shared_ptr<const program::ExprType>(new program::StructType($2, std::move($5))); 
+    for(auto& field : $5){
+      if(field->vt == nullptr){
+        error(@2, "Member " + field->name + " cannot have type " + $2 + " of class it inhabits");    
+      }
+    }
+    auto structType = std::shared_ptr<const program::StructType>(new program::StructType($2, std::move($5))); 
+    parsing_context.endParsingStruct(structType);
     parsing_context.addStructType($2, structType);
+    declareSymbolsForStructType(structType);    
     $$ = structType;    
   }
 ;

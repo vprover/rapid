@@ -474,6 +474,38 @@ std::shared_ptr<const logic::Formula> getDensityDefinition(
 
 #pragma mark - Methods for generating sorts
 
+logic::Sort* toSort(
+    std::shared_ptr<const program::ExprType> type) {
+  assert(type != nullptr);
+
+  if(type->isPointerType() && type->isPointerToStruct()){
+    return toSort(type->getChild());
+  }
+
+  if(type->isIntType() || type->isPointerType()){
+    return logic::Sorts::intSort();
+  }
+
+  if(type->isArrayType()){
+    return logic::Sorts::arraySort();
+  }
+
+  //TODO Nat sort
+
+  if(type->isStructType()){
+    std::vector<std::string> selectors;    
+    auto structType = std::static_pointer_cast<const program::StructType>(type);
+    auto structName = structType->getName();
+    for (auto field : structType->getFields())
+    {
+      selectors.push_back(logic::toLower(structName) + "_" + field->name);
+    }
+    return logic::Sorts::structSort(structName, selectors);
+  }
+  assert(false);
+}
+
+
 #pragma mark - Methods for generating most used terms/predicates denoting program-expressions
 std::shared_ptr<const logic::Term> toTerm(
     std::shared_ptr<const program::Expression> expr,
@@ -483,6 +515,8 @@ std::shared_ptr<const logic::Term> toTerm(
     bool lhsOfAssignment) {
   assert(expr != nullptr);
   assert(tp != nullptr);
+
+  bool typedModel = (util::Configuration::instance().memoryModel() == "typed");
 
   if (expr->isArithmeticExpr()) {
     return toIntTerm(expr, tp, trace, innerTp, lhsOfAssignment);
@@ -504,7 +538,16 @@ std::shared_ptr<const logic::Term> toTerm(
         auto castedExpr =
             std::static_pointer_cast<const program::StructFieldAccess>(expr);
         assert(innerTp != nullptr);
-        return logic::Theory::valueAt(tp, toTerm(castedExpr, innerTp, trace));    
+        if(!typedModel){
+          return logic::Theory::valueAt(tp, toTerm(castedExpr, innerTp, trace)); 
+        } else {
+          // build term (next tp node) for example where next is selector 
+          auto struc = castedExpr->getStruct();
+          auto field = castedExpr->getField();
+          auto strucSort = toSort(struc->exprType());          
+          auto selName = logic::toLower(strucSort->name) + "_" + field->name; 
+          return logic::Theory::selectorAt(selName, tp, toTerm(castedExpr, innerTp, trace)); 
+        }  
       }      
       case program::Type::MallocFunc: {
         return logic::Theory::mallocFun(tp);
@@ -539,21 +582,20 @@ std::shared_ptr<const logic::Term> toTerm(
   std::shared_ptr<const logic::Term> exprToTerm;
   // the expression being dereferenced
   auto expr = e->expr;
+  auto exprSort = toSort(expr->exprType());
 
-  //if (expr->type() == program::Type::VariableAccess) {
-  //  exprToTerm = toTerm(expr, tp, VariableAccess); //logic::Terms::locConstant(expr->toString());
-  //} else {
-  //  auto castedExpr =
-  //      std::static_pointer_cast<const program::DerefExpression>(expr);
-    if(innerTp != nullptr){
-      exprToTerm = toTerm(expr, innerTp, trace);
-    } else {
-      exprToTerm = toTerm(expr, tp, trace);      
-    }
-  //}
- 
+  if(innerTp != nullptr){
+    exprToTerm = toTerm(expr, innerTp, trace);
+  } else {
+    exprToTerm = toTerm(expr, tp, trace);      
+  }
+
+  std::string str = "";
+  if(util::Configuration::instance().memoryModel() == "typed"){
+    str = exprSort->name;
+  }
   //auto term = logic::Theory::valueAt(timePoint, exprToTerm);
-  exprToTerm = logic::Theory::valueAt(tp, exprToTerm, false);
+  exprToTerm = logic::Theory::valueAt(tp, exprToTerm, str, false);
   return exprToTerm;
 }
 
@@ -564,6 +606,7 @@ std::shared_ptr<const logic::Term> toTerm(
 
   auto struc = e->getStruct();
   auto field = e->getField();
+  auto strucSort = toSort(struc->exprType());
   bool structIsPointer = struc->isPointerExpr();
 
   //TODO see if there is a nicer way than the horrid static cast below
@@ -572,7 +615,6 @@ std::shared_ptr<const logic::Term> toTerm(
       struc->exprType()->getChild() :
       struc->exprType());
 
-  auto offSet = structType->getFieldPos(field->name);
 
   std::shared_ptr<const logic::Term> structTerm;
   if(struc->type() == program::Type::VariableAccess) {
@@ -582,12 +624,17 @@ std::shared_ptr<const logic::Term> toTerm(
   }
 
   if(structIsPointer){
-    structTerm = logic::Theory::valueAt(timePoint, structTerm, false);
+    structTerm = logic::Theory::valueAt(timePoint, structTerm, strucSort->name, false);
   }
 
-  if(offSet > 0){
-    auto offSetTerm = logic::Theory::intConstant(offSet);
-    structTerm = logic::Theory::intAddition(structTerm, offSetTerm);
+  bool typedModel = (util::Configuration::instance().memoryModel() == "typed");
+
+  if(!typedModel){
+    auto offSet = structType->getFieldPos(field->name);
+    if(offSet > 0){
+      auto offSetTerm = logic::Theory::intConstant(offSet);
+      structTerm = logic::Theory::intAddition(structTerm, offSetTerm);
+    }
   }
   return structTerm;
 
@@ -605,18 +652,22 @@ std::shared_ptr<const logic::Term> toTerm(
   assert(var != nullptr);
   assert(trace != nullptr);
 
-  //    if (!var->isConstant)
-  //    {
   assert(timePoint != nullptr);
-  //    arguments.push_back(timePoint);
 
   logic::Symbol::SymbolType typ = logic::Symbol::SymbolType::ProgramVar;
   if (var->isConstant) {
     typ = logic::Symbol::SymbolType::ConstProgramVar;
   }
+
+  bool typedModel = (util::Configuration::instance().memoryModel() == "typed");
+
+  std::string array = "Int";
+  if(typedModel && var->vt->isPointerToStruct()){
+    array = toSort(var->vt)->name;
+  }
   
   auto varAsConst = logic::Terms::func(var->name, {}, logic::Sorts::intSort(), false, typ);
-  return logic::Theory::valueAt(timePoint, varAsConst, var->isConstant);
+  return logic::Theory::valueAt(timePoint, varAsConst, array, var->isConstant);
 }
 
 std::shared_ptr<const logic::Term> toIntTerm(
@@ -627,6 +678,8 @@ std::shared_ptr<const logic::Term> toIntTerm(
     bool lhsOfAssignment) {
   assert(expr != nullptr);
   assert(tp != nullptr);
+
+  bool typedModel = (util::Configuration::instance().memoryModel() == "typed");
 
   switch (expr->type()) {
     case program::Type::IntegerConstant: {
@@ -664,7 +717,16 @@ std::shared_ptr<const logic::Term> toIntTerm(
       auto castedExpr =
           std::static_pointer_cast<const program::StructFieldAccess>(expr);
       assert(innerTp != nullptr);
-      return logic::Theory::valueAt(tp, toTerm(castedExpr, innerTp, trace));    
+      if(!typedModel){
+        return logic::Theory::valueAt(tp, toTerm(castedExpr, innerTp, trace));    
+      } else {
+        // build term (next tp node) for example where next is selector 
+        auto struc = castedExpr->getStruct();
+        auto field = castedExpr->getField();
+        auto strucSort = toSort(struc->exprType());          
+        auto selName = logic::toLower(strucSort->name) + "_" + field->name; 
+        return logic::Theory::selectorAt(selName, tp, toTerm(castedExpr, innerTp, trace)); 
+      }        
     }
     case program::Type::VariableAccess: {
       auto castedExpr =

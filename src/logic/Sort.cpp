@@ -49,14 +49,6 @@ std::string declareSortSMTLIB(const Sort& s) {
     } else {
       return "(declare-datatypes ((Nat 0)) (( (zero) (s (p Nat)) )) )\n";
     }
-  } else if (s.isAlgebraicSort()){    
-    std::string res = "(declare-datatype " + s.toSMTLIB() + " ((" + s.constructor + " ";
-    for(const auto& sel : s.selectors){
-      //TODO hack below. Change code so that sort IS location
-      res = res + "(" + sel.first + " Location)";
-    }
-    res = res + ")))\n";
-    return res;
   } else {
     return "(declare-sort " + s.toSMTLIB() + " 0)\n";
   }
@@ -90,25 +82,25 @@ std::ostream& operator<<(std::ostream& ostr, const Sort& s) {
 #pragma mark - Sorts
 
 std::map<std::string, std::unique_ptr<Sort>> Sorts::_sorts;
+std::vector<Sort*> Sorts::_structSorts;
 
-Sort* Sorts::structSort(std::string name,
-    std::vector<std::pair<std::string, std::string>> selectors) {
-  
-  std::string constructor = toLower(name) + "Con";
+Sort* Sorts::structSort(std::string name, 
+    std::vector<std::string> selectors){
 
   auto it = _sorts.find(name);
 
   if (it == _sorts.end()) {
     //TODO change name of constructor to lower case
     auto ret = _sorts.insert(
-        std::make_pair(name, std::unique_ptr<Sort>(new Sort(name, constructor, selectors))));
-    return ret.first->second.get();
+        std::make_pair(name, std::unique_ptr<Sort>(new StructSort(name, selectors))));
+    auto sort = ret.first->second.get();
+    _structSorts.push_back(sort);
+    return sort;
   } else {
-    assert((*it).second->isAlgebraicSort());
+    assert((*it).second->isStructSort());
     return (*it).second.get();
-  }  
+  }
 }
-
 
 Sort* Sorts::fetch(std::string name){
   auto it = _sorts.find(name);

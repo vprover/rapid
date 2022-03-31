@@ -37,8 +37,8 @@ class Symbol {
     ConstProgramVar,
     FinalLoopCount,
     TimePoint,
-    Selector,
     MallocFunc,
+    Selector,
     Other
   };
 
@@ -101,6 +101,10 @@ class Symbol {
 
   bool isPredicateSymbol() const { return rngSort == Sorts::boolSort(); }
   bool isMallocSymbol() const { return symbolType == SymbolType::MallocFunc; }
+  bool isSelectorSymbol() const { return symbolType == SymbolType::Selector; }
+  //bool isConstMemoryArray() const {
+  //  return (symbolType == SymbolType::MemoryArray) && (argSorts.size() == 0);
+  //}
 
   std::string toSMTLIB() const;
   std::string toTPTP() const;

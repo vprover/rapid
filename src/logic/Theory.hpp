@@ -68,7 +68,13 @@ class Theory {
   static std::shared_ptr<const FuncTerm> valueAt(
       std::shared_ptr<const Term> timePoint,
       std::shared_ptr<const Term> location,
+      std::string sortName = "Int",
       bool isConst = false);
+  static std::shared_ptr<const FuncTerm> selectorAt(
+      std::string selectorName,
+      std::shared_ptr<const Term> timePoint,
+      std::shared_ptr<const Term> object);
+
   static std::shared_ptr<const FuncTerm> mallocFun(
       std::shared_ptr<const Term> timePoint);
 
@@ -102,12 +108,31 @@ class Theory {
   static std::shared_ptr<const Formula> framePred(
       std::shared_ptr<const Term> location,
       std::shared_ptr<const Term> t1,
-      std::shared_ptr<const Term> t2);
-  static std::shared_ptr<logic::Axiom> frameAxiom(
+      std::shared_ptr<const Term> t2,
+      std::string suffix = "");
+  static std::shared_ptr<logic::Axiom> untypedFrameAxiom(
       std::shared_ptr<const logic::Symbol> tpVarSym1,
       std::shared_ptr<const logic::Symbol> tpVarSym2,
       std::shared_ptr<const logic::Symbol> memLocVarSym);
+  static std::shared_ptr<logic::Axiom> typedFrameAxiom(
+      std::shared_ptr<const logic::Symbol> tpVarSym1,
+      std::shared_ptr<const logic::Symbol> tpVarSym2,
+      std::shared_ptr<const logic::Symbol> memLocVarSym);
+  static std::shared_ptr<logic::Axiom> frameAxiom(
+      std::shared_ptr<const logic::Symbol> tpVarSym1,
+      std::shared_ptr<const logic::Symbol> tpVarSym2,
+      std::string sortName,
+      std::string selectorName);
 
+  static std::shared_ptr<const Formula> allSame(
+      std::shared_ptr<const Term> tp1,
+      std::shared_ptr<const Term> tp2,
+      std::string prefix); 
+
+  static std::shared_ptr<logic::Axiom> allSameAxiom(
+      std::shared_ptr<const logic::Symbol> tpVarSym1,
+      std::shared_ptr<const logic::Symbol> tpVarSym2,
+      std::string prefix); 
 
   //predicate that holds when two memory regions are 
   //disjoint 

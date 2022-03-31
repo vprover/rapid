@@ -74,7 +74,8 @@ std::vector<std::shared_ptr<const logic::Symbol>> enclosingIteratorsSymbols(
 
 #pragma mark - Methods for generating sorts
 
-//CURRENTLY EMPTY
+logic::Sort* toSort(
+    std::shared_ptr<const program::ExprType> type);
 
 #pragma mark - Methods for generating most used terms/predicates denoting program-expressions
 /* The parameter lhsOfAssignment is used when converting an array access.

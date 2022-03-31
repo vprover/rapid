@@ -15,24 +15,19 @@ namespace logic {
 class Sort {
   // we need each sort to be unique.
   // We therefore use the Sorts-class below as a manager-class for Sort-objects
-  friend class Sorts;
+  friend class Sorts;  
 
- private:
+ protected:
   // constructor is private to prevent accidental usage.
-  Sort(std::string name) : name(name), constructor(""){};
-  Sort(std::string name, std::string constructor, 
-    std::vector<std::pair<std::string, std::string>> selectors) : 
-    name(name), constructor(constructor), selectors(selectors){};
+  Sort(std::string name) : name(name){};
 
  public:
   const std::string name;
-  const std::string constructor;
-  const std::vector<std::pair<std::string, std::string>> selectors;
 
   bool isNatSort() const { return name == "Nat"; }
   bool isIntSort() const { return name == "Int"; }
   bool isArraySort() const { return name == "Array"; }
-  bool isAlgebraicSort() const { return selectors.size(); }
+  virtual bool isStructSort() const { return false; }
 
   bool operator==(Sort& o);
 
@@ -40,6 +35,23 @@ class Sort {
   std::string toTPTP() const;
 };
 std::ostream& operator<<(std::ostream& ostr, const Sort& s);
+
+
+class StructSort : public Sort {
+  friend class Sorts;  
+
+private:
+  StructSort(std::string name, std::vector<std::string> selectors) 
+    : Sort(name), _selectors(selectors) {};
+
+  // selector functions for this sort
+  const std::vector<std::string> _selectors;
+ 
+public:
+  std::vector<std::string> selectors() { return _selectors; }
+  bool isStructSort() const { return true; }  
+
+};
 
 std::string declareSortSMTLIB(const Sort& s);
 std::string declareSortTPTP(const Sort& s);
@@ -64,9 +76,9 @@ class Sorts {
   static Sort* timeSort() { return fetchOrDeclare("Time"); }
   static Sort* traceSort() { return fetchOrDeclare("Trace"); }
   static Sort* intSetSort() { return fetchOrDeclare("IntSet"); }
-  static Sort* structSort(std::string name,
-    std::vector<std::pair<std::string, std::string>> selectors);
   static Sort* fetch(std::string name);
+  static Sort* structSort(std::string name, 
+    std::vector<std::string> selectors);
  
   // returns map containing all previously constructed sorts as pairs
   // (nameOfSort, Sort)
@@ -74,9 +86,15 @@ class Sorts {
     return _sorts;
   };
 
+  static const std::vector<Sort*>& structSorts() {
+    return _structSorts;
+  };
+
  private:
   static Sort* fetchOrDeclare(std::string name);
   static std::map<std::string, std::unique_ptr<Sort>> _sorts;
+  static std::vector<Sort*> _structSorts;
+
 };
 
 }  // namespace logic

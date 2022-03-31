@@ -95,15 +95,65 @@ std::shared_ptr<const logic::Symbol> traceSymbol(unsigned traceNumber) {
 }
 
 void declareSymbolsForProgramVar(const program::Variable* var) {
-  // variables are now constants of sort location
+  // variables are now constants of sort integer
 
   logic::Symbol::SymbolType typ = logic::Symbol::SymbolType::ProgramVar;
   if (var->isConstant) {
     typ = logic::Symbol::SymbolType::ConstProgramVar;
   }
   
-  //declare variable (constant of type location)
+  //declare variable (constant of type integer)
   logic::Signature::add(var->name, {}, logic::Sorts::intSort(), false, typ);
+  
+  if (util::Configuration::instance().memoryModel() == "typed") {
+    // declare further memory arrays when using typed model   
+    logic::Sort* sort =  analysis::toSort(var->vt);
+
+    if(sort->isIntSort() || sort->isArraySort()){
+      // value array declared in Theory
+      // TODO return for other default sorts as well
+      return;
+    }
+
+    std::vector<const logic::Sort*> subtermSorts;
+    if(!var->isConstant){
+      subtermSorts.push_back(logic::Sorts::timeSort());
+    }
+    subtermSorts.push_back(logic::Sorts::intSort());
+    
+    std::string str = var->isConstant ? "const_" : "";
+    std::string arrName = "value_" + str + logic::toLower(sort->name);
+
+    logic::Signature::fetchOrAdd(arrName, subtermSorts, sort, false);  
+  }
+}
+
+
+void declareSymbolsForStructType(std::shared_ptr<const program::ExprType> type) {
+
+  assert(type->isStructType());
+
+  if (util::Configuration::instance().memoryModel() == "typed") {
+    auto structType = std::static_pointer_cast<const program::StructType>(type);
+    auto structSort = analysis::toSort(type);
+
+    for (auto field : structType->getFields())
+    {
+      auto fieldType = field->vt;
+      auto fieldSort = analysis::toSort(fieldType);
+
+      std::vector<const logic::Sort*> subtermSorts;
+      if(!field->isConstant){
+        subtermSorts.push_back(logic::Sorts::timeSort());
+      }
+      subtermSorts.push_back(structSort);
+
+      auto funcName = logic::toLower(structSort->name) + "_" + field->name;
+
+      logic::Signature::fetchOrAdd(funcName, subtermSorts, fieldSort, false,
+        logic::Symbol::SymbolType::Selector);
+    }
+  }
 }
 
 // TODO no need for two functions?

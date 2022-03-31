@@ -38,8 +38,8 @@ void Theory::declareMemoryArrays() {
   auto sel = Signature::fetchArraySelect();
   auto store = Signature::fetchArrayStore();
 
-  valueAt(tp, null, false);
-  valueAt(tp, null, true);  
+  valueAt(tp, null, "Int", false);
+  valueAt(tp, null, "Int", true);  
 }
 
 std::shared_ptr<const FuncTerm> Theory::intConstant(int i) {
@@ -186,7 +186,14 @@ std::shared_ptr<const FuncTerm> Theory::nullLoc() {
 std::shared_ptr<const FuncTerm> Theory::valueAt(
     std::shared_ptr<const Term> timePoint,
     std::shared_ptr<const Term> location,
+    std::string sortName,
     bool isConst) {
+
+  // when using untyped model, we have a single memory array of 
+  // sort Int -> Int
+  if(util::Configuration::instance().memoryModel() != "typed"){
+    sortName = "Int";
+  }
 
   std::vector<std::shared_ptr<const Term>> subterms;
   if(!isConst){
@@ -195,9 +202,21 @@ std::shared_ptr<const FuncTerm> Theory::valueAt(
   subterms.push_back(location);
 
   std::string str = isConst ? "_const" : "";
+  str = str + (sortName == "Int" ? "" : "_" + toLower(sortName));
   std::string funcName = "value" + str;
 
-  return Terms::func(funcName, subterms, Sorts::intSort(), false);
+  return Terms::func(funcName, subterms, Sorts::fetch(sortName), false);
+}
+
+std::shared_ptr<const FuncTerm> Theory::selectorAt(
+    std::string selectorName,
+    std::shared_ptr<const Term> timePoint,
+    std::shared_ptr<const Term> object) {
+  assert(util::Configuration::instance().memoryModel() == "typed");
+
+  auto sym = Signature::fetch(selectorName);
+  assert(sym->isSelectorSymbol());
+  return Terms::func(sym, {timePoint, object});
 }
 
 std::shared_ptr<const Formula> Theory::isList(
@@ -256,11 +275,13 @@ std::shared_ptr<const Formula> Theory::heapLoc(
 std::shared_ptr<const Formula> Theory::framePred(
       std::shared_ptr<const Term> location,
       std::shared_ptr<const Term> t1,
-      std::shared_ptr<const Term> t2) {
-  return Formulas::predicate("frame_axiom", {location, t1, t2});
+      std::shared_ptr<const Term> t2,
+      std::string suffix) {
+
+  return Formulas::predicate("frame_axiom" + suffix, {location, t1, t2});
 }
 
-std::shared_ptr<logic::Axiom> Theory::frameAxiom(
+std::shared_ptr<logic::Axiom> Theory::untypedFrameAxiom(
       std::shared_ptr<const logic::Symbol> tpVarSym1,
       std::shared_ptr<const logic::Symbol> tpVarSym2,
       std::shared_ptr<const logic::Symbol> m1VarSym) 
@@ -328,11 +349,157 @@ std::shared_ptr<logic::Axiom> Theory::frameAxiom(
   auto conj = Formulas::conjunctionSimp({imp1, imp2, imp4});
   conj = Formulas::universal({m2VarSym}, conj);
 
-  auto frameDefinition = Formulas::universal({m1VarSym,tpVarSym1,tpVarSym2 },
+  auto frameDefinition = Formulas::universal({m1VarSym,tpVarSym1,tpVarSym2},
     Formulas::equivalenceSimp(framePred, conj));
   return std::make_shared<logic::Axiom>(
     frameDefinition, "Definition of the frame axiom",
     logic::ProblemItem::Visibility::Implicit);
+}
+
+std::shared_ptr<logic::Axiom> Theory::typedFrameAxiom(
+      std::shared_ptr<const logic::Symbol> tpVarSym1,
+      std::shared_ptr<const logic::Symbol> tpVarSym2,
+      std::shared_ptr<const logic::Symbol> m1VarSym) 
+{
+  auto m1Var = logic::Terms::var(m1VarSym);
+  auto tpVar = logic::Terms::var(tpVarSym1);  
+  auto tpVar2 = logic::Terms::var(tpVarSym2);
+
+  auto framePred = Theory::framePred(m1Var, tpVar, tpVar2);
+  auto m2VarSym = Signature::varSymbol("m2", logic::Sorts::intSort());
+  auto m2Var = Terms::var(m2VarSym); 
+
+  
+  auto locsNotEqual = Formulas::disequality(m1Var, m2Var);
+
+  std::vector<std::shared_ptr<const logic::Formula>> conjuncts;
+  auto structSorts = logic::Sorts::structSorts();
+  for(auto sort : structSorts){
+    auto holdsValue = Formulas::equality(
+      valueAt(tpVar, m2Var, sort->name), 
+      valueAt(tpVar2, m2Var, sort->name));
+    conjuncts.push_back(holdsValue);
+  }
+  conjuncts.push_back(Formulas::equality(
+    valueAt(tpVar, m2Var), 
+    valueAt(tpVar2, m2Var)));
+
+  auto conj = Formulas::conjunctionSimp(conjuncts);
+  auto imp = Formulas::implication(locsNotEqual, conj);
+  imp = Formulas::universal({m2VarSym}, imp);
+
+  auto frameDefinition = Formulas::universal({m1VarSym,tpVarSym1,tpVarSym2},
+    Formulas::equivalenceSimp(framePred, imp));
+  return std::make_shared<logic::Axiom>(
+    frameDefinition, "Definition of the frame axiom",
+    logic::ProblemItem::Visibility::Implicit);
+}
+
+std::shared_ptr<logic::Axiom> Theory::frameAxiom(
+      std::shared_ptr<const logic::Symbol> tpVarSym1,
+      std::shared_ptr<const logic::Symbol> tpVarSym2,
+      std::string sortName,
+      std::string selectorName)
+{
+  auto sort = Sorts::fetch(sortName);
+  assert(sort->isStructSort());
+  auto structSort = static_cast<StructSort*>(sort);
+
+  auto o1sym = Signature::varSymbol("o1", sort);
+  auto o2sym = Signature::varSymbol("o2", sort);
+
+  auto tp1var = logic::Terms::var(tpVarSym1);  
+  auto tp2var = logic::Terms::var(tpVarSym2);
+
+  auto o1var = logic::Terms::var(o1sym);  
+  auto o2var = logic::Terms::var(o2sym);
+
+  auto framePred = Theory::framePred(o1var, tp1var, tp2var, "_" + selectorName);
+
+  std::vector<std::shared_ptr<const logic::Formula>> conjuncts;
+
+  auto objectsNotEqual = Formulas::disequality(o1var, o2var);
+  auto equality1 = Formulas::equality(
+      selectorAt(selectorName, tp1var, o2var),
+      selectorAt(selectorName, tp2var, o2var)      
+    );
+  auto imp = Formulas::implication(objectsNotEqual, equality1);
+  conjuncts.push_back(imp);
+
+
+  for(auto selector : structSort->selectors()){
+    if(selector != selectorName){
+      auto holdsValue = Formulas::equality(
+        selectorAt(selector, tp1var, o2var), 
+        selectorAt(selector, tp2var, o2var));
+      conjuncts.push_back(holdsValue);
+    }
+  }
+
+  auto conj = Formulas::conjunctionSimp(conjuncts);
+  conj = Formulas::universal({o2sym}, conj);
+
+  auto frameDefinition = Formulas::universal({o1sym,tpVarSym1,tpVarSym2},
+    Formulas::equivalenceSimp(framePred, conj));
+  return std::make_shared<logic::Axiom>(
+    frameDefinition, "Definition of the frame axiom",
+    logic::ProblemItem::Visibility::Implicit);  
+}
+
+std::shared_ptr<const Formula> Theory::allSame(
+    std::shared_ptr<const Term> tp1,
+    std::shared_ptr<const Term> tp2,
+    std::string prefix) {
+  auto str = logic::toLower(prefix) + "s_";
+  return Formulas::predicate(str + "same", {tp1, tp2});
+} 
+
+std::shared_ptr<logic::Axiom> Theory::allSameAxiom(
+  std::shared_ptr<const logic::Symbol> tpVarSym1,
+  std::shared_ptr<const logic::Symbol> tpVarSym2,
+  std::string prefix) {
+
+  auto tp1 = logic::Terms::var(tpVarSym1);  
+  auto tp2 = logic::Terms::var(tpVarSym2);
+
+  bool value = prefix == "value";
+  auto sort = value ? logic::Sorts::intSort() : logic::Sorts::fetch(prefix);
+
+  auto varSym = Signature::varSymbol("x", sort);
+  auto var = Terms::var(varSym);
+
+  auto pred = allSame(tp1, tp2, prefix);
+  std::vector<std::shared_ptr<const logic::Formula>> conjuncts;
+  if(value){
+    auto structSorts = logic::Sorts::structSorts();
+    for(auto sort : structSorts){
+      auto holdsValue = Formulas::equality(
+        valueAt(tp1, var, sort->name), 
+        valueAt(tp2, var, sort->name));
+      conjuncts.push_back(holdsValue);
+    }
+    conjuncts.push_back(Formulas::equality(
+        valueAt(tp1, var), 
+        valueAt(tp2, var)));
+  } else {
+    assert(sort->isStructSort());
+    auto structSort = static_cast<logic::StructSort*>(sort);
+    auto selectors = structSort->selectors();
+    for(auto selector : selectors){
+      auto sym = Signature::fetch(selector);
+      auto lhs = Terms::func(sym, {tp1, var});
+      auto rhs = Terms::func(sym, {tp2, var});
+      conjuncts.push_back(Formulas::equality(lhs, rhs));      
+    }
+  }
+  
+  auto conjunct = Formulas::conjunctionSimp(conjuncts);
+  conjunct = Formulas::universal({varSym}, conjunct);
+  auto def = Formulas::equivalence(pred, conjunct);
+  def = Formulas::universal({tpVarSym1,tpVarSym2}, def);
+  return std::make_shared<logic::Axiom>(
+    def, "Definition of staying the same across time points",
+    logic::ProblemItem::Visibility::Implicit);  
 }
 
 

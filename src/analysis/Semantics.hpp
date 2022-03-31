@@ -20,6 +20,12 @@ namespace analysis {
 
 class Semantics {
  public:
+   
+  enum class MemoryModel {
+    TYPED,
+    UNTYPED
+  };
+
   Semantics(
       const program::Program& program,
       std::unordered_map<std::string,
@@ -34,6 +40,14 @@ class Semantics {
         problemItems(problemItems),
         numberOfTraces(numberOfTraces),
         inlinedVariableValues(traceTerms(numberOfTraces)) {
+
+    auto model = util::Configuration::instance().memoryModel();
+    if(model == "typed"){
+      _model = MemoryModel::TYPED;
+    } else {
+      _model = MemoryModel::UNTYPED;
+    }
+
     bool containsPointerVariable = false;
     for (auto vars : locationToActiveVars) {
       for (auto v : vars.second) {
@@ -47,7 +61,7 @@ class Semantics {
     if (util::Configuration::instance().inlineSemantics() &&
         containsPointerVariable) {
       std::cout << "Ignoring request to inline semantics as inlining is "
-                   "currently not sound in the presence of ponter variables"
+                   "currently not sound in the presence of pointer variables"
                 << std::endl;
       util::Configuration::instance().setDontInline();
     }
@@ -59,6 +73,8 @@ class Semantics {
 
 
  private:
+
+  MemoryModel _model;
 
   const int SMALL_STRUCT_SIZE = 5;
 
@@ -84,6 +100,8 @@ class Semantics {
   std::vector<std::shared_ptr<const logic::Term>> loopEndTimePoints;
 
   std::vector<std::pair<std::shared_ptr<const logic::Term>, int>> mallocStatements;
+  std::set<std::pair<std::string, std::string>> frameAxiomsToAdd;
+  std::set<std::string> sameAxiomsToAdd;
 
   std::shared_ptr<const logic::Formula> explode(
       std::shared_ptr<const logic::Term> m1, int size1,

@@ -95,7 +95,6 @@ void WhileParsingContext::addStructType(std::string name,
 }
 
 
-
 std::shared_ptr<const program::ExprType> 
 WhileParsingContext::getExprType(std::string name){
   assert(validTypeName(name));
@@ -105,6 +104,17 @@ WhileParsingContext::getExprType(std::string name){
     return std::shared_ptr<const program::ExprType>(new program::ExprType(program::BasicType::NAT));
   }
   return structTypeDecls[name];
+}
+
+void WhileParsingContext::endParsingStruct(std::shared_ptr<const program::StructType> st) {
+  parsingStrucName = "";
+
+  for(auto& field : st->getFields()){
+    assert(field->vt);
+    if(field->vt->isPointerType() && field->vt->getChild() == nullptr){
+      field->vt->setChild(st);
+    }
+  }
 }
 
 

@@ -34,8 +34,9 @@ class WhileParsingContext {
         quantifiedVarsDeclarations(),
         quantifiedVarsStack(),
         declaredTypeNames(),
-        programVarsDeclarations(),
-        programVarsStack() {
+        programVarsDeclarations(),      
+        programVarsStack(),
+        parsingStrucName("") {
           declaredTypeNames.push_back("Int");
           declaredTypeNames.push_back("Nat");
         }
@@ -68,6 +69,8 @@ class WhileParsingContext {
       programVarsDeclarations;
   std::vector<std::vector<std::string>> programVarsStack;
 
+  std::string parsingStrucName;
+
  public:
   // methods which are called by bison to interact with the context
   bool pushQuantifiedVars(
@@ -84,6 +87,9 @@ class WhileParsingContext {
   bool addTypeName(std::string name);
   bool validTypeName(std::string name);
   void addStructType(std::string name, std::shared_ptr<const program::ExprType>);
+  void parsingStruct(std::string name) { parsingStrucName = name; }
+  std::string getNameOfStrucBeingParsed() { return parsingStrucName; }
+  void endParsingStruct(std::shared_ptr<const program::StructType>);
   std::shared_ptr<const program::ExprType> getExprType(std::string name);
 
   std::shared_ptr<const program::Variable> getProgramVar(std::string name);

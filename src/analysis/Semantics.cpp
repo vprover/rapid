@@ -86,6 +86,7 @@ std::vector<std::shared_ptr<const logic::Axiom>> Semantics::generateBounds() {
 std::pair<std::vector<std::shared_ptr<const logic::Axiom>>,
           InlinedVariableValues>
 Semantics::generateSemantics() {
+
   // generate semantics compositionally
   std::vector<std::shared_ptr<const logic::Axiom>> axioms;
   for (const auto& function : program.functions) {
@@ -294,9 +295,20 @@ Semantics::generateSemantics() {
         vecUnion<std::shared_ptr<const logic::Symbol>>(varSyms, varSyms2), diffLocs));  
     }
   }
-
-  axioms.push_back(logic::Theory::frameAxiom(tp, tp2, memLocSymbol));
   
+  if(_model == MemoryModel::UNTYPED){
+    axioms.push_back(logic::Theory::untypedFrameAxiom(tp, tp2, memLocSymbol));
+  } else {
+    axioms.push_back(logic::Theory::typedFrameAxiom(tp, tp2, memLocSymbol));
+  }
+
+  for(auto& pair : frameAxiomsToAdd){
+    axioms.push_back(logic::Theory::frameAxiom(tp, tp2, pair.first, pair.second));
+  }
+  for(auto& name : sameAxiomsToAdd){
+    axioms.push_back(logic::Theory::allSameAxiom(tp, tp2, name));
+  }
+
   if(needDisjoint1Axiom) 
     axioms.push_back(logic::Theory::disjoint1Axiom(memLocSymbol,size1Sym,memLocSymbol2,size2Sym));
   
@@ -553,8 +565,26 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
                         ? logic::Formulas::implication(premise, eq3)
                         : eq3);*/
  
-
-    forms.push_back(logic::Theory::framePred(arrayAccessedAt, l1, l2));
+    std::string suffix = "";
+    if(array->symbol->isSelectorSymbol()){
+      auto selectorName = array->symbol->name;
+      auto sortName = arrayAccessedAt->sort()->name;
+      suffix = "_" + selectorName;
+      frameAxiomsToAdd.insert(std::make_pair(sortName, selectorName));
+    }
+    forms.push_back(logic::Theory::framePred(arrayAccessedAt, l1, l2, suffix));
+    for(auto sort : logic::Sorts::structSorts()){
+      if(sort->name != arrayAccessedAt->sort()->name){
+        forms.push_back(logic::Theory::allSame(l1, l2, sort->name));
+        sameAxiomsToAdd.insert(sort->name);
+      }
+    }
+    if(suffix != ""){
+      // just updated a memory object
+      // variable values stay unchaged
+      forms.push_back(logic::Theory::allSame(l1, l2, "value"));
+      sameAxiomsToAdd.insert("value");
+    }
 
     //auto arrayName = array->symbol->name;
 

@@ -32,6 +32,8 @@ class ExprType {
   ~ExprType() {}
 
   std::shared_ptr<const ExprType> getChild() const { return child; }
+  void setChild(std::shared_ptr<const ExprType> et) const {child = et;}
+
   virtual std::string toString() const {
     if (bt == BasicType::POINTER) {
       return "->" + child->toString();
@@ -89,7 +91,7 @@ class ExprType {
   bool operator!=(const ExprType& other) const { return !(*this == other); }
 
  private:
-  const std::shared_ptr<const ExprType> child;
+  mutable std::shared_ptr<const ExprType> child;
   program::BasicType bt;
 };
 

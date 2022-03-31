@@ -97,6 +97,7 @@ class Configuration {
         _explodeMemRegions("-explodeMemRegions", 
           "explicit list regions in memory instead of using ranges", false),
         _useListPredicate("-useLists", "", {"off", "acyclic", "cyclic"}, "off"),
+        _memoryModel("-memoryModel", "", {"typed","untyped"}, "typed"),
         _useLocSets("-useLocSets", 
           "use sets isntead of predicates to determine locations within a data structure", true),
         _lemmaPredicates("-lemmaPredicates", "", true),
@@ -120,11 +121,15 @@ class Configuration {
     // Rather than reasoning that particular mem location is not
     // in a range (! X. lb <= x < ub. var != x), we explode
     // the range. Works better for small ranges
+    // Only compatible with the untyped memory model
     registerOption(&_explodeMemRegions);
 
     registerOption(&_useListPredicate);
 
     registerOption(&_useLocSets);
+    // Currently can use a typed or untyped memory model
+    // Untyped models memory as a massive integer array
+    registerOption(&_memoryModel);  
 
     // uses lemma predicates for Rapid Vampire
     registerOption(&_lemmaPredicates);
@@ -165,6 +170,7 @@ class Configuration {
   bool explodeMemRegions() { return _explodeMemRegions.getValue(); }
   std::string useLists() { return _useListPredicate.getValue(); }
   bool useLocSets() { return _useLocSets.getValue(); }
+  std::string memoryModel() { return _memoryModel.getValue(); }
 
   bool lemmaPredicates() { return _lemmaPredicates.getValue(); }
   bool integerIterations() { return _integerIterations.getValue(); }
@@ -190,6 +196,7 @@ class Configuration {
   BooleanOption _explodeMemRegions;
   MultiChoiceOption _useListPredicate;
   BooleanOption _useLocSets;
+  MultiChoiceOption _memoryModel;  
 
   BooleanOption _lemmaPredicates;
   BooleanOption _integerIterations;
