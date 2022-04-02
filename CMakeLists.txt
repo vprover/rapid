@@ -11,6 +11,18 @@ project (Rapid)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+find_library(VAMPIRE_LIB vampire HINTS ${Vampire_DIR} $ENV{HOME}/vampire PATH_SUFFIXES lib bin)
+
+find_path(VAMPIRE_INCLUDE_DIRS Solver.hpp HINTS ${Vampire_DIR}/../Api $ENV{HOME}/vampire PATH_SUFFIXES include)
+
+if(VAMPIRE_INCLUDE_DIRS STREQUAL "VAMPIRE_INCLUDE_DIRS-NOTFOUND")
+    message(FATAL_ERROR "Could not find vampire include headers, please check Vampire_DIR")
+endif()
+
+if(VAMPIRE_LIB STREQUAL "VAMPIRE_LIB-NOTFOUND")
+    message(FATAL_ERROR "Could not find libvampire, please check Vampire_DIR")
+endif() 
+
 # add directoy, where we store all custom files for finding libraries which are not build using cmake (i.e. currently nothing), to the search path of cmake
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
 
@@ -22,7 +34,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 add_executable(rapid src/main.cpp)
 
-
 add_subdirectory(src/analysis)
 add_subdirectory(src/declarations)
 add_subdirectory(src/logic)
@@ -31,3 +42,6 @@ add_subdirectory(src/program)
 add_subdirectory(src/util)
 
 target_link_libraries(rapid analysis declarations logic parser program util)
+
+
+

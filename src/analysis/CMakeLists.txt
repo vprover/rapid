@@ -32,3 +32,5 @@ set(SPECTRE_ANALYSIS_HEADERS
 add_library(analysis ${SPECTRE_ANALYSIS_SOURCES} ${SPECTRE_ANALYSIS_HEADERS})
 target_include_directories(analysis PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(analysis program logic declarations)
+target_link_libraries(analysis "${VAMPIRE_LIB}")
+target_include_directories(analysis PRIVATE ${VAMPIRE_INCLUDE_DIRS})

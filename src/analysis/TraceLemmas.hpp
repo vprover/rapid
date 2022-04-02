@@ -8,7 +8,7 @@
 
 #include "Expression.hpp"
 #include "Formula.hpp"
-#include "Problem.hpp"
+#include "LogicProblem.hpp"
 #include "Program.hpp"
 #include "ProgramTraverser.hpp"
 #include "SemanticsInliner.hpp"

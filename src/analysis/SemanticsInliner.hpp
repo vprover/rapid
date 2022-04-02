@@ -9,7 +9,7 @@
 
 #include "AnalysisPreComputation.hpp"
 #include "Expression.hpp"
-#include "Problem.hpp"
+#include "LogicProblem.hpp"
 #include "Term.hpp"
 #include "Variable.hpp"
 

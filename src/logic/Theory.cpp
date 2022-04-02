@@ -179,8 +179,15 @@ std::shared_ptr<const FuncTerm> Theory::arbitraryTP() {
   return Terms::func("arbitrary-tp", {}, Sorts::timeSort(), true);
 }
 
-std::shared_ptr<const FuncTerm> Theory::nullLoc() {
-  return Terms::func("null_loc", {}, Sorts::intSort(), false);
+std::shared_ptr<const FuncTerm> Theory::nullLoc(std::string sortName) {
+
+  auto sort = Sorts::fetch(sortName);;
+  std::string prefix = "";
+  if(sortName != "Int"){
+    prefix = toLower(sortName) + "_";
+  }
+
+  return Terms::func(prefix + "null_loc", {}, sort, false);
 }
 
 std::shared_ptr<const FuncTerm> Theory::valueAt(
@@ -188,12 +195,6 @@ std::shared_ptr<const FuncTerm> Theory::valueAt(
     std::shared_ptr<const Term> location,
     std::string sortName,
     bool isConst) {
-
-  // when using untyped model, we have a single memory array of 
-  // sort Int -> Int
-  if(util::Configuration::instance().memoryModel() != "typed"){
-    sortName = "Int";
-  }
 
   std::vector<std::shared_ptr<const Term>> subterms;
   if(!isConst){
@@ -586,9 +587,16 @@ std::shared_ptr<logic::Axiom> Theory::disjoint2Axiom(
 }
 
 std::shared_ptr<const FuncTerm> Theory::mallocFun(
-    std::shared_ptr<const Term> timePoint) {
+    std::shared_ptr<const Term> timePoint,
+    std::string sortName) {
+  
+  auto sort = Sorts::fetch(sortName);
+  std::string suffix = "";
+  if(sortName != "Int"){
+    suffix = "_" + toLower(sortName);
+  }
 
-  return Terms::func("malloc", {timePoint}, Sorts::intSort(), false, 
+  return Terms::func("malloc" + suffix , {timePoint}, sort, false, 
     logic::Symbol::SymbolType::MallocFunc);
 }
 

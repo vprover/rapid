@@ -10,7 +10,7 @@
 
 #include "AnalysisPreComputation.hpp"
 #include "Formula.hpp"
-#include "Problem.hpp"
+#include "LogicProblem.hpp"
 #include "Program.hpp"
 #include "SemanticsHelper.hpp"
 #include "SemanticsInliner.hpp"

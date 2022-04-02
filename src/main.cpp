@@ -9,7 +9,7 @@
 #include "analysis/GenerateMemConjectures.hpp"
 #include "analysis/TheoryAxioms.hpp"
 #include "analysis/TraceLemmas.hpp"
-#include "logic/Problem.hpp"
+#include "logic/LogicProblem.hpp"
 #include "logic/Theory.hpp"
 #include "parser/WhileParserWrapper.hpp"
 #include "program/Program.hpp"

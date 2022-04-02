@@ -120,7 +120,7 @@ rectifyVars(
     vars.push_back(logic::Terms::var(rectifiedVar));
   }
   auto rectifiedTP = logic::Terms::func(tpaf->symbol,vars);
-  return logic::Theory::mallocFun(rectifiedTP);
+  return logic::Theory::mallocFun(rectifiedTP, mallocTerm->sort()->name);
 }
 
 #pragma mark - Methods for generating most used variables
@@ -477,6 +477,7 @@ std::shared_ptr<const logic::Formula> getDensityDefinition(
 logic::Sort* toSort(
     std::shared_ptr<const program::ExprType> type) {
   assert(type != nullptr);
+  assert(util::Configuration::instance().memoryModel() == "typed");
 
   if(type->isPointerType() && type->isPointerToStruct()){
     return toSort(type->getChild());
@@ -550,10 +551,12 @@ std::shared_ptr<const logic::Term> toTerm(
         }  
       }      
       case program::Type::MallocFunc: {
-        return logic::Theory::mallocFun(tp);
+        std::string sortName = typedModel ? toSort(expr->exprType())->name : "Int";
+        return logic::Theory::mallocFun(tp, sortName);
       }
       case program::Type::NullPtr: {
-        return logic::Theory::nullLoc();
+        std::string sortName = typedModel ? toSort(expr->exprType())->name : "Int";        
+        return logic::Theory::nullLoc(sortName);
       }      
       default :
         assert(false);
@@ -582,7 +585,6 @@ std::shared_ptr<const logic::Term> toTerm(
   std::shared_ptr<const logic::Term> exprToTerm;
   // the expression being dereferenced
   auto expr = e->expr;
-  auto exprSort = toSort(expr->exprType());
 
   if(innerTp != nullptr){
     exprToTerm = toTerm(expr, innerTp, trace);
@@ -590,9 +592,9 @@ std::shared_ptr<const logic::Term> toTerm(
     exprToTerm = toTerm(expr, tp, trace);      
   }
 
-  std::string str = "";
+  std::string str = "Int";
   if(util::Configuration::instance().memoryModel() == "typed"){
-    str = exprSort->name;
+    str = toSort(expr->exprType())->name;
   }
   //auto term = logic::Theory::valueAt(timePoint, exprToTerm);
   exprToTerm = logic::Theory::valueAt(tp, exprToTerm, str, false);
@@ -606,7 +608,6 @@ std::shared_ptr<const logic::Term> toTerm(
 
   auto struc = e->getStruct();
   auto field = e->getField();
-  auto strucSort = toSort(struc->exprType());
   bool structIsPointer = struc->isPointerExpr();
 
   //TODO see if there is a nicer way than the horrid static cast below
@@ -623,11 +624,16 @@ std::shared_ptr<const logic::Term> toTerm(
     structTerm = toTerm(struc, timePoint, trace);    
   }
 
-  if(structIsPointer){
-    structTerm = logic::Theory::valueAt(timePoint, structTerm, strucSort->name, false);
+  bool typedModel = (util::Configuration::instance().memoryModel() == "typed");
+
+  std::string str = "Int";
+  if(typedModel){
+    str = toSort(struc->exprType())->name;
   }
 
-  bool typedModel = (util::Configuration::instance().memoryModel() == "typed");
+  if(structIsPointer){
+    structTerm = logic::Theory::valueAt(timePoint, structTerm, str, false);
+  }
 
   if(!typedModel){
     auto offSet = structType->getFieldPos(field->name);
@@ -880,9 +886,12 @@ std::shared_ptr<const logic::Formula> allVarEqual(
 
   auto locSymbol = locVarSymbol();
   auto loc = memLocVar();  
-  
-  auto valueAtTp1 = logic::Theory::valueAt(timePoint1, loc);
-  auto valueAtTp2 = logic::Theory::valueAt(timePoint2, loc);
+
+  for(auto sort : logic::Sorts::structSorts()){
+    conjuncts.push_back(logic::Theory::allSame(timePoint2, timePoint1, sort->name));
+  }
+  conjuncts.push_back(logic::Theory::allSame(timePoint2, timePoint1, "value"));
+
 
   if(util::Configuration::instance().useLists() == "acyclic"){
     auto isAcyclicListTp1 = logic::Theory::isAcyclicList(loc, timePoint1); 
@@ -901,12 +910,11 @@ std::shared_ptr<const logic::Formula> allVarEqual(
       auto equal = logic::Formulas::equivalence(acyclicListLocs1, acyclicListLocs2);
       conjuncts.push_back(logic::Formulas::universal({xSym}, equal));      
     }
-    conjuncts.push_back(logic::Formulas::equivalence(isAcyclicListTp1, isAcyclicListTp2));    
+    auto equiv = logic::Formulas::equivalence(isAcyclicListTp1, isAcyclicListTp2);
+    conjuncts.push_back(logic::Formulas::universal({locSymbol}, equiv));    
   } //TODO cyclic case
 
-  conjuncts.push_back(logic::Formulas::equality(valueAtTp1, valueAtTp2));
-
-  return logic::Formulas::universal({locSymbol},logic::Formulas::conjunction(conjuncts, label));
+  return logic::Formulas::conjunctionSimp(conjuncts, label);
 }
 
 }  // namespace analysis

@@ -16,7 +16,7 @@
 #include "Term.hpp"
 #include "Formula.hpp"
 #include "Theory.hpp"
-#include "Problem.hpp"
+#include "LogicProblem.hpp"
 
 
 #include "Expression.hpp"
@@ -568,6 +568,8 @@ assignment_statement:
     if(!$1->exprType()->isPointerType()){
       error(@1, "Invalid assignment. Type mismatch.");
     }
+    // we now know the type of malloc / null
+    $3->exprType()->setChild($1->exprType()->getChild());
     $$ = std::shared_ptr<const program::Assignment>(new program::Assignment(@2.begin.line, std::move($1), std::move($3) ));        
   }
 | var_definition_head ASSIGN expr SCOL
@@ -602,6 +604,9 @@ assignment_statement:
     {
       error(@1, "Invalid assignment. Type mismatch.");
     }
+
+    // we now know the type of malloc / null
+    $3->exprType()->setChild($1->vt->getChild());
 
     auto variable = std::shared_ptr<const program::VariableAccess>(new VariableAccess(std::move($1)));
 
@@ -732,7 +737,7 @@ struct_dec:
   {
     for(auto& field : $5){
       if(field->vt == nullptr){
-        error(@2, "Member " + field->name + " cannot have type " + $2 + " of class it inhabits");    
+        error(@2, "Member " + field->name + " of class " + $2 + " cannot have type " + $2);    
       }
     }
     auto structType = std::shared_ptr<const program::StructType>(new program::StructType($2, std::move($5))); 

@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "Formula.hpp"
-#include "Problem.hpp"
+#include "LogicProblem.hpp"
 #include "Program.hpp"
 #include "Signature.hpp"
 #include "Variable.hpp"

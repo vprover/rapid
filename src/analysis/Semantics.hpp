@@ -10,7 +10,7 @@
 
 #include "AnalysisPreComputation.hpp"
 #include "Formula.hpp"
-#include "Problem.hpp"
+#include "LogicProblem.hpp"
 #include "Program.hpp"
 #include "SemanticsHelper.hpp"
 #include "SemanticsInliner.hpp"
@@ -103,10 +103,14 @@ class Semantics {
   std::set<std::pair<std::string, std::string>> frameAxiomsToAdd;
   std::set<std::string> sameAxiomsToAdd;
 
+  void addAllSameAxioms();
+
   std::shared_ptr<const logic::Formula> explode(
       std::shared_ptr<const logic::Term> m1, int size1,
       std::shared_ptr<const logic::Term> m2, int size2);
 
+  void generateMemoryLocationSemantics(
+      std::vector<std::shared_ptr<const logic::Axiom>>& axioms);
   std::shared_ptr<const logic::Formula> generateSemantics(
       const program::Statement* statement, SemanticsInliner& inliner,
       std::shared_ptr<const logic::Term> trace);

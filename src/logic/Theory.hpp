@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "Formula.hpp"
-#include "Problem.hpp"
+#include "LogicProblem.hpp"
 #include "Term.hpp"
 
 namespace logic {
@@ -63,7 +63,8 @@ class Theory {
                                                  std::string label = "");
 
   // Memory management
-  static std::shared_ptr<const FuncTerm> nullLoc();
+  static std::shared_ptr<const FuncTerm> nullLoc(
+    std::string sortName = "Int");
   static std::shared_ptr<const FuncTerm> arbitraryTP();
   static std::shared_ptr<const FuncTerm> valueAt(
       std::shared_ptr<const Term> timePoint,
@@ -76,7 +77,8 @@ class Theory {
       std::shared_ptr<const Term> object);
 
   static std::shared_ptr<const FuncTerm> mallocFun(
-      std::shared_ptr<const Term> timePoint);
+      std::shared_ptr<const Term> timePoint,
+      std::string sortName = "Int");
 
   static std::shared_ptr<const Formula> isList(
       std::shared_ptr<const Term> loc1,

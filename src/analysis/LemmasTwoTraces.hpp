@@ -5,7 +5,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "Problem.hpp"
+#include "LogicProblem.hpp"
 #include "Program.hpp"
 #include "ProgramTraverser.hpp"
 #include "SemanticsInliner.hpp"
