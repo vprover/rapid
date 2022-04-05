@@ -36,12 +36,14 @@ add_executable(rapid src/main.cpp)
 
 add_subdirectory(src/analysis)
 add_subdirectory(src/declarations)
+add_subdirectory(src/solvers)
 add_subdirectory(src/logic)
 add_subdirectory(src/parser)
 add_subdirectory(src/program)
 add_subdirectory(src/util)
 
-target_link_libraries(rapid analysis declarations logic parser program util)
+target_include_directories(rapid PRIVATE ${VAMPIRE_INCLUDE_DIRS})
+target_link_libraries(rapid analysis declarations solvers logic parser program util)
 
 
 

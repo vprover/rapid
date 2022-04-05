@@ -66,10 +66,10 @@ class Semantics {
       util::Configuration::instance().setDontInline();
     }
   }
+  
   std::pair<std::vector<std::shared_ptr<const logic::Axiom>>,
             InlinedVariableValues>
   generateSemantics();
-  std::vector<std::shared_ptr<const logic::Axiom>> generateBounds();
 
 
  private:

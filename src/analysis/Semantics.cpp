@@ -12,7 +12,6 @@
 #include "SymbolDeclarations.hpp"
 #include "Term.hpp"
 #include "Theory.hpp"
-#include "Solver.hpp"
 
 namespace analysis {
 
@@ -53,37 +52,6 @@ std::vector<T> vecUnion(std::vector<T> v1, std::vector<T> v2) {
   return v3;
 }
 
-std::vector<std::shared_ptr<const logic::Axiom>> Semantics::generateBounds() {
-  std::vector<std::shared_ptr<const program::Variable>> allVars;
-
-  for (auto it : locationToActiveVars) {
-    allVars = vecUnion<std::shared_ptr<const program::Variable>>(it.second, allVars);
-  }
-
-  std::vector<std::shared_ptr<const logic::Axiom>> axioms;
-
-  auto locSymbol = locationSymbol("tp", 0);
-  auto lVar = logic::Terms::var(locSymbol);
-  auto z = logic::Theory::intConstant(0);
-
-  for (const auto& var : allVars) {
-    if (var->isNat()) {
-      for (const auto& trace : traceTerms(numberOfTraces)) {
-        auto axiom =
-            logic::Theory::intGreaterEqual(toTerm(var, lVar, trace), z);
-
-        if (!var->isConstant) {
-          axiom = logic::Formulas::universal({locSymbol}, axiom);
-        }
-      
-        axioms.push_back(std::make_shared<logic::Axiom>(axiom));
-      }
-    }
-  }
-
-  return axioms;
-}
-
 std::pair<std::vector<std::shared_ptr<const logic::Axiom>>,
           InlinedVariableValues>
 Semantics::generateSemantics() {
@@ -111,37 +79,6 @@ Semantics::generateSemantics() {
                 lEnd->symbol->name);
         conjunctsTrace.push_back(f);
       }
-
-      std::vector<std::shared_ptr<const logic::Formula>> targetSymbolAxioms;
-
-      // postcondition mode
-      // TODO: handling for multiple traces
-      if (util::Configuration::instance().postcondition()) {
-        for (auto i = coloredSymbols.begin(); i != coloredSymbols.end(); ++i) {
-          auto name = i->first;
-          auto var = i->second;
-          auto variable = var.get();
-
-          // add target-symbols
-          auto symInit = initTargetSymbol(variable);
-          auto symFinal = finalTargetSymbol(variable);
-          colorSymbol(variable);
-          // hack to get the start and end timepoint of the first (outermost)
-          // while loop
-          auto lEnd = loopEndTimePoints.front();
-          auto lStart = loopStartTimePoints.front();
-
-          // add definitions for final and initial values
-          targetSymbolAxioms.push_back(
-              defineTargetSymbol(symInit, var, lStart));
-          targetSymbolAxioms.push_back(defineTargetSymbol(symFinal, var, lEnd));
-        }
-      }      
-
-      Vampire::Solver& solver = Vampire::Solver::getSolver();
-      std::cout << "Vampire version " << solver.version() << std::endl;
-      std::cout << "Vampire commit " << solver.commit() << std::endl;
-
 
       if (numberOfTraces > 1) {
         conjunctsFunction.push_back(logic::Formulas::conjunctionSimp(
