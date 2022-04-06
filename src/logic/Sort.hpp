@@ -27,6 +27,8 @@ class Sort {
   bool isNatSort() const { return name == "Nat"; }
   bool isIntSort() const { return name == "Int"; }
   bool isArraySort() const { return name == "Array"; }
+  bool isBoolSort() const { return name == "Bool"; }
+
   virtual bool isStructSort() const { return false; }
 
   bool operator==(Sort& o);

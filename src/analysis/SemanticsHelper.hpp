@@ -61,7 +61,8 @@ std::shared_ptr<const logic::Term> lastIterationTermForLoop(
     std::shared_ptr<const logic::Term> trace);
 
 std::shared_ptr<const logic::Term> timepointForNonLoopStatement(
-    const program::Statement* statement);
+    const program::Statement* statement,
+    std::shared_ptr<const logic::Term> innerIteration = nullptr);
 std::shared_ptr<const logic::Term> timepointForLoopStatement(
     const program::WhileStatement* whileStatement,
     std::shared_ptr<const logic::Term> innerIteration);
@@ -96,7 +97,8 @@ std::shared_ptr<const logic::Term> intLastIterationTermForLoop(
     std::shared_ptr<const logic::Term> trace);
 
 std::shared_ptr<const logic::Term> intTimepointForNonLoopStatement(
-    const program::Statement* statement);
+    const program::Statement* statement,
+    std::shared_ptr<const logic::Term> innerIteration = nullptr);
 std::shared_ptr<const logic::Term> intTimepointForLoopStatement(
     const program::WhileStatement* whileStatement,
     std::shared_ptr<const logic::Term> innerIteration);

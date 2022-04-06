@@ -226,12 +226,13 @@ std::shared_ptr<const logic::Term> lastIterationTermForLoop(
 }
 
 std::shared_ptr<const logic::Term> timepointForNonLoopStatement(
-    const program::Statement* statement) {
+    const program::Statement* statement,
+    std::shared_ptr<const logic::Term> innerIteration) {
   assert(statement != nullptr);
   assert(statement->type() != program::Statement::Type::WhileStatement);
 
   if (util::Configuration::instance().integerIterations()) {  
-    return intTimepointForNonLoopStatement(statement);  
+    return intTimepointForNonLoopStatement(statement, innerIteration);  
   }
 
   auto enclosingLoops = *statement->enclosingLoops;
@@ -241,6 +242,10 @@ std::shared_ptr<const logic::Term> timepointForNonLoopStatement(
     auto enclosingIteratorSymbol = iteratorSymbol(enclosingLoop);
     enclosingIteratorTerms.push_back(
         logic::Terms::var(enclosingIteratorSymbol));
+  }
+  if(innerIteration){
+    // assuming that the iteration symbol for the innermost loop is last in the vector
+    enclosingIteratorTerms[enclosingIteratorTerms.size() - 1] = innerIteration;
   }
 
   return logic::Terms::func(locationSymbolForStatement(statement),
@@ -281,7 +286,7 @@ std::shared_ptr<const logic::Term> startTimepointForStatement(
   } else {
     auto whileStatement =
         static_cast<const program::WhileStatement*>(statement);
-    return timepointForLoopStatement(whileStatement, logic::Theory::natZero());
+    return timepointForLoopStatement(whileStatement, logic::Theory::zero());
   }
 }
 
@@ -325,8 +330,10 @@ std::shared_ptr<const logic::Term> intLastIterationTermForLoop(
   return logic::Terms::func(symbol, subterms);
 }
 
+// TODO code duplication below. Remove
 std::shared_ptr<const logic::Term> intTimepointForNonLoopStatement(
-    const program::Statement* statement) {
+    const program::Statement* statement,
+    std::shared_ptr<const logic::Term> innerIteration) {
   assert(statement != nullptr);
   assert(statement->type() != program::Statement::Type::WhileStatement);
 
@@ -338,6 +345,10 @@ std::shared_ptr<const logic::Term> intTimepointForNonLoopStatement(
     enclosingIteratorTerms.push_back(
         logic::Terms::var(intEnclosingIteratorSymbol));
   }
+  if(innerIteration){
+    // assuming that the iteration symbol for the innermost loop is last in the vector
+    enclosingIteratorTerms[enclosingIteratorTerms.size() - 1] = innerIteration;
+  }  
 
   return logic::Terms::func(locationSymbolForStatement(statement),
                             enclosingIteratorTerms);

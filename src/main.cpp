@@ -116,17 +116,6 @@ int main(int argc, char* argv[]) {
           }
         }
 
-        if (util::Configuration::instance().postcondition()) {
-          for (const auto& task : tasks) {
-            if (task.conjecture.get()->name.find("user-conjecture") !=
-                std::string::npos) {
-              std::stringstream preamble;
-              preamble << util::Output::comment << *parserResult.program
-                       << util::Output::nocomment;
-              task.outputTPTPToDir(outputDir, preamble.str());
-            }
-          }
-        }
       }
     }
     return 0;

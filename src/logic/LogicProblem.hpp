@@ -112,13 +112,17 @@ private:
 // refactored.
 class ReasoningTask {
  public:
+  enum class Status { SOLVED, FAILED, NOT_ATTEMPTED };
+
   ReasoningTask(std::vector<std::shared_ptr<const ProblemItem>> axioms,
                 std::shared_ptr<const Conjecture> conjecture)
       : axioms(axioms),
-        conjecture(conjecture) {}
+        conjecture(conjecture),
+        status(Status::NOT_ATTEMPTED) {}
 
-  const std::vector<std::shared_ptr<const ProblemItem>> axioms;
+  std::vector<std::shared_ptr<const ProblemItem>> axioms;
   const std::shared_ptr<const Conjecture> conjecture;
+  Status status;
 
   /*
    * generate a new file in the directory 'dirPath' and output the reasoning
@@ -128,6 +132,15 @@ class ReasoningTask {
   void outputSMTLIBToDir(std::string dirPath, std::string inputFileName,
                          std::string preamble) const;
 
+  void addAxiom(std::shared_ptr<const Axiom> axiom){
+    axioms.push_back(axiom);
+  }
+
+  void addAxioms(std::vector<std::shared_ptr<const Axiom>> axms){
+    axioms.insert(axioms.end(), axms.begin(),
+                  axms.end());
+  }
+
   /*
    * generate a new file in the directory 'dirPath' and output the reasoning
    * task in TPTP syntax. the preamble string is added at the beginning of the
@@ -135,8 +148,8 @@ class ReasoningTask {
    */
   void outputTPTPToDir(std::string dirPath, std::string preamble) const;
 
- private:
   void outputSMTLIB(std::ostream& ostr) const;
+ private:
   void outputTPTP(std::ostream& ostr) const;
 };
 

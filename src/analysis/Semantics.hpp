@@ -15,6 +15,7 @@
 #include "SemanticsHelper.hpp"
 #include "SemanticsInliner.hpp"
 #include "Statements.hpp"
+#include "InvariantGenerator.hpp"
 
 namespace analysis {
 
@@ -48,6 +49,8 @@ class Semantics {
       _model = MemoryModel::UNTYPED;
     }
 
+    _ig = new InvariantGenerator(_model == MemoryModel::TYPED);
+   
     bool containsPointerVariable = false;
     for (auto vars : locationToActiveVars) {
       for (auto v : vars.second) {
@@ -66,7 +69,11 @@ class Semantics {
       util::Configuration::instance().setDontInline();
     }
   }
-  
+
+  ~Semantics(){
+    delete _ig;
+  }  
+
   std::pair<std::vector<std::shared_ptr<const logic::Axiom>>,
             InlinedVariableValues>
   generateSemantics();
@@ -74,6 +81,7 @@ class Semantics {
 
  private:
 
+  InvariantGenerator* _ig;
   MemoryModel _model;
 
   const int SMALL_STRUCT_SIZE = 5;
@@ -110,7 +118,8 @@ class Semantics {
       std::shared_ptr<const logic::Term> m2, int size2);
 
   void generateMemoryLocationSemantics(
-      std::vector<std::shared_ptr<const logic::Axiom>>& axioms);
+      std::vector<std::shared_ptr<const logic::Axiom>>& axioms,
+      std::vector<std::shared_ptr<const logic::Axiom>>& axioms2);
   std::shared_ptr<const logic::Formula> generateSemantics(
       const program::Statement* statement, SemanticsInliner& inliner,
       std::shared_ptr<const logic::Term> trace);

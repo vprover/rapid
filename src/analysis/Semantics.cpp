@@ -58,6 +58,11 @@ Semantics::generateSemantics() {
 
   // generate semantics compositionally
   std::vector<std::shared_ptr<const logic::Axiom>> axioms;
+  // used for invariant proving tasks. TO help with invariant proving
+  // we do not use the complete program semantics, but rather just the 
+  // semantics of the relvant loops
+  std::vector<std::shared_ptr<const logic::Axiom>> axioms2;
+
   for (const auto& function : program.functions) {
     std::vector<std::shared_ptr<const logic::Formula>> conjunctsFunction;
 
@@ -102,23 +107,30 @@ Semantics::generateSemantics() {
 
   if(_model == MemoryModel::UNTYPED){
     axioms.push_back(logic::Theory::untypedFrameAxiom(tp, tp2, memLocSymbol));
+    axioms2.push_back(axioms[axioms.size()-1]);
   } else {
     axioms.push_back(logic::Theory::typedFrameAxiom(tp, tp2, memLocSymbol));
+    axioms2.push_back(axioms[axioms.size()-1]);    
   }
 
   for(auto& pair : frameAxiomsToAdd){
     axioms.push_back(logic::Theory::frameAxiom(tp, tp2, pair.first, pair.second));
+    axioms2.push_back(axioms[axioms.size()-1]);    
   }
   for(auto& name : sameAxiomsToAdd){
     axioms.push_back(logic::Theory::allSameAxiom(tp, tp2, name));
+    axioms2.push_back(axioms[axioms.size()-1]);    
   }
   
-  generateMemoryLocationSemantics(axioms);
+  generateMemoryLocationSemantics(axioms, axioms2);
+  _ig->insertAxiomsIntoTasks(axioms2);
+  _ig->attemptToProveInvariants();
   return std::make_pair(axioms, inlinedVariableValues);
 }
 
 void Semantics::generateMemoryLocationSemantics(
-    std::vector<std::shared_ptr<const logic::Axiom>>& axioms)
+    std::vector<std::shared_ptr<const logic::Axiom>>& axioms,
+    std::vector<std::shared_ptr<const logic::Axiom>>& axioms2)
 {
   std::vector<std::shared_ptr<const program::Variable>> allVars;
   for (auto vars : locationToActiveVars) {
@@ -268,11 +280,14 @@ void Semantics::generateMemoryLocationSemantics(
     }
   }
 
-  if(needDisjoint1Axiom) 
+  if(needDisjoint1Axiom) { 
     axioms.push_back(logic::Theory::disjoint1Axiom(memLocSymbol,size1Sym,memLocSymbol2,size2Sym));
-  
-  if(needDisjoint2Axiom)
+    axioms2.push_back(axioms[axioms.size()-1]);    
+  }
+  if(needDisjoint2Axiom){
     axioms.push_back(logic::Theory::disjoint2Axiom(memLocSymbol,memLocSymbol2,size2Sym));
+    axioms2.push_back(axioms[axioms.size()-1]);    
+  }
 
   // TODO see how useful the axiom below is
   /*auto value = logic::Theory::valueAt(tpVar, memLocVar);
@@ -286,6 +301,7 @@ void Semantics::generateMemoryLocationSemantics(
   axioms.push_back(std::make_shared<logic::Axiom>(
       memSemantics, "Semantics of memory locations",
       logic::ProblemItem::Visibility::Implicit));
+  axioms2.push_back(axioms[axioms.size()-1]); 
 }
 
 std::shared_ptr<const logic::Formula> Semantics::explode(
@@ -948,8 +964,12 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
                              "from the last iteration");
     conjuncts.push_back(part4);
 
-    return logic::Formulas::conjunction(
+    auto loopSemantics = logic::Formulas::conjunction(
         conjuncts, "Loop at location " + whileStatement->location);
+
+    std::vector<std::shared_ptr<const logic::Formula>> invariants;
+    _ig->generateInvariants(whileStatement, loopSemantics);
+    return loopSemantics;
   }
 }
 

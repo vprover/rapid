@@ -12,6 +12,7 @@ set(SPECTRE_ANALYSIS_SOURCES
     LemmasIterators.cpp
     LemmasOther.cpp
     LemmasTwoTraces.cpp
+    InvariantGenerator.cpp
 )
 set(SPECTRE_ANALYSIS_HEADERS
     Semantics.hpp
@@ -27,10 +28,10 @@ set(SPECTRE_ANALYSIS_HEADERS
     LemmasIterators.hpp
     LemmasOther.hpp
     LemmasTwoTraces.hpp
+    InvariantGenerator.hpp
 )
 
 add_library(analysis ${SPECTRE_ANALYSIS_SOURCES} ${SPECTRE_ANALYSIS_HEADERS})
 target_include_directories(analysis PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(analysis program logic declarations)
-target_link_libraries(analysis "${VAMPIRE_LIB}")
+target_link_libraries(analysis program logic declarations solvers)
 target_include_directories(analysis PRIVATE ${VAMPIRE_INCLUDE_DIRS})
