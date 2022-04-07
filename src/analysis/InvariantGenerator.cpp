@@ -83,7 +83,6 @@ void InvariantGenerator::generateInvariants(
   }
 
 
-
 }
 
 void InvariantGenerator::insertAxiomsIntoTasks(std::vector<std::shared_ptr<const Axiom>> items)
@@ -91,7 +90,7 @@ void InvariantGenerator::insertAxiomsIntoTasks(std::vector<std::shared_ptr<const
   for(auto& vec : _potentialInvariants){
     for(auto& item : vec){
       item.addAxioms(items);
-      item.outputSMTLIB(std::cout);
+//      item.outputSMTLIB(std::cout); 
     }
   }
 }
@@ -100,13 +99,16 @@ void  InvariantGenerator::attemptToProveInvariants(){
   for(auto& vec : _potentialInvariants){
     for(auto& item : vec){
       auto solver = solvers::VampireSolver(item);
-      solver.setTimeLimit(30);
+      solver.convertTask();
+      solver.setTimeLimit(30); 
       if(solver.solve()){
+        std::cout << "SUCCESS" << std::endl;
         item.status = ReasoningTask::Status::SOLVED;
         auto conj = item.conjecture;
         auto inv = std::make_shared<Axiom>(conj->formula);
         insertAxiomsIntoTasks({inv});
       } else {
+        std::cout << "FAILED" << std::endl;
         item.status = ReasoningTask::Status::FAILED;        
       }
     }

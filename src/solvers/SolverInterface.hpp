@@ -14,14 +14,22 @@ class GenSolver {
     GenSolver(ReasoningTask task) : _task(task) {}
 
     void convertTask(){
-      for(auto& axiom : _task.axioms){
-        // We treat all user defined items equivalently
-        // and do not differentiate between lemmas, axioms etc.
-        // All are treated as axioms. Therefore, users must take
-        // care to avoid introducing unsoundness
-        solverAssert(convertForm(axiom->formula));
+      try{
+        for(auto& axiom : _task.axioms){
+          // We treat all user defined items equivalently
+          // and do not differentiate between lemmas, axioms etc.
+          // All are treated as axioms. Therefore, users must take
+          // care to avoid introducing unsoundness
+          solverAssert(convertForm(axiom->formula));
+        }
+        addConjecture(convertForm(_task.conjecture->formula));
+      } catch (Vampire::ApiException& e){
+        std::cerr << "Exception: "<<e.msg()<<std::endl;
+        abort();
+      } catch (Vampire::FormulaBuilderException& f) {
+        std::cerr << "Exception: "<<f.msg()<<std::endl;
+        abort();
       }
-      addConjecture(convertForm(_task.conjecture->formula));
     }
 
     // formula conversion functions

@@ -465,8 +465,9 @@ std::shared_ptr<logic::Axiom> Theory::allSameAxiom(
 
   bool value = prefix == "value";
   auto sort = value ? logic::Sorts::intSort() : logic::Sorts::fetch(prefix);
+  auto varName = sort->isIntSort() ? "n" : toLower(sort->name) + "_var"; 
 
-  auto varSym = Signature::varSymbol("x", sort);
+  auto varSym = Signature::varSymbol(varName, sort);
   auto var = Terms::var(varSym);
 
   auto pred = allSame(tp1, tp2, prefix);

@@ -1,6 +1,7 @@
 cmake_minimum_required (VERSION 3.6.3)
 
 add_compile_options(-fsanitize=address)
+add_compile_options(-fno-omit-frame-pointer)
 add_link_options(-fsanitize=address)
 
 ################################################################

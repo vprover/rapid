@@ -5,8 +5,8 @@ namespace solvers {
 typedef Vampire::Expression VExpr;
 
 VampireSolver::VampireSolver(ReasoningTask task)
- : GenSolver(task) {
-  _solver = Vampire::Solver::getSolverPtr(Vampire::Solver::Logic::SMT_LIB); 
+ : _solver(Vampire::Solver::getSolverPtr(Vampire::Solver::Logic::SMT_LIB)), 
+   GenSolver(task) {
 }
 
 
@@ -164,7 +164,17 @@ void VampireSolver::addConjecture(VExpr v) const
 
 bool VampireSolver::solve()
 {
-  Vampire::Result res = _solver->solve();
+  Vampire::Result res;
+  try{
+    res = _solver->solveWithCasc();
+  } catch (Vampire::ApiException& e){
+    std::cout<< "Exception: "<<e.msg()<<std::endl;
+    return 0;
+  } catch (Vampire::FormulaBuilderException& f) {
+    std::cout<< "Exception: "<<f.msg()<<std::endl;
+    return 0;    
+  }
+
   if(res.unsatisfiable()){
     return true;
   }

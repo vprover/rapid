@@ -220,6 +220,11 @@ std::shared_ptr<const logic::Term> SemanticsInliner::toCachedTerm(
       return toCachedTermFull(castedExpr->array,
                               toCachedTerm(castedExpr->index));
     }
+    default:
+      // inlining is not currently safe in the presence of pointers,
+      // so no memory manipulating constructions should be appearing here
+      assert(false);
+    
   }
 }
 
@@ -617,6 +622,8 @@ std::shared_ptr<const logic::Term> InlinedVariableValues::toInlinedTerm(
         return logic::Terms::arraySelect(array, position);
       }
     }
+    default:
+      assert(false);
   }
 }
 

@@ -279,6 +279,11 @@ void AnalysisPreComputation::computeVariablesContainedInLoopCondition(
       // do nothing
       break;
     }
+    default: {
+      // Currently, this function inly has use in conjunction with the inliner
+      // which is not sound in the presence of memory manipulating constructs
+      assert(false);
+    }
   }
 }
 }  // namespace analysis
