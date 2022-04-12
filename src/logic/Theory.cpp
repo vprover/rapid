@@ -220,6 +220,16 @@ std::shared_ptr<const FuncTerm> Theory::selectorAt(
   return Terms::func(sym, {timePoint, object});
 }
 
+std::shared_ptr<const FuncTerm> Theory::chain(
+    std::string selectorName, 
+    std::shared_ptr<const Term> timePoint,
+    std::shared_ptr<const Term> location,
+    std::shared_ptr<const Term> length,      
+    std::string sortName = "Int") {
+
+
+}
+
 std::shared_ptr<const Formula> Theory::isList(
       std::shared_ptr<const Term> loc1,
       std::shared_ptr<const Term> loc2,
@@ -625,6 +635,46 @@ std::shared_ptr<const Formula> Theory::in(
   return Formulas::predicate("in", {elem, set});
 }
 
+std::tuple<std::shared_ptr<logic::Conjecture>,
+           std::shared_ptr<logic::Conjecture>,
+           std::shared_ptr<logic::Axiom>>
+inductionAxiom0(
+    std::string concName,
+    std::function<std::shared_ptr<const Formula>(std::shared_ptr<const Term>)>
+        inductionHypothesis,
+    std::shared_ptr<const Term> nlTerm,        
+    std::vector<std::shared_ptr<const Symbol>> freeVarSymbols) {
+
+  auto itSymbol = logic::Signature::varSymbol("it", logic::Sorts::iterSort());
+  auto it = Terms::var(itSymbol);
+
+  auto zero = Theory::zero();
+  auto zeroLessEqIt = Theory::lessEq(zero, it);
+  auto itLessNlTerm = Theory::less(it, nlTerm);
+  auto itLessEqNlTerm = Theory::lessEq(it, nlTerm);
+  auto itPlusOne = Theory::succ(it);
+
+  auto baseCase = Formulas::universal(freeVarSymbols, inductionHypothesis(zero));
+
+  freeVarSymbols.push_back(itSymbol);
+  auto stepCase = Formulas::universal(freeVarSymbols, 
+    Formulas::implication(
+      Formulas::conjunction({zeroLessEqIt,itLessNlTerm, inductionHypothesis(it)}),
+      inductionHypothesis(itPlusOne)
+    ));
+  
+  auto conclusion = Formulas::universal(freeVarSymbols, 
+    Formulas::implication(
+      Formulas::conjunction({zeroLessEqIt,itLessEqNlTerm}),
+      inductionHypothesis(it)
+    ));
+
+  return std::make_tuple(
+      std::make_shared<logic::Conjecture>(baseCase),
+      std::make_shared<logic::Conjecture>(stepCase),
+      std::make_shared<logic::Axiom>(conclusion, concName));
+}
+
 std::tuple<std::shared_ptr<logic::Definition>,
            std::shared_ptr<logic::Definition>,
            std::shared_ptr<logic::Definition>, std::shared_ptr<logic::Axiom>>
@@ -635,19 +685,11 @@ inductionAxiom1(
     std::vector<std::shared_ptr<const Symbol>> freeVarSymbols,
     ProblemItem::Visibility visibility) {
   auto boundLSymbol =
-      logic::Signature::varSymbol("boundL", logic::Sorts::natSort());
+      logic::Signature::varSymbol("boundL", logic::Sorts::iterSort());
   auto boundRSymbol =
-      logic::Signature::varSymbol("boundR", logic::Sorts::natSort());
+      logic::Signature::varSymbol("boundR", logic::Sorts::iterSort());
   auto itIndSymbol =
-      logic::Signature::varSymbol("itInd", logic::Sorts::natSort());
-
-  if (util::Configuration::instance().integerIterations()) {
-    boundLSymbol =
-        logic::Signature::varSymbol("boundL", logic::Sorts::intSort());
-    boundRSymbol =
-        logic::Signature::varSymbol("boundR", logic::Sorts::intSort());
-    itIndSymbol = logic::Signature::varSymbol("itInd", logic::Sorts::intSort());
-  }
+      logic::Signature::varSymbol("itInd", logic::Sorts::iterSort());
 
   auto boundL = Terms::var(boundLSymbol);
   auto boundR = Terms::var(boundRSymbol);

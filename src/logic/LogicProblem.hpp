@@ -46,7 +46,7 @@ class ProblemItem {
       assert(name != "");
     }
   }
-
+  
   virtual ~ProblemItem() = default;
 
   const Type type;
@@ -112,17 +112,14 @@ private:
 // refactored.
 class ReasoningTask {
  public:
-  enum class Status { SOLVED, FAILED, NOT_ATTEMPTED };
 
   ReasoningTask(std::vector<std::shared_ptr<const ProblemItem>> axioms,
                 std::shared_ptr<const Conjecture> conjecture)
       : axioms(axioms),
-        conjecture(conjecture),
-        status(Status::NOT_ATTEMPTED) {}
+        conjecture(conjecture) {}
 
   std::vector<std::shared_ptr<const ProblemItem>> axioms;
   const std::shared_ptr<const Conjecture> conjecture;
-  Status status;
 
   /*
    * generate a new file in the directory 'dirPath' and output the reasoning

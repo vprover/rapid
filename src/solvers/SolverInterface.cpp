@@ -4,9 +4,8 @@ namespace solvers {
 
 typedef Vampire::Expression VExpr;
 
-VampireSolver::VampireSolver(ReasoningTask task)
- : _solver(Vampire::Solver::getSolverPtr(Vampire::Solver::Logic::SMT_LIB)), 
-   GenSolver(task) {
+VampireSolver::VampireSolver()
+ : _solver(Vampire::Solver::getSolverPtr(Vampire::Solver::Logic::SMT_LIB)) {
 }
 
 
@@ -19,6 +18,11 @@ VExpr VampireSolver::solverMin(VExpr v1, VExpr v2) const
 {
   return _solver->difference(v1,v2);
 }
+
+VExpr VampireSolver::solverIntConst(int i) const
+{
+  return _solver->integerConstant(i);  
+}   
 
 VExpr VampireSolver::solverVar(std::shared_ptr<const Term> t) const
 {

@@ -11,18 +11,19 @@ namespace solvers {
 template <class SolverExpression, class SolverSort>
 class GenSolver {
   public:
-    GenSolver(ReasoningTask task) : _task(task) {}
+    GenSolver() {}
 
-    void convertTask(){
+    void convertTask(ReasoningTask task){
+      reset();
       try{
-        for(auto& axiom : _task.axioms){
+        for(auto& axiom : task.axioms){
           // We treat all user defined items equivalently
           // and do not differentiate between lemmas, axioms etc.
           // All are treated as axioms. Therefore, users must take
           // care to avoid introducing unsoundness
           solverAssert(convertForm(axiom->formula));
         }
-        addConjecture(convertForm(_task.conjecture->formula));
+        addConjecture(convertForm(task.conjecture->formula));
       } catch (Vampire::ApiException& e){
         std::cerr << "Exception: "<<e.msg()<<std::endl;
         abort();
@@ -30,6 +31,11 @@ class GenSolver {
         std::cerr << "Exception: "<<f.msg()<<std::endl;
         abort();
       }
+    }
+
+    bool solveTask(ReasoningTask task){
+      convertTask(task);
+      return solve();
     }
 
     // formula conversion functions
@@ -58,6 +64,7 @@ class GenSolver {
     // to be overriden by concrete solvers
     virtual SolverExpression solverPlus(SolverExpression s1, SolverExpression s2) const = 0;
     virtual SolverExpression solverMin(SolverExpression s1, SolverExpression s2) const = 0;
+    virtual SolverExpression solverIntConst(int i) const = 0;    
     virtual SolverExpression solverVar(std::shared_ptr<const Term> t) const = 0;
 
 
@@ -66,6 +73,11 @@ class GenSolver {
     virtual SolverSort convertSort(const Sort* s) const = 0;
 
     SolverExpression convertTerm(std::shared_ptr<const Term> t){    
+
+      auto isNumber = [](const std::string& str)
+      {
+        return str.find_first_not_of("0123456789") == std::string::npos;
+      };
 
       if(t->type() == Term::Type::Variable){
         return solverVar(t);
@@ -84,6 +96,12 @@ class GenSolver {
       if(t->symbol->name == "-"){
         return solverMin(convertTerm(ft->subterms[0]), 
                           convertTerm(ft->subterms[1]));
+      }
+
+      if(isNumber(t->symbol->name)){
+        // Careful, stoi can raise out of bounds exceptions 
+        // which we should handle!
+        return solverIntConst(std::stoi(t->symbol->name));
       }
 
       std::vector<SolverExpression> args;
@@ -135,7 +153,7 @@ class GenSolver {
         case Formula::Type::Equality : {
           auto castedF = std::static_pointer_cast<const EqualityFormula>(f);
           return solverEq(convertTerm(castedF->left), 
-                          convertTerm(castedF->right), castedF->polarity);
+                             convertTerm(castedF->right), castedF->polarity);
         }
 
         case Formula::Type::Conjunction : {
@@ -199,11 +217,9 @@ class GenSolver {
     virtual void setTimeLimit(int t = 30) const = 0;
     virtual void solverAssert(SolverExpression) const = 0;
     virtual void addConjecture(SolverExpression) const = 0;
+    virtual void reset() const = 0;
 
     virtual bool solve() = 0;
-
-  private:
-    ReasoningTask _task;
   };
 
 // If there are other theorem provers that can handle quantifiers and
@@ -212,12 +228,14 @@ class GenSolver {
 class VampireSolver : public GenSolver<Vampire::Expression, Vampire::Sort>
 {
 public: 
-  VampireSolver(ReasoningTask task);
+  VampireSolver();
 
   typedef Vampire::Expression VExpr;
 
   VExpr solverPlus(VExpr v1, VExpr v2) const override;
   VExpr solverMin(VExpr v1, VExpr v2) const override;
+  VExpr solverIntConst(int i) const override;    
+
   VExpr solverVar(std::shared_ptr<const Term> t) const override;
 
   Vampire::Sort convertSort(const Sort* s) const override;
@@ -251,6 +269,9 @@ public:
   void setTimeLimit(int t = 30) const override;
   void solverAssert(VExpr) const override;
   void addConjecture(VExpr) const override;
+  void reset() const override {
+    _solver->reset();
+  }
 
   bool solve() override;
 

@@ -70,11 +70,17 @@ class Theory {
       std::shared_ptr<const Term> timePoint,
       std::shared_ptr<const Term> location,
       std::string sortName = "Int",
-      bool isConst = false);
+      bool isConst = false);  
   static std::shared_ptr<const FuncTerm> selectorAt(
       std::string selectorName,
       std::shared_ptr<const Term> timePoint,
       std::shared_ptr<const Term> object);
+  static std::shared_ptr<const FuncTerm> chain(
+      std::string selectorName, 
+      std::shared_ptr<const Term> timePoint,
+      std::shared_ptr<const Term> location,
+      std::shared_ptr<const Term> length,      
+      std::string sortName = "Int");
 
   static std::shared_ptr<const FuncTerm> mallocFun(
       std::shared_ptr<const Term> timePoint,
@@ -182,6 +188,44 @@ class Theory {
                                                std::shared_ptr<const Term> t2,
                                                std::string label = "");
 };
+
+/*
+ * Generates inductionAxiom0 from the induction hypothesis 'inductionHypothesis'
+ * (short IH, modelled as function which maps each timepoint to a formula),
+ * 'freeVarSymbols' must contain exactly all free variables
+ * of 'inductionHypothesis' different from the free variable over which we
+ * perform induction. The
+ * induction axiom then has the following form: forall boundL,boundR.
+ *    =>
+ *       and
+ *          BC(0)
+ *          IC(0, nl)
+ *       Con(0, nl),
+ * where:
+ * - the base case BC(0) is defined as
+ *   IH(0)
+ * - the inductive case IC(0,nl) is defined as
+ *   forall it.
+ *      =>
+ *         and
+ *            0<=it<nl
+ *            IH(it)
+ *         IH(it + 1)
+ * - the conclusion Con(0,nl) is defined as
+ *   forall it.
+ *      =>
+ *         0<=it<=nl
+ *         IH(it)
+ */
+std::tuple<std::shared_ptr<logic::Conjecture>,
+           std::shared_ptr<logic::Conjecture>,
+           std::shared_ptr<logic::Axiom>>
+inductionAxiom0(
+    std::string concName,
+    std::function<std::shared_ptr<const Formula>(std::shared_ptr<const Term>)>
+        inductionHypothesis,
+    std::shared_ptr<const Term> nlTerm,    
+    std::vector<std::shared_ptr<const Symbol>> freeVarSymbols);
 
 /*
  * Generates inductionAxiom1 from the induction hypothesis 'inductionHypothesis'

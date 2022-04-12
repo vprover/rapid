@@ -49,7 +49,7 @@ class Semantics {
       _model = MemoryModel::UNTYPED;
     }
 
-    _ig = new InvariantGenerator(_model == MemoryModel::TYPED);
+    _ig = new InvariantGenerator(_model == MemoryModel::TYPED, locationToActiveVars);
    
     bool containsPointerVariable = false;
     for (auto vars : locationToActiveVars) {
