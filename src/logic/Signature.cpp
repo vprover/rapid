@@ -71,6 +71,10 @@ std::string Symbol::declareSymbolSMTLIB() const {
         res = "(declare-malloc-func ";        
       }
 
+      if(symbolType == SymbolType::ChainFunc) {
+        res = "(declare-chain-func ";        
+      }
+
       if (symbolType == SymbolType::FinalLoopCount) {
         res = "(declare-final-loop-count ";
       }
@@ -227,6 +231,7 @@ std::shared_ptr<const Symbol> Signature::fetch(std::string name) {
 std::shared_ptr<const Symbol> Signature::fetchOrAdd(
     std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort,
     bool noDeclaration, SyS typ) {
+
   auto pair = _signature.insert(
       std::make_pair(name, std::shared_ptr<Symbol>(new Symbol(
                                name, argSorts, rngSort, noDeclaration, typ))));

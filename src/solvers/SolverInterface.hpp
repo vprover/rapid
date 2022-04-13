@@ -33,7 +33,10 @@ class GenSolver {
       }
     }
 
-    bool solveTask(ReasoningTask task){
+    // solvers can choose how to handle chainy tasks
+    // We call a task chainy if it involves proving some facts about
+    // a chain of fields e.g. a->f->f->f->f ...
+    virtual bool solveTask(ReasoningTask task, bool isChainy = false) {
       convertTask(task);
       return solve();
     }
@@ -273,7 +276,26 @@ public:
     _solver->reset();
   }
 
+  bool solveTask(ReasoningTask task, bool isChainy = false) override {
+    convertTask(task);
+    if(isChainy){
+      //task.outputSMTLIB(std::cout);
+      std::cout << "Running Vampire's Rapid schedule for 60s" << std::endl;
+      // proving chain invariants tend to be more challenging
+      setTimeLimit(60);
+      bool res = solveWithSched(Vampire::Solver::Schedule::RAPID);
+      setTimeLimit(30);
+      if(res){
+        return true;
+      }      
+    }
+    std::cout << "Running Vampire's CASC schedule for 30s" << std::endl;
+    return solve();
+  }
+
+  // trys to solve the problem using Vampire's CASC mode
   bool solve() override;
+  bool solveWithSched(Vampire::Solver::Schedule sched);
 
 private:
   Vampire::Solver* _solver;

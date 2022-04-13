@@ -16,28 +16,33 @@ class InvariantTask {
     InvariantTask(logic::ReasoningTask* baseCase,
                  logic::ReasoningTask* stepCase,
                  std::shared_ptr<const logic::Axiom> conclusion,
-                 std::string loopLocation) :
+                 std::string loopLocation,
+                 std::vector<std::shared_ptr<const logic::Axiom>> chainAxioms = {}) :
     _baseCase(baseCase), _stepCase(stepCase),
     _conclusion(conclusion), _status(Status::NOT_ATTEMPTED),
-    _loopLocation(loopLocation) {}
+    _loopLocation(loopLocation), _chainAxioms(chainAxioms) {}
 
     InvariantTask(logic::ReasoningTask* stepCase,
                  std::shared_ptr<const logic::Axiom> conclusion,
-                 std::string loopLocation) :
+                 std::string loopLocation,
+                 std::vector<std::shared_ptr<const logic::Axiom>> chainAxioms = {}) :
     _baseCase(nullptr), _stepCase(stepCase),
     _conclusion(conclusion), _status(Status::NOT_ATTEMPTED),
-    _loopLocation(loopLocation) {}
+    _loopLocation(loopLocation), _chainAxioms(chainAxioms) {}
 
     void setStatus(Status status);
     Status status() const { return _status; }    
     bool containsBaseCase() const { return _baseCase != nullptr; }
-    
+    bool isChainyTask() const { return _chainAxioms.size() > 0; }
+
     void addAxioms(std::vector<std::shared_ptr<const logic::Axiom>> axms){
       _stepCase->addAxioms(axms);
       if(_baseCase){
         _baseCase->addAxioms(axms);
       }
     }
+    std::vector<std::shared_ptr<const logic::Axiom>>
+    getChainAxioms() { return  _chainAxioms; }
 
     logic::ReasoningTask* baseCase() { return _baseCase; }
     logic::ReasoningTask* stepCase() { return _stepCase; }
@@ -50,6 +55,7 @@ class InvariantTask {
     logic::ReasoningTask* _stepCase;
     std::shared_ptr<const logic::Axiom> _conclusion;
     std::string _loopLocation;
+    std::vector<std::shared_ptr<const logic::Axiom>> _chainAxioms;
 };
 
 class InvariantGenerator {
@@ -69,9 +75,20 @@ class InvariantGenerator {
     std::vector<std::vector<InvariantTask>>&
     getPotentialInvariants(){ return _potentialInvariants; }
   
-    void insertAxiomsIntoTasks(std::vector<std::shared_ptr<const logic::Axiom>> items);
+    /*
+     * Insert axioms in @param iterms into
+     * current tasks. if @param location is set
+     * we only insert into invariant tasks over loops
+     * at that location
+     */
+    void insertAxiomsIntoTasks(
+      std::vector<std::shared_ptr<const logic::Axiom>> items, 
+      std::string location = "");
+    
     void attemptToProveInvariants();
 
+    std::vector<std::shared_ptr<const logic::Axiom>>
+    getProvenInvariantsAndChainAxioms();
   private:
   
     /*
@@ -117,6 +134,8 @@ class InvariantGenerator {
     void generateChainingInvariants(      
       const program::WhileStatement* whileStatement,
       std::shared_ptr<const logic::Axiom> loopSemantics);
+
+    std::map<std::string,std::vector<std::shared_ptr<logic::Axiom>>> _chainAxiomsUsed; 
 
     const std::unordered_map<
       std::string, std::vector<std::shared_ptr<const program::Variable>>>

@@ -4,6 +4,8 @@
 #include "Theory.hpp"
 #include "SemanticsHelper.hpp"
 
+#include <set>
+
 using namespace logic;
 
 namespace analysis {
@@ -165,15 +167,6 @@ void InvariantGenerator::generateStructsStaySameInvariants(
   }
 }
 
-;      (forall ((it Int))
-;         (=>
-;            (and 
-;               (<= 0 it)
-;               (<= it nl22)
-;            )
-;            (= (value (l22 it) head) (next_chain head (l22 0) it))
-;         )
-;      ) 
 
 void InvariantGenerator::generateChainingInvariants(      
   const program::WhileStatement* whileStatement,
@@ -186,15 +179,19 @@ void InvariantGenerator::generateChainingInvariants(
       auto lhs = castedStatement->lhs;
       auto rhs = castedStatement->rhs;
       auto lhsIsVar = lhs->type() == program::Type::VariableAccess;
-      auto rhsIsFieldAccess = rhs->type == program::Type::FieldAccess;
+      auto rhsIsFieldAccess = rhs->type() == program::Type::FieldAccess;
+      
       if(lhsIsVar && rhsIsFieldAccess){
         auto castedRhs = std::static_pointer_cast<const program::StructFieldAccess>(rhs);
         auto strct = castedRhs->getStruct();
         auto strctIsVar = strct->type() == program::Type::VariableAccess;
+        
         if(strctIsVar){
           auto lhsAsVar = std::static_pointer_cast<const program::VariableAccess>(lhs);
-          auto strctAsVar = std::static_pointer_cast<const program::StructFieldAccess>(strct);
-          if(lhsAsVar == strctAsVar){
+          auto strctAsVar = std::static_pointer_cast<const program::VariableAccess>(strct);
+          
+          if(lhsAsVar->var == strctAsVar->var){
+            std::vector<InvariantTask> rtVec;    
              // at this point we know that the statement is of the form
              // var = var->f for some field f
             auto freeVarSymbols = enclosingIteratorsSymbols(whileStatement);
@@ -202,16 +199,28 @@ void InvariantGenerator::generateChainingInvariants(
             auto n = lastIterationTermForLoop(whileStatement, 1, trace);    
             auto zero = Theory::zero();
             auto lStartZero = timepointForLoopStatement(whileStatement, zero);
-            
+            auto sort = toSort(lhsAsVar->var->vt);            
+
+            auto selectorName = toLower(sort->name) + "_" + castedRhs->getField()->name;
 
             auto inductionHypothesis =
             [&](std::shared_ptr<const logic::Term> arg) {
               auto lStartArg = timepointForLoopStatement(whileStatement, arg);
-              auto lhs = toTerm(lhs, lStartArg, trace);
-              auto rhs = Theory::chain(selector, lStartZero, var);
-              return Formulas::equality(lhs, rhs);
+              auto lhsTerm = toTerm(lhs, lStartArg, trace);
+              auto rhsTerm = Theory::chain(selectorName, toTerm(lhsAsVar, lStartZero, trace), lStartZero, arg, sort->name);
+              return Formulas::equality(lhsTerm, rhsTerm);
             }; 
 
+            auto [baseCase, stepCase, conclusion] = 
+            inductionAxiom0("Invariant of loop at location " + whileStatement->location,
+                           inductionHypothesis, n ,freeVarSymbols); 
+
+            auto [bCase, inductiveCase] =
+              logic::Theory::chainAxioms(selectorName, sort->name);
+
+            auto rt = new ReasoningTask({loopSemantics, bCase, inductiveCase}, stepCase);
+            rtVec.push_back(InvariantTask(rt, conclusion, whileStatement->location, {bCase, inductiveCase}));
+            _potentialInvariants.push_back(rtVec);      
           }
         }
       }
@@ -219,14 +228,42 @@ void InvariantGenerator::generateChainingInvariants(
   }
 }
 
-void InvariantGenerator::insertAxiomsIntoTasks(std::vector<std::shared_ptr<const Axiom>> items)
+void InvariantGenerator::insertAxiomsIntoTasks(
+  std::vector<std::shared_ptr<const Axiom>> items, 
+  std::string location)
 {
   for(auto& vec : _potentialInvariants){
     for(auto& item : vec){
-      item.addAxioms(items);
+      if(location.empty() || (item.loopLoc() == location))
+        item.addAxioms(items);
       //item.outputSMTLIB(std::cout); 
     }
   }
+}
+
+std::vector<std::shared_ptr<const logic::Axiom>>
+InvariantGenerator::getProvenInvariantsAndChainAxioms() 
+{
+  std::vector<std::shared_ptr<const logic::Axiom>> axioms;
+  std::set<std::string> chainDefsAdded;
+
+  for(auto& vec : _potentialInvariants){
+    for(auto& item : vec){
+      if(item.status() == InvariantTask::Status::SOLVED){
+        axioms.push_back(item.conclusion());
+      }
+      if(item.isChainyTask()){
+        for(auto& ax : item.getChainAxioms()){
+          auto axName = ax->name;
+          if(chainDefsAdded.find(axName) == chainDefsAdded.end()){
+            chainDefsAdded.insert(axName);
+            axioms.push_back(ax);
+          }
+        }
+      }
+    }
+  }
+  return axioms;  
 }
 
 void  InvariantGenerator::attemptToProveInvariants(){
@@ -239,15 +276,15 @@ void  InvariantGenerator::attemptToProveInvariants(){
 
       bool baseCaseProven = true;
       bool stepCaseProven = false;
-      stepCaseProven = _solver.solveTask(*item.stepCase());
+      stepCaseProven = _solver.solveTask(*item.stepCase(), item.isChainyTask());
       if(item.baseCase()){
-        baseCaseProven = _solver.solveTask(*item.baseCase());
+        baseCaseProven = _solver.solveTask(*item.baseCase(), item.isChainyTask());
       }
       if(stepCaseProven && baseCaseProven){
         std::cout << "Proof attempt successful!\n" << std::endl;
         item.setStatus(InvariantTask::Status::SOLVED);
         auto inv = item.conclusion();
-        insertAxiomsIntoTasks({inv});
+        insertAxiomsIntoTasks({inv}, item.loopLoc());
       } else {
         std::cout << "Proof attempt failed!\n" << std::endl;
         item.setStatus(InvariantTask::Status::FAILED);      

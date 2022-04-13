@@ -125,6 +125,10 @@ Semantics::generateSemantics() {
   generateMemoryLocationSemantics(axioms, axioms2);
   _ig->insertAxiomsIntoTasks(axioms2);
   _ig->attemptToProveInvariants();
+  auto additionalAxioms = _ig->getProvenInvariantsAndChainAxioms();
+  for(auto& ax : additionalAxioms){
+    axioms.push_back(ax);
+  }
   return std::make_pair(axioms, inlinedVariableValues);
 }
 

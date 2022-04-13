@@ -222,11 +222,61 @@ std::shared_ptr<const FuncTerm> Theory::selectorAt(
 
 std::shared_ptr<const FuncTerm> Theory::chain(
     std::string selectorName, 
+    std::shared_ptr<const Term> location,    
     std::shared_ptr<const Term> timePoint,
-    std::shared_ptr<const Term> location,
     std::shared_ptr<const Term> length,      
-    std::string sortName = "Int") {
+    std::string sortName) {
+  // TODO add untyped version
+  assert(util::Configuration::instance().memoryModel() == "typed");
+ 
+  auto sort = Sorts::fetch(sortName);
+  auto name = selectorName + "_chain";
+  return Terms::func(name, {location, timePoint, length}, sort, false, 
+    logic::Symbol::SymbolType::ChainFunc);
+}
 
+
+std::pair<std::shared_ptr<logic::Axiom>,
+          std::shared_ptr<logic::Axiom>>
+Theory::chainAxioms(
+    std::string selectorName,      
+    std::string sortName) {
+
+  auto sort = Sorts::fetch(sortName);
+  auto zero = Theory::zero();
+
+  auto varName = toLower(sortName) + "_var";
+  auto varSym = logic::Signature::varSymbol(varName, sort);
+  auto var = Terms::var(varSym);
+
+  auto tpSym = logic::Signature::varSymbol("tp", Sorts::timeSort());
+  auto tp = Terms::var(tpSym);
+
+  // TODO ensure uniqueness of variable names 
+  auto lenSym = logic::Signature::varSymbol("chain_len", Sorts::intSort());
+  auto len = Terms::var(lenSym);
+  auto lenSubOne = Theory::intSubtraction(len, Theory::intConstant(1));
+
+  auto zeroLessLen = Theory::less(zero, len);
+
+  auto lhs1 = Theory::chain(selectorName, var, tp, zero, sortName);
+  auto baseCase = Formulas::universal({varSym, tpSym},
+                    Formulas::equality(lhs1, var));
+
+
+  auto lhs2 = Theory::chain(selectorName, var, tp, len, sortName);
+  auto term = Theory::chain(selectorName, var, tp, lenSubOne, sortName);
+  auto rhs = Theory::selectorAt(selectorName, tp, term);
+
+  auto inductiveCase = 
+    Formulas::universal({varSym, tpSym, lenSym},
+      Formulas::implication(
+        zeroLessLen,              
+        Formulas::equality(lhs2, rhs)));
+
+  return std::make_pair(
+      std::make_shared<logic::Axiom>(baseCase, "Base case " + selectorName),
+      std::make_shared<logic::Axiom>(inductiveCase, "Inductive case " + selectorName));
 
 }
 

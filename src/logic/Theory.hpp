@@ -80,7 +80,12 @@ class Theory {
       std::shared_ptr<const Term> timePoint,
       std::shared_ptr<const Term> location,
       std::shared_ptr<const Term> length,      
-      std::string sortName = "Int");
+      std::string sortName);
+  static std::pair<std::shared_ptr<logic::Axiom>,
+                   std::shared_ptr<logic::Axiom>>
+  chainAxioms(
+      std::string selectorName,      
+      std::string sortName);
 
   static std::shared_ptr<const FuncTerm> mallocFun(
       std::shared_ptr<const Term> timePoint,

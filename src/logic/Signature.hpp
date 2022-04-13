@@ -39,6 +39,7 @@ class Symbol {
     TimePoint,
     MallocFunc,
     Selector,
+    ChainFunc,
     Other
   };
 

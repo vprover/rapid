@@ -185,4 +185,24 @@ bool VampireSolver::solve()
   return false;
 }
 
+bool VampireSolver::solveWithSched(Vampire::Solver::Schedule sched)
+{
+  Vampire::Result res;
+  try{
+    res = _solver->solveWithSched(sched);
+  } catch (Vampire::ApiException& e){
+    std::cout<< "Exception: "<<e.msg()<<std::endl;
+    return 0;
+  } catch (Vampire::FormulaBuilderException& f) {
+    std::cout<< "Exception: "<<f.msg()<<std::endl;
+    return 0;    
+  }
+
+  if(res.unsatisfiable()){
+    return true;
+  }
+  return false;  
+}
+
+
 }  // namespace solvers
