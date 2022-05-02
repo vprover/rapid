@@ -40,6 +40,8 @@ class Semantics {
           &locationToActiveVars,
       unsigned traces);
 
+  std::vector<std::shared_ptr<const logic::LoopCondition>> generateNegatedLoopConditions();
+
   std::pair<std::vector<std::shared_ptr<const logic::Axiom>>,
             InlinedVariableValues>
   generateSemantics();

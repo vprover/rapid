@@ -19,7 +19,7 @@ namespace logic {
  */
 class ProblemItem {
  public:
-  enum class Type { Program, Axiom, Definition, Lemma, Conjecture };
+  enum class Type { Program, Axiom, Definition, Lemma, Conjecture, LoopCondition };
   enum class Visibility { All, Implicit, None };
 
   ProblemItem(Type type, std::shared_ptr<const logic::Term> formula,
@@ -78,6 +78,17 @@ class Definition : public ProblemItem {
              ProblemItem::Visibility visibility = ProblemItem::Visibility::All)
       : ProblemItem(ProblemItem::Type::Definition, definition, name, visibility,
                     {}) {}
+};
+
+// a loop condition is a special kind of axiom (used for invgen postcondition checking).
+class LoopCondition : public ProblemItem {
+ public:
+  LoopCondition(std::shared_ptr<const logic::Term> condition,
+             std::string name = "",
+             ProblemItem::Visibility visibility = ProblemItem::Visibility::All, 
+             std::vector<std::string> fromItems = {})
+      : ProblemItem(ProblemItem::Type::LoopCondition, condition, name, visibility, 
+                    fromItems) {}
 };
 
 class Lemma : public ProblemItem {

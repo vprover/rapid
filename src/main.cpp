@@ -92,6 +92,12 @@ int main(int argc, char *argv[]) {
                               traceLemmas.end());
         }
 
+        //add negated loop conditions as problem items for postcondition output
+        if (util::Configuration::instance().invariantGeneration()){
+          auto conditions = s.generateNegatedLoopConditions();
+          problemItems.insert(problemItems.end(), conditions.begin(), conditions.end());
+        }
+
         problemItems.insert(problemItems.end(),
                             parserResult.problemItems.begin(),
                             parserResult.problemItems.end());

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <ctime>
 #include <fstream>
+#include <regex>
 
 #include "Options.hpp"
 #include "Output.hpp"
@@ -19,6 +20,15 @@ std::ostream& operator<<(
 void ReasoningTask::outputSMTLIBToDir(std::string dirPath,
                                       std::string preamble) const {
   auto outfileName = dirPath + conjecture->name + ".smt2";
+
+  // don't print semantics multiple times for invgen mode
+  if (util::Configuration::instance().invariantGeneration() 
+      && conjecture->name.find("user-conjecture") != std::string::npos 
+      && conjecture->name.find("-0") == std::string::npos
+      && !isPostcondition) {
+    return;
+  }
+  
   if (isPostcondition) {
     outfileName = dirPath + conjecture->name + "_postcondition.smt2";
   }
@@ -41,7 +51,7 @@ void ReasoningTask::outputSMTLIBToDir(std::string dirPath,
   if (!util::Configuration::instance().generateBenchmark()) {
     outfile << preamble;
   }
-
+  
   // output task
   outputSMTLIB(outfile);
 }
@@ -85,21 +95,33 @@ void ReasoningTask::outputSMTLIB(std::ostream &ostr) const {
 
   // output each axiom
   for (const auto &axiom : axioms) {
-    assert(axiom->type == ProblemItem::Type::Axiom ||
-           axiom->type == ProblemItem::Type::Definition);
-    if (axiom->name != "") {
-      ostr << "\n; "
-           << (axiom->type == ProblemItem::Type::Axiom ? "Axiom: "
-                                                       : "Definition: ")
-           << axiom->name;
+    if(axiom->type == ProblemItem::Type::Axiom ||
+           axiom->type == ProblemItem::Type::Definition){
+      if (axiom->name != "") {
+            ostr << "\n; "
+                << (axiom->type == ProblemItem::Type::Axiom ? "Axiom: "
+                                                            : "Definition: ")
+                << axiom->name;
+          }
+          ostr << "\n(assert\n" << axiom->formula->toSMTLIB(3) + "\n)\n";
     }
-    ostr << "\n(assert\n" << axiom->formula->toSMTLIB(3) + "\n)\n";
   }
 
   // output conjecture
   assert(conjecture != nullptr);
 
   if (isPostcondition) {
+    //print negated loop conditions
+    for (const auto &axiom : axioms) {
+      if(axiom->type == ProblemItem::Type::LoopCondition){
+        if (axiom->name != "") {
+              ostr << "\n; "
+                  << axiom->name;
+            }
+            ostr << "\n(assert\n" << toTargetSymbolsSMTLIB(axiom->formula->toSMTLIB(3)) + "\n)\n";
+      }
+    }
+    // print 
     auto conj = toTargetSymbolsSMTLIB(conjecture->formula->toSMTLIB(3));
     ostr << "\n(assert-not\n" << conj + "\n)\n" << std::endl;
   } else if(util::Configuration::instance().invariantGeneration()) {
@@ -147,6 +169,9 @@ void ReasoningTask::outputSMTLIB(std::ostream &ostr) const {
       if (pos2 != std::string::npos)
         str = str.replace(pos2, toReplace2.length(), replacement2);
     }
+    //replace location for loop conditions
+    std::regex reg(" \\(l[0-9]+ [^)]*\\)");
+    str = regex_replace(str, reg, "_final");
     return str;
 }
 
@@ -252,7 +277,15 @@ std::vector<ReasoningTask> Problem::generateReasoningTasks() const {
       // add item as conjecture
       auto conjecture = std::make_shared<Conjecture>(item->formula, item->name);
       std::vector<std::shared_ptr<const ProblemItem>> negatedLoopConditions;
-      // TODO: collect loop conditions from semantics
+      for (int j = 0; j < i; ++j) {
+        auto curr = items[j];
+        // collect all loop conditions
+        if (curr->type == ProblemItem::Type::LoopCondition) {
+            negatedLoopConditions.push_back(std::make_shared<LoopCondition>(
+                curr->formula, curr->name));
+        } 
+        
+      }
       auto task = ReasoningTask(negatedLoopConditions, conjecture, true);
       tasks.push_back(task);
     }

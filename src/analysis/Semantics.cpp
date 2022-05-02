@@ -40,6 +40,33 @@ void Semantics::applyTransformations(
   }
 }
 
+// collect negated loop conditions for invariant generation mode
+std::vector<std::shared_ptr<const logic::LoopCondition>> Semantics::generateNegatedLoopConditions() {
+  
+  std::vector<std::shared_ptr<const logic::LoopCondition>> items; 
+
+  for (const auto &function : program.functions) {
+    for (const auto &trace : traceTerms(numberOfTraces)) {
+      SemanticsInliner inliner(problemItems, trace);
+      for (const auto &statement : function->statements) {
+        if(typeid(*statement) == typeid(program::WhileStatement)){
+          auto whileStatement = static_cast<program::WhileStatement *>(statement.get()); 
+            auto itSymbol = iteratorSymbol(whileStatement);
+            auto it = logic::Terms::var(itSymbol);
+            auto lStartIt = timepointForLoopStatement(whileStatement, it);
+            auto condition = toTerm(whileStatement->condition, lStartIt, trace);
+            auto negatedCondition = logic::Formulas::negation(condition);
+            auto negatedConditionDef = std::make_shared<logic::LoopCondition>(
+              negatedCondition, "Negated Loop Condition for loop at " + whileStatement->location,
+              logic::ProblemItem::Visibility::Implicit);
+            items.push_back(negatedConditionDef); 
+        }
+      }
+    }
+  }
+  return items; 
+}
+
 std::pair<std::vector<std::shared_ptr<const logic::Axiom>>,
           InlinedVariableValues>
 Semantics::generateSemantics() {
