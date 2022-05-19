@@ -78,11 +78,6 @@ class LoopConditionAnalysisLemmas
  private:
   std::vector<std::shared_ptr<const logic::Axiom>> programSemantics;
 
-  bool doesNotChangeInLoop(
-      std::unordered_set<std::shared_ptr<const program::Variable>>&
-          assignedVars,
-      std::shared_ptr<const program::Expression> expr);
-
   virtual void generateOutputFor(
       const program::WhileStatement* statement,
       std::vector<std::shared_ptr<const logic::ProblemItem>>& items) override;

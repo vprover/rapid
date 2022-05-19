@@ -31,6 +31,10 @@ class Term {
   virtual std::string toSMTLIB() const = 0;
   virtual std::string toTPTP() const = 0;
   virtual std::string prettyString() const = 0;
+  virtual std::shared_ptr<const Term> operator[](unsigned i) const {
+    assert(false);
+    return nullptr;
+  }
 
   bool isMallocFun() const {
     return symbol->isMallocSymbol();
@@ -51,6 +55,8 @@ class LVariable : public Term {
 
  public:
   const unsigned id;
+
+  //std::shared_ptr<const Term> operator[](unsigned i) const override {}
 
   Type type() const override { return Term::Type::Variable; }
   std::string toSMTLIB() const override;
@@ -74,7 +80,7 @@ class FuncTerm : public Term {
  public:
   const std::vector<std::shared_ptr<const Term>> subterms;
 
-  std::shared_ptr<const Term> operator[](unsigned i) const {
+  std::shared_ptr<const Term> operator[](unsigned i) const override {
     return subterms[i];
   }
 

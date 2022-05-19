@@ -89,6 +89,7 @@ class Configuration {
   Configuration()
       : _outputDir("-dir", "directory in which to store the SMT file", ""),
         _generateBenchmark("-generateBenchmark", "", false),
+        _outputToFile("-outputToFile", "output benchmark to a file rather than attempting to prove via provers' APIs", false),        
         _nativeNat("-nat", "use natural numbers to denote loop iterations", true),
         _inlineSemantics("-inlineSemantics", "", true),
         _variableDifferences("-varDiff", "", false),
@@ -99,17 +100,19 @@ class Configuration {
         _useListPredicate("-useLists", "", {"off", "acyclic", "cyclic"}, "off"),
         _memoryModel("-memoryModel", "", {"typed","untyped"}, "typed"),
         _useLocSets("-useLocSets", 
-          "use sets isntead of predicates to determine locations within a data structure", true),
+          "use sets instead of predicates to determine locations within a data structure", true),
         _lemmaPredicates("-lemmaPredicates", "", true),
         _integerIterations("-integerIterations", "use integers to denote loop iterations", false),
+        _generateInvariants("-genInvariants","attempt to strengthen the semantics by generating loop invariants. only works for programs with mallocs at the moment",false),
         _inlineLemmas("-inlineLemmas", "", false),
         _postcondition("-postcondition", "",  false),
-        _outputTraceLemmas("-outputTraceLemmas", "output trace lemmas", false),
+        _outputTraceLemmas("-outputTraceLemmas", "output trace lemmas", {"all", "inductive","dense","none"},"none"),
         _tptp("-tptp", "output theorem proving problem in TPTP syntax", false),
         _hol("-hol", "output theorem proving problem using HOL", false, true),
         _allOptions() {
     registerOption(&_outputDir);
     registerOption(&_generateBenchmark);
+    registerOption(&_outputToFile);
     registerOption(&_nativeNat);
     registerOption(&_inlineSemantics);
     registerOption(&_variableDifferences);
@@ -137,6 +140,8 @@ class Configuration {
     // semantics with iterations using integer instead of natural number sort
     registerOption(&_integerIterations);
 
+    registerOption(&_generateInvariants);
+
     // inline lemmas as one big formula without naming
     registerOption(&_inlineLemmas);
 
@@ -162,6 +167,7 @@ class Configuration {
 
   std::string outputDir() { return _outputDir.getValue(); }
   bool generateBenchmark() { return _generateBenchmark.getValue(); }
+  bool outputToFile() { return _outputToFile.getValue(); }
   bool nativeNat() { return _nativeNat.getValue(); }
   bool inlineSemantics() { return _inlineSemantics.getValue(); }
   bool variableDifferences() { return _variableDifferences.getValue(); }
@@ -174,9 +180,10 @@ class Configuration {
 
   bool lemmaPredicates() { return _lemmaPredicates.getValue(); }
   bool integerIterations() { return _integerIterations.getValue(); }
+  bool generateInvariants() { return _generateInvariants.getValue(); }
   bool inlineLemmas() { return _inlineLemmas.getValue(); }
   bool postcondition() { return _postcondition.getValue(); }
-  bool outputTraceLemmas() { return _outputTraceLemmas.getValue(); }
+  std::string outputTraceLemmas() { return _outputTraceLemmas.getValue(); }
   bool tptp() { return _tptp.getValue(); }
   bool hol() { return _hol.getValue(); }
 
@@ -188,6 +195,7 @@ class Configuration {
  protected:
   StringOption _outputDir;
   BooleanOption _generateBenchmark;
+  BooleanOption _outputToFile;
   BooleanOption _nativeNat;
   BooleanOption _inlineSemantics;
   BooleanOption _variableDifferences;
@@ -200,9 +208,10 @@ class Configuration {
 
   BooleanOption _lemmaPredicates;
   BooleanOption _integerIterations;
+  BooleanOption _generateInvariants;  
   BooleanOption _inlineLemmas;
   BooleanOption _postcondition;
-  BooleanOption _outputTraceLemmas;
+  MultiChoiceOption _outputTraceLemmas;
   BooleanOption _tptp;
   BooleanOption _hol;
 
@@ -211,6 +220,9 @@ class Configuration {
   void registerOption(Option* o);
 
   static Configuration _instance;
+
+ private:
+  void checkValues();
 };
 }  // namespace util
 

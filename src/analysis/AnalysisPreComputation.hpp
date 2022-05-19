@@ -51,6 +51,11 @@ class AnalysisPreComputation {
   computeAssignedVars(const program::Statement* statement,
                       bool pointerVars = false);
 
+  /** returns true if none of the vars in vars occurs in expr */
+  static bool doNotOccurIn(
+      std::unordered_set<std::shared_ptr<const program::Variable>>& vars,
+      std::shared_ptr<const program::Expression> expr);
+
   /*
    * collect all variables which are contained in the loop condition 'expr'
    */

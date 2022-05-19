@@ -12,28 +12,31 @@ class InvariantTask {
   public:
     enum class Status { SOLVED, FAILED, NOT_ATTEMPTED };
 
-    // TODO we leak memory since we never delet these
+    // TODO we leak memory since we never delete these
     InvariantTask(logic::ReasoningTask* baseCase,
                  logic::ReasoningTask* stepCase,
                  std::shared_ptr<const logic::Axiom> conclusion,
                  std::string loopLocation,
+                 TaskType tt = TaskType::OTHER,
                  std::vector<std::shared_ptr<const logic::Axiom>> chainAxioms = {}) :
     _baseCase(baseCase), _stepCase(stepCase),
     _conclusion(conclusion), _status(Status::NOT_ATTEMPTED),
-    _loopLocation(loopLocation), _chainAxioms(chainAxioms) {}
+    _loopLocation(loopLocation), _tt(tt), _chainAxioms(chainAxioms) {}
 
     InvariantTask(logic::ReasoningTask* stepCase,
                  std::shared_ptr<const logic::Axiom> conclusion,
                  std::string loopLocation,
+                 TaskType tt = TaskType::OTHER,
                  std::vector<std::shared_ptr<const logic::Axiom>> chainAxioms = {}) :
     _baseCase(nullptr), _stepCase(stepCase),
     _conclusion(conclusion), _status(Status::NOT_ATTEMPTED),
-    _loopLocation(loopLocation), _chainAxioms(chainAxioms) {}
+    _loopLocation(loopLocation), _tt(tt), _chainAxioms(chainAxioms) {}
 
     void setStatus(Status status);
     Status status() const { return _status; }    
     bool containsBaseCase() const { return _baseCase != nullptr; }
-    bool isChainyTask() const { return _chainAxioms.size() > 0; }
+    TaskType taskType() const { return _tt; }
+    bool isChainyTask() const { return _tt == TaskType::CHAINY; }
 
     void addAxioms(std::vector<std::shared_ptr<const logic::Axiom>> axms){
       _stepCase->addAxioms(axms);
@@ -55,6 +58,7 @@ class InvariantTask {
     logic::ReasoningTask* _stepCase;
     std::shared_ptr<const logic::Axiom> _conclusion;
     std::string _loopLocation;
+    TaskType _tt;
     std::vector<std::shared_ptr<const logic::Axiom>> _chainAxioms;
 };
 
@@ -65,7 +69,7 @@ class InvariantGenerator {
                          std::vector<std::shared_ptr<const program::Variable>>>
           locationToActiveVars) : 
     _typed(typed), _locationToActiveVars(locationToActiveVars) {
-      _solver.setTimeLimit();
+      solvers::VampireSolver::instance().setTimeLimit();
     }
  
     void generateInvariants( 
@@ -84,11 +88,11 @@ class InvariantGenerator {
     void insertAxiomsIntoTasks(
       std::vector<std::shared_ptr<const logic::Axiom>> items, 
       std::string location = "");
-    
+
     void attemptToProveInvariants();
 
     std::vector<std::shared_ptr<const logic::Axiom>>
-    getProvenInvariantsAndChainAxioms();
+    getProvenInvariantsAndAxioms();
   private:
   
     /*
@@ -135,14 +139,27 @@ class InvariantGenerator {
       const program::WhileStatement* whileStatement,
       std::shared_ptr<const logic::Axiom> loopSemantics);
 
+    /*
+     * Attempts to prove the density / strong density of a variable / term
+     * and if successful adds reevant conclusions
+     */
+    void generateDenseInvariants(
+      const program::WhileStatement* whileStatement,
+      std::shared_ptr<const logic::Axiom> loopSemantics);
+
+
     std::map<std::string,std::vector<std::shared_ptr<logic::Axiom>>> _chainAxiomsUsed; 
+    std::vector<std::shared_ptr<logic::Axiom>> _supportAxioms; 
 
     const std::unordered_map<
       std::string, std::vector<std::shared_ptr<const program::Variable>>>
       _locationToActiveVars;
+    // vector of vector as the inner vectors contain 
+    // multiple potential invariant ranging from very general
+    // to very specific. We try and prove in order of generality
+    // and stop as soon as a proof is found
     std::vector<std::vector<InvariantTask>> _potentialInvariants;
     bool _typed;
-    solvers::VampireSolver _solver;
 };
 
 }  // namespace analysis

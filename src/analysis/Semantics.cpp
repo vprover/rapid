@@ -121,13 +121,23 @@ Semantics::generateSemantics() {
     axioms.push_back(logic::Theory::allSameAxiom(tp, tp2, name));
     axioms2.push_back(axioms[axioms.size()-1]);    
   }
+  for(auto& pair : sameChainAxiomsToAdd){
+    axioms.push_back(logic::Theory::chainSameAxiom(tp, tp2, pair.first, pair.second));
+    axioms2.push_back(axioms[axioms.size()-1]);     
+  }
+  for(auto& axiom : finalCountersNotNeg){
+    axioms.push_back(axiom);
+    axioms2.push_back(axiom);
+  }
   
   generateMemoryLocationSemantics(axioms, axioms2);
-  _ig->insertAxiomsIntoTasks(axioms2);
-  _ig->attemptToProveInvariants();
-  auto additionalAxioms = _ig->getProvenInvariantsAndChainAxioms();
-  for(auto& ax : additionalAxioms){
-    axioms.push_back(ax);
+  if (util::Configuration::instance().generateInvariants()){
+    _ig->insertAxiomsIntoTasks(axioms2);
+    _ig->attemptToProveInvariants();
+    auto additionalAxioms = _ig->getProvenInvariantsAndAxioms();
+    for(auto& ax : additionalAxioms){
+      axioms.push_back(ax);
+    }
   }
   return std::make_pair(axioms, inlinedVariableValues);
 }
@@ -335,7 +345,7 @@ std::shared_ptr<const logic::Formula> Semantics::explode(
 }
 
 void Semantics::addAllSameAxioms() {
-  sameAxiomsToAdd.insert("value");
+  sameAxiomsToAdd.insert("Int");
   for(auto sort : logic::Sorts::structSorts()){
     sameAxiomsToAdd.insert(sort->name);
   }  
@@ -524,17 +534,15 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     }
 
     // lhs(l2) = rhs(l1);
-    // We have a problem here
-    // Parser sensibly allows the following: 
-    //   const Int a = 10;
-    // however, the code below assums non-const ness
+    // TODO add const pointers
     auto eq = logic::Formulas::equality(lhsTerm, rhsTerm);
     auto lhsAsFunc = std::static_pointer_cast<const logic::FuncTerm>(lhsTerm);
     auto array = lhsAsFunc;
 
     conjuncts.push_back(eq);
 
-    auto arrayAccessedAt = (*std::static_pointer_cast<const logic::FuncTerm>(array))[1];
+    unsigned argNum = lhs->isConstVar() ? 0 : 1;
+    auto arrayAccessedAt = (*array)[argNum];
     //auto locSymbol = locVarSymbol();
    // auto loc = memLocVar();
  
@@ -542,24 +550,33 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
 
 
     std::string suffix = "";
+    std::string selectorName = "";
+    std::string sortName = arrayAccessedAt->sort()->name;
     if(array->symbol->isSelectorSymbol()){
-      auto selectorName = array->symbol->name;
-      auto sortName = arrayAccessedAt->sort()->name;
+      selectorName = array->symbol->name;
       suffix = "_" + selectorName;
       frameAxiomsToAdd.insert(std::make_pair(sortName, selectorName));
     }
+
     conjuncts.push_back(logic::Theory::framePred(arrayAccessedAt, l1, l2, suffix));
     for(auto sort : logic::Sorts::structSorts()){
-      if(sort->name != arrayAccessedAt->sort()->name){
+      auto structSort = static_cast<logic::StructSort*>(sort);
+      for(auto& recSelName : structSort->recursiveSelectors()){
+        if(recSelName != selectorName){
+          conjuncts.push_back(logic::Theory::allSame(l1, l2, recSelName + "_chain"));
+          sameChainAxiomsToAdd.insert(std::make_pair(sort->name, recSelName));   
+        }     
+      }      
+      if(sort->name != sortName){
         conjuncts.push_back(logic::Theory::allSame(l1, l2, sort->name));
-        sameAxiomsToAdd.insert(sort->name);
+        sameAxiomsToAdd.insert(sort->name);        
       }
     }
     if(suffix != ""){
       // just updated a memory object
-      // variable values stay unchaged
+      // variable values stay unchanged
       conjuncts.push_back(logic::Theory::allSame(l1, l2, "value"));
-      sameAxiomsToAdd.insert("value");
+      sameAxiomsToAdd.insert("Int");
     }
 
     return logic::Formulas::conjunction(
@@ -742,9 +759,17 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
   auto itSymbol = iteratorSymbol(whileStatement);
   auto it = logic::Terms::var(itSymbol);
   auto n = lastIterationTermForLoop(whileStatement, numberOfTraces, trace);
+  auto zero = logic::Theory::zero();
 
-  auto lStart0 =
-      timepointForLoopStatement(whileStatement, logic::Theory::zero());
+  if (util::Configuration::instance().integerIterations()){
+    auto freeVars = enclosingIteratorsSymbols(whileStatement);
+    auto formula = Theory::lessEq(zero, n);
+    formula = logic::Formulas::universal(freeVars, formula); 
+    finalCountersNotNeg.push_back(std::make_shared<logic::Axiom>(formula, 
+      "Number of loop iterations must be positive"));
+  }
+
+  auto lStart0 = timepointForLoopStatement(whileStatement, zero);
   auto lStartIt = timepointForLoopStatement(whileStatement, it);
   auto lStartSuccOfIt =
       timepointForLoopStatement(whileStatement, logic::Theory::succ(it));
@@ -970,9 +995,9 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
 
     auto loopSemantics = logic::Formulas::conjunction(
         conjuncts, "Loop at location " + whileStatement->location);
-
-    std::vector<std::shared_ptr<const logic::Formula>> invariants;
-    _ig->generateInvariants(whileStatement, loopSemantics);
+    
+    if (util::Configuration::instance().generateInvariants())
+      _ig->generateInvariants(whileStatement, loopSemantics);
     return loopSemantics;
   }
 }

@@ -124,7 +124,8 @@ void declareSymbolsForProgramVar(const program::Variable* var) {
     std::string str = var->isConstant ? "const_" : "";
     std::string arrName = "value_" + str + logic::toLower(sort->name);
 
-    logic::Signature::fetchOrAdd(arrName, subtermSorts, sort, false);  
+    logic::Signature::fetchOrAdd(arrName, subtermSorts, sort, false,
+      logic::Symbol::SymbolType::ObjectArray);  
   }
 }
 
@@ -136,6 +137,11 @@ void declareSymbolsForStructType(std::shared_ptr<const program::ExprType> type) 
   if (util::Configuration::instance().memoryModel() == "typed") {
     auto structType = std::static_pointer_cast<const program::StructType>(type);
     auto structSort = analysis::toSort(type);
+  
+    auto lowerName = logic::toLower(structSort->name);
+    // declare null locations here in case they are 
+    // used in the conjecture
+    logic::Terms::func(lowerName + "_null_loc", {}, structSort, false);
 
     for (auto field : structType->getFields())
     {
@@ -148,7 +154,7 @@ void declareSymbolsForStructType(std::shared_ptr<const program::ExprType> type) 
       }
       subtermSorts.push_back(structSort);
 
-      auto funcName = logic::toLower(structSort->name) + "_" + field->name;
+      auto funcName = lowerName + "_" + field->name;
 
       logic::Signature::fetchOrAdd(funcName, subtermSorts, fieldSort, false,
         logic::Symbol::SymbolType::Selector);

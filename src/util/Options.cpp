@@ -55,8 +55,37 @@ bool Configuration::setAllValues(int argc, char* argv[]) {
     }
     i += 2;
   }
+  checkValues();
   return b;
 }
+
+void Configuration::checkValues() {
+
+  if(hol() && outputToFile() && !tptp()){
+    std::cerr << "ERORR: SMT-LIB2 syntax does not support higher-order. Must use TPTP syntax with HOL";
+    std::exit(EXIT_FAILURE);
+  }
+
+  if(generateBenchmark() && !outputToFile()){
+    std::cerr << "ERORR: can only generate a benchmark when outputting to a file";
+    std::exit(EXIT_FAILURE);        
+  }
+
+  if(outputDir() == "" && outputToFile()){
+    std::cerr << "ERORR: if outputting to a file, an output directory must be specified";
+    std::exit(EXIT_FAILURE);     
+  }
+
+  // should fail if output directory does not exist or already contains a file with the target
+  // name.
+
+  if(nativeNat() && integerIterations()){
+    std::cerr << "WARNING: native nat option does not make sense when using integer iterations\n";
+  }
+
+
+}
+
 
 void Configuration::outputOptionsHelp()
 {

@@ -63,9 +63,8 @@ class Semantics {
 
     if (util::Configuration::instance().inlineSemantics() &&
         containsPointerVariable) {
-      std::cout << "Ignoring request to inline semantics as inlining is "
-                   "currently not sound in the presence of pointer variables"
-                << std::endl;
+      std::cerr << "WARNING: Ignoring request to inline semantics as inlining is "
+                   "currently not sound in the presence of pointer variables\n";
       util::Configuration::instance().setDontInline();
     }
   }
@@ -107,8 +106,13 @@ class Semantics {
   // TODO, I dont think these arrays are necessary 
   std::vector<std::shared_ptr<const logic::Term>> loopEndTimePoints;
 
+  // used to hold axioms that assert that final loop counters are 
+  // not negative
+  std::vector<std::shared_ptr<const logic::Axiom>> finalCountersNotNeg;
+
   std::vector<std::pair<std::shared_ptr<const logic::Term>, int>> mallocStatements;
   std::set<std::pair<std::string, std::string>> frameAxiomsToAdd;
+  std::set<std::pair<std::string, std::string>> sameChainAxiomsToAdd;
   std::set<std::string> sameAxiomsToAdd;
 
   void addAllSameAxioms();

@@ -32,7 +32,6 @@ class Symbol {
  public:
   enum class SymbolType {
     LemmaPredicate,
-    DensityPredicate,
     ProgramVar,
     ConstProgramVar,
     FinalLoopCount,
@@ -40,6 +39,7 @@ class Symbol {
     MallocFunc,
     Selector,
     ChainFunc,
+    ObjectArray,
     Other
   };
 

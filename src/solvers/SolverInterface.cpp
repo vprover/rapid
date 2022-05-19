@@ -101,12 +101,37 @@ VExpr VampireSolver::solverApp(
     argSorts.push_back(convertSort(sort));
   }
 
+  auto convert = [](logic::Symbol::SymbolType st){
+    switch(st){
+      case logic::Symbol::SymbolType::LemmaPredicate:
+        return Vampire::RapidSym::LEMMA_PRED;
+      case logic::Symbol::SymbolType::ProgramVar:
+        return Vampire::RapidSym::PROGRAM_VAR;      
+      case logic::Symbol::SymbolType::ConstProgramVar:
+        return Vampire::RapidSym::CONST_VAR;   
+      case logic::Symbol::SymbolType::FinalLoopCount:
+        return Vampire::RapidSym::FN_LOOP_COUNT;
+      case logic::Symbol::SymbolType::TimePoint:
+        return Vampire::RapidSym::TIME_POINT;   
+      case logic::Symbol::SymbolType::MallocFunc:
+        return Vampire::RapidSym::MALLOC;
+      case logic::Symbol::SymbolType::ChainFunc:
+        return Vampire::RapidSym::CHAIN;
+      case logic::Symbol::SymbolType::ObjectArray:
+        return Vampire::RapidSym::OBJ_ARRAY; 
+      default:
+        return Vampire::RapidSym::NONE;                                                           
+    }
+  };
+
   Vampire::Symbol vSym;
+  Vampire::RapidSym rSym = convert(sym->symbolType);
+
   if(sym->isPredicateSymbol()){
-    vSym =  _solver->predicate(sym->name, argSorts.size(), argSorts);
+    vSym =  _solver->predicate(sym->name, argSorts.size(), argSorts, rSym);
   } else {
     auto rangeSort = convertSort(sym->rngSort);
-    vSym =  _solver->function(sym->name, argSorts.size(), rangeSort, argSorts);
+    vSym =  _solver->function(sym->name, argSorts.size(), rangeSort, argSorts, rSym);
   }
   
   return _solver->term(vSym, args);
@@ -204,5 +229,6 @@ bool VampireSolver::solveWithSched(Vampire::Solver::Schedule sched)
   return false;  
 }
 
+VampireSolver VampireSolver::_instance;
 
 }  // namespace solvers

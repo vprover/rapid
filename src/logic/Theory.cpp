@@ -38,6 +38,7 @@ void Theory::declareMemoryArrays() {
   auto sel = Signature::fetchArraySelect();
   auto store = Signature::fetchArrayStore();
 
+  // false means non-const value array
   valueAt(tp, null, "Int", false);
   valueAt(tp, null, "Int", true);  
 }
@@ -235,8 +236,20 @@ std::shared_ptr<const FuncTerm> Theory::chain(
     logic::Symbol::SymbolType::ChainFunc);
 }
 
+std::shared_ptr<const Formula> Theory::inChainSupport(
+  std::string selectorName, 
+  std::shared_ptr<const Term> timePoint,
+  std::shared_ptr<const Term> location1,
+  std::shared_ptr<const Term> location2,      
+  std::shared_ptr<const Term> length) {
 
-std::pair<std::shared_ptr<logic::Axiom>,
+  assert(util::Configuration::instance().memoryModel() == "typed");
+  auto name = "in_support_" + selectorName + "_chain";
+  return Formulas::predicate(name, {location1, timePoint, location2, length});
+}
+
+std::tuple<std::shared_ptr<logic::Axiom>,
+          std::shared_ptr<logic::Axiom>,
           std::shared_ptr<logic::Axiom>>
 Theory::chainAxioms(
     std::string selectorName,      
@@ -259,14 +272,16 @@ Theory::chainAxioms(
 
   auto zeroLessLen = Theory::less(zero, len);
 
+  // f_chain(loc, tp, 0)
   auto lhs1 = Theory::chain(selectorName, var, tp, zero, sortName);
+  // f_chain(loc, tp, 0) = loc;
   auto baseCase = Formulas::universal({varSym, tpSym},
                     Formulas::equality(lhs1, var));
 
 
   auto lhs2 = Theory::chain(selectorName, var, tp, len, sortName);
-  auto term = Theory::chain(selectorName, var, tp, lenSubOne, sortName);
-  auto rhs = Theory::selectorAt(selectorName, tp, term);
+  auto term = Theory::selectorAt(selectorName, tp, var);  
+  auto rhs = Theory::chain(selectorName, term, tp, lenSubOne, sortName);
 
   auto inductiveCase = 
     Formulas::universal({varSym, tpSym, lenSym},
@@ -274,10 +289,19 @@ Theory::chainAxioms(
         zeroLessLen,              
         Formulas::equality(lhs2, rhs)));
 
-  return std::make_pair(
-      std::make_shared<logic::Axiom>(baseCase, "Base case " + selectorName),
-      std::make_shared<logic::Axiom>(inductiveCase, "Inductive case " + selectorName));
+  // f(tp, f_chain(loc, tp, len))
+  auto lhs3 = Theory::selectorAt(selectorName, tp, lhs2);
+  // f_chain(f(loc), tp, len)  
+  auto rhs3 = Theory::chain(selectorName, term, tp, len, sortName);
 
+  auto helperLemma =
+     Formulas::universal({varSym, tpSym, lenSym}, 
+      Formulas::equality(lhs3, rhs3));
+
+  return std::make_tuple(
+      std::make_shared<logic::Axiom>(baseCase, "Base case " + selectorName),
+      std::make_shared<logic::Axiom>(inductiveCase, "Inductive case " + selectorName),
+      std::make_shared<logic::Axiom>(helperLemma, "Helpful lemma " + selectorName));
 }
 
 std::shared_ptr<const Formula> Theory::isList(
@@ -339,7 +363,7 @@ std::shared_ptr<const Formula> Theory::framePred(
       std::shared_ptr<const Term> t2,
       std::string suffix) {
 
-  return Formulas::predicate("frame_axiom" + suffix, {location, t1, t2});
+  return Formulas::lemmaPredicate("frame_axiom" + suffix, {location, t1, t2});
 }
 
 std::shared_ptr<logic::Axiom> Theory::untypedFrameAxiom(
@@ -451,7 +475,7 @@ std::shared_ptr<logic::Axiom> Theory::typedFrameAxiom(
 
   auto frameDefinition = Formulas::universal({m1VarSym,tpVarSym1,tpVarSym2},
     Formulas::equivalenceSimp(framePred, imp));
-  return std::make_shared<logic::Axiom>(
+  return std::make_shared<logic::SpecAxiom>(
     frameDefinition, "Definition of the frame axiom",
     logic::ProblemItem::Visibility::Implicit);
 }
@@ -462,18 +486,23 @@ std::shared_ptr<logic::Axiom> Theory::frameAxiom(
       std::string sortName,
       std::string selectorName)
 {
+  auto selSym = Signature::fetch(selectorName);
+  bool isRecursiveSel = selSym->rngSort->name == sortName;
+
   auto sort = Sorts::fetch(sortName);
   assert(sort->isStructSort());
   auto structSort = static_cast<StructSort*>(sort);
 
   auto o1sym = Signature::varSymbol("o1", sort);
   auto o2sym = Signature::varSymbol("o2", sort);
+  auto o3sym = Signature::varSymbol("o3", sort);
 
   auto tp1var = logic::Terms::var(tpVarSym1);  
   auto tp2var = logic::Terms::var(tpVarSym2);
 
   auto o1var = logic::Terms::var(o1sym);  
   auto o2var = logic::Terms::var(o2sym);
+  auto o3var = logic::Terms::var(o3sym);
 
   auto framePred = Theory::framePred(o1var, tp1var, tp2var, "_" + selectorName);
 
@@ -487,6 +516,28 @@ std::shared_ptr<logic::Axiom> Theory::frameAxiom(
   auto imp = Formulas::implication(objectsNotEqual, equality1);
   conjuncts.push_back(imp);
 
+  if(isRecursiveSel){
+    auto lsym = Signature::varSymbol("chain_len", Sorts::intSort());
+    auto len = logic::Terms::var(lsym);  
+
+    auto notInSup = Formulas::negation(
+      inChainSupport(selectorName, tp1var, o1var, o2var, len));
+
+    auto conclusion = Formulas::conjunction({
+      Formulas::universal({o3sym}, 
+        Formulas::equivalence(
+          inChainSupport(selectorName, tp1var, o3var, o2var,len), 
+          inChainSupport(selectorName, tp2var, o3var, o2var,len))),
+      Formulas::equality(
+        chain(selectorName,o2var, tp1var, len, sortName),
+        chain(selectorName,o2var, tp2var, len, sortName))
+    });
+
+    conjuncts.push_back(
+      Formulas::universal({lsym}, 
+        Formulas::implication(notInSup, conclusion)));
+
+  }
 
   for(auto selector : structSort->selectors()){
     if(selector != selectorName){
@@ -502,7 +553,7 @@ std::shared_ptr<logic::Axiom> Theory::frameAxiom(
 
   auto frameDefinition = Formulas::universal({o1sym,tpVarSym1,tpVarSym2},
     Formulas::equivalenceSimp(framePred, conj));
-  return std::make_shared<logic::Axiom>(
+  return std::make_shared<logic::SpecAxiom>(
     frameDefinition, "Definition of the frame axiom",
     logic::ProblemItem::Visibility::Implicit);  
 }
@@ -512,24 +563,25 @@ std::shared_ptr<const Formula> Theory::allSame(
     std::shared_ptr<const Term> tp2,
     std::string prefix) {
   auto str = logic::toLower(prefix) + "s_";
-  return Formulas::predicate(str + "same", {tp1, tp2});
+  return Formulas::lemmaPredicate(str + "same", {tp1, tp2});
 } 
 
 std::shared_ptr<logic::Axiom> Theory::allSameAxiom(
   std::shared_ptr<const logic::Symbol> tpVarSym1,
   std::shared_ptr<const logic::Symbol> tpVarSym2,
-  std::string prefix) {
+  std::string sortName) {
 
   auto tp1 = logic::Terms::var(tpVarSym1);  
   auto tp2 = logic::Terms::var(tpVarSym2);
 
-  bool value = prefix == "value";
-  auto sort = value ? logic::Sorts::intSort() : logic::Sorts::fetch(prefix);
+  bool value = sortName == "Int";
+  auto sort = logic::Sorts::fetch(sortName);
   auto varName = sort->isIntSort() ? "n" : toLower(sort->name) + "_var"; 
 
   auto varSym = Signature::varSymbol(varName, sort);
   auto var = Terms::var(varSym);
 
+  auto prefix = value ? "value" : sortName;
   auto pred = allSame(tp1, tp2, prefix);
   std::vector<std::shared_ptr<const logic::Formula>> conjuncts;
   if(value){
@@ -559,11 +611,59 @@ std::shared_ptr<logic::Axiom> Theory::allSameAxiom(
   conjunct = Formulas::universal({varSym}, conjunct);
   auto def = Formulas::equivalence(pred, conjunct);
   def = Formulas::universal({tpVarSym1,tpVarSym2}, def);
-  return std::make_shared<logic::Axiom>(
+  return std::make_shared<logic::SpecAxiom>(
     def, "Definition of staying the same across time points",
     logic::ProblemItem::Visibility::Implicit);  
 }
 
+
+std::shared_ptr<logic::Axiom> Theory::chainSameAxiom(
+      std::shared_ptr<const logic::Symbol> tpVarSym1,
+      std::shared_ptr<const logic::Symbol> tpVarSym2,
+      std::string sortName,
+      std::string selectorName)
+{
+  auto sort = Sorts::fetch(sortName);
+  assert(sort->isStructSort());
+  auto structSort = static_cast<StructSort*>(sort);
+
+  auto osym = Signature::varSymbol("o", sort);
+  auto o3sym = Signature::varSymbol("o3", sort); 
+  auto lsym = Signature::varSymbol("chain_len", Sorts::intSort());
+
+  auto tp1var = logic::Terms::var(tpVarSym1);  
+  auto tp2var = logic::Terms::var(tpVarSym2);
+
+  auto ovar = logic::Terms::var(osym); 
+  auto o3var = logic::Terms::var(o3sym);    
+  auto len = logic::Terms::var(lsym);  
+
+  auto samePred = Theory::allSame(tp1var, tp2var, selectorName + "_chain");
+
+  std::vector<std::shared_ptr<const logic::Formula>> conjuncts;
+
+  auto equality = Formulas::equality(
+      chain(selectorName, ovar, tp1var, len, sortName),
+      chain(selectorName, ovar, tp2var, len, sortName)
+    );
+
+  auto equality2 = Formulas::equivalence(
+      inChainSupport(selectorName,  tp1var, o3var, ovar, len),
+      inChainSupport(selectorName, tp2var, o3var, ovar, len)
+    );
+
+  conjuncts.push_back(equality);
+  conjuncts.push_back(Formulas::universal({o3sym}, equality2));
+
+  auto conj = Formulas::conjunctionSimp(conjuncts);
+  conj = Formulas::universal({osym, lsym}, conj);
+
+  auto def = Formulas::universal({tpVarSym1,tpVarSym2},
+    Formulas::equivalenceSimp(samePred, conj));
+  return std::make_shared<logic::SpecAxiom>(
+    def, "Definition of chain staying the same across time points ",
+    logic::ProblemItem::Visibility::Implicit);  
+}
 
 std::shared_ptr<const Formula> Theory::disjoint1(
       std::shared_ptr<const Term> loc1,

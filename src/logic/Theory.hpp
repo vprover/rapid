@@ -81,8 +81,15 @@ class Theory {
       std::shared_ptr<const Term> location,
       std::shared_ptr<const Term> length,      
       std::string sortName);
-  static std::pair<std::shared_ptr<logic::Axiom>,
-                   std::shared_ptr<logic::Axiom>>
+  static std::shared_ptr<const Formula> inChainSupport(
+      std::string selectorName, 
+      std::shared_ptr<const Term> timePoint,
+      std::shared_ptr<const Term> location1,
+      std::shared_ptr<const Term> location2,      
+      std::shared_ptr<const Term> length);  
+  static std::tuple<std::shared_ptr<logic::Axiom>,
+                    std::shared_ptr<logic::Axiom>,
+                    std::shared_ptr<logic::Axiom>>
   chainAxioms(
       std::string selectorName,      
       std::string sortName);
@@ -136,6 +143,11 @@ class Theory {
       std::shared_ptr<const logic::Symbol> tpVarSym2,
       std::string sortName,
       std::string selectorName);
+  static std::shared_ptr<logic::Axiom> chainSameAxiom(
+      std::shared_ptr<const logic::Symbol> tpVarSym1,
+      std::shared_ptr<const logic::Symbol> tpVarSym2,
+      std::string sortName,
+      std::string selectorName);
 
   static std::shared_ptr<const Formula> allSame(
       std::shared_ptr<const Term> tp1,
@@ -145,7 +157,7 @@ class Theory {
   static std::shared_ptr<logic::Axiom> allSameAxiom(
       std::shared_ptr<const logic::Symbol> tpVarSym1,
       std::shared_ptr<const logic::Symbol> tpVarSym2,
-      std::string prefix); 
+      std::string sortName); 
 
   //predicate that holds when two memory regions are 
   //disjoint 

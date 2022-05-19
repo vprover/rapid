@@ -36,11 +36,10 @@ std::string Symbol::declareSymbolSMTLIB() const {
       return "(color-symbol " + name + " :" + orientation + ")\n";
     }
 
-    bool isLemmaPredicate = symbolType == SymbolType::LemmaPredicate;
+    bool useLemmaPredicates = util::Configuration::instance().lemmaPredicates();
 
     if (argSorts.size() == 0 &&
-        !(isLemmaPredicate &&
-          util::Configuration::instance().lemmaPredicates())) {
+        !(symbolType == SymbolType::LemmaPredicate  && useLemmaPredicates)) {
       if (symbolType == SymbolType::TimePoint) {
         return "(declare-time-point " + toSMTLIB() + " " + rngSort->toSMTLIB() +
                ")\n";
@@ -58,10 +57,12 @@ std::string Symbol::declareSymbolSMTLIB() const {
 
       return "(declare-const " + toSMTLIB() + " " + rngSort->toSMTLIB() + ")\n";
     } else {
-      std::string res = (isLemmaPredicate &&
-                         util::Configuration::instance().lemmaPredicates())
-                            ? "(declare-lemma-predicate "
-                            : "(declare-fun ";
+
+      std::string res = "(declare-fun ";
+
+      if(symbolType == SymbolType::LemmaPredicate && useLemmaPredicates){
+        res = "(declare-lemma-predicate ";        
+      } 
 
       if (symbolType == SymbolType::TimePoint) {
         res = "(declare-time-point ";
@@ -73,6 +74,10 @@ std::string Symbol::declareSymbolSMTLIB() const {
 
       if(symbolType == SymbolType::ChainFunc) {
         res = "(declare-chain-func ";        
+      }
+
+      if(symbolType == SymbolType::ObjectArray) {
+        res = "(declare-object-array ";        
       }
 
       if (symbolType == SymbolType::FinalLoopCount) {

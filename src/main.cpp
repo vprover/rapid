@@ -15,13 +15,15 @@
 #include "program/Program.hpp"
 #include "util/Options.hpp"
 #include "util/Output.hpp"
+#include "solvers/SolverInterface.hpp"
 
 void outputUsage() {
-  std::cout << "Usage: rapid -dir <outputDir> <filename>" << std::endl;
+  std::cout << "Usage: rapid <filename>" << std::endl;
+  std::cout << "Run with -help for more detailed usage information" << std::endl;  
 }
 
 int main(int argc, char* argv[]) {
-  if (argc <= 1) {
+  if (argc < 1) {
     outputUsage();
   } else {
     if (util::Configuration::instance().setAllValues(argc, argv)) {
@@ -47,13 +49,6 @@ int main(int argc, char* argv[]) {
         // parse inputFile
         auto parserResult = parser::parse(inputFile);
 
-        // setup outputDir
-        auto outputDir = util::Configuration::instance().outputDir();
-        if (outputDir == "") {
-          std::cout << "Error: dir parameter required" << std::endl;
-          exit(1);
-        }
-
         // generate problem
         std::vector<std::shared_ptr<const logic::ProblemItem>> problemItems;
 
@@ -71,7 +66,7 @@ int main(int argc, char* argv[]) {
         problemItems.insert(problemItems.end(), semantics.begin(),
                             semantics.end());
 
-        // When attempting to reason about memory safety, we output a
+        // When attempting to reason about memory safety, we output
         // special conjectures
         if (util::Configuration::instance().memSafetyMode()) {
           analysis::MemConjectureGenerator mcg(*parserResult.program);
@@ -80,14 +75,16 @@ int main(int argc, char* argv[]) {
                              memSafetyConjectures.end()); 
         }
 
-        if (util::Configuration::instance().outputTraceLemmas()) {
+        auto lemmasToOutput = util::Configuration::instance().outputTraceLemmas();
+        if (lemmasToOutput == "all" || lemmasToOutput == "inductive") {
           auto traceLemmas = analysis::generateTraceLemmas(
               *parserResult.program, parserResult.locationToActiveVars,
               parserResult.numberOfTraces, semantics, inlinedVarValues);
           problemItems.insert(problemItems.end(), traceLemmas.begin(),
                               traceLemmas.end());
-        } else {
-          // perhaps we want to add in conjunction with trace lemmas?
+        } 
+        if (lemmasToOutput == "all" || lemmasToOutput == "dense") {
+          std::cout << "about to generate non-trace lemma" << std::endl;
           auto lemmas = analysis::generateNonTraceLemmas(
               *parserResult.program, parserResult.locationToActiveVars,
               parserResult.numberOfTraces, semantics, inlinedVarValues);
@@ -100,19 +97,31 @@ int main(int argc, char* argv[]) {
 
         logic::Problem problem(problemItems);
 
-        // generate reasoning task, convert reasoning task to smtlib, and output
-        // it to output-file
+        // generate reasoning task. then either convert to SMT-LIB
+        // and output or pass to prover via programmatic interface
         auto tasks = problem.generateReasoningTasks();
 
         for (const auto& task : tasks) {
           std::stringstream preamble;
           preamble << util::Output::comment << *parserResult.program
                    << util::Output::nocomment;
-
-          if (util::Configuration::instance().tptp()) {
-            task.outputTPTPToDir(outputDir, preamble.str());
+       
+          if(util::Configuration::instance().outputToFile()){
+            auto outputDir = util::Configuration::instance().outputDir();
+            if (util::Configuration::instance().tptp()) {
+              task.outputTPTPToDir(outputDir, preamble.str());
+            } else {
+              task.outputSMTLIBToDir(outputDir, inputFileName, preamble.str());
+            }
           } else {
-            task.outputSMTLIBToDir(outputDir, inputFileName, preamble.str());
+            std::cout << "Attempting to prove main conjecture" << std::endl;
+            auto& solver = solvers::VampireSolver::instance();
+            bool proofFound = solver.solveTask(task, logic::TaskType::MAIN);
+            if(proofFound){
+              std::cout << "Verification successful! Thanks to Allah!" << std::endl;
+            } else {
+              std::cout << "Verification failed. You can try adding hand crafted invariants and running again" << std::endl;              
+            }
           }
         }
 

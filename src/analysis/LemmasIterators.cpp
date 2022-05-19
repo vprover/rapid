@@ -102,8 +102,11 @@ void IntermediateValueLemmas::generateOutputFor(
           //          forall it. (it<n => ( v(l(s(it)),pos)=v(l(it),pos) or
           //          v(l(s(it)),pos)=v(l(it),pos)+1 ) )
 
+
+          auto varExpr = std::shared_ptr<const program::VariableAccess>(new program::VariableAccess(v));
+
           auto denseDefinition = getDensityDefinition(
-              freeVarSymbols1, v, nameSuffix, itSymbol, it, lStartIt,
+              freeVarSymbols1, varExpr, nameSuffix, itSymbol, it, lStartIt,
               lStartSuccOfIt, n, trace, true);
 
           auto denseDef = std::make_shared<logic::Definition>(

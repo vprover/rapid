@@ -125,16 +125,16 @@ std::shared_ptr<const logic::Formula> getDensityDefinition(
     std::shared_ptr<const logic::Term> n,
     std::shared_ptr<const logic::Term> trace, bool increasing);
 
-// TODO remove duplication
-std::shared_ptr<const logic::Formula> getDensityDefinition(
-    std::vector<std::shared_ptr<const logic::Symbol>> freeVarSymbols,
-    const std::shared_ptr<const program::Variable> var, std::string nameSuffix,
+std::shared_ptr<const logic::Formula> densityDefinition(
+    const std::shared_ptr<const program::Expression> expr,
     std::shared_ptr<const logic::Symbol> itSymbol,
     std::shared_ptr<const logic::LVariable> it,
     std::shared_ptr<const logic::Term> lStartIt,
     std::shared_ptr<const logic::Term> lStartSuccOfIt,
     std::shared_ptr<const logic::Term> n,
-    std::shared_ptr<const logic::Term> trace, bool increasing);
+    std::shared_ptr<const logic::Term> trace, 
+    bool increasing,
+    bool strong = false);
 
 #pragma mark - Methods for generating most used terms/predicates denoting program-expressions
 /*

@@ -12,13 +12,17 @@
 
 namespace logic {
 
+enum class TaskType { MAIN, CHAINY, DENSE, OTHER };
+
 /*
  * abstract class for wrapping a formula and tagging it as either axiom,
  * definition, lemma or conjecture
  */
 class ProblemItem {
  public:
-  enum class Type { Program, Axiom, Definition, Lemma, Conjecture };
+  /** special axioms are output with a non-standard command in the SMT in order
+   *  for them to be placed in SOS by Vampire */
+  enum class Type { Program, Axiom, SpecAxiom, Definition, Lemma, Conjecture };
   enum class Visibility { All, Implicit, None };
 
   ProblemItem(Type type, std::shared_ptr<const logic::Formula> formula,
@@ -46,7 +50,7 @@ class ProblemItem {
       assert(name != "");
     }
   }
-  
+
   virtual ~ProblemItem() = default;
 
   const Type type;
@@ -65,8 +69,16 @@ std::ostream& operator<<(
 class Axiom : public ProblemItem {
  public:
   Axiom(std::shared_ptr<const logic::Formula> axiom, std::string name = "",
-        ProblemItem::Visibility visibility = ProblemItem::Visibility::All)
-      : ProblemItem(ProblemItem::Type::Axiom, axiom, name, visibility, {}) {}
+        ProblemItem::Visibility visibility = ProblemItem::Visibility::All, 
+        ProblemItem::Type type = ProblemItem::Type::Axiom)
+      : ProblemItem(type, axiom, name, visibility, {}) {}
+};
+
+class SpecAxiom : public Axiom {
+ public:
+  SpecAxiom(std::shared_ptr<const logic::Formula> axiom, std::string name = "",
+            ProblemItem::Visibility visibility = ProblemItem::Visibility::All)
+          : Axiom(axiom, name, visibility,ProblemItem::Type::SpecAxiom) {}
 };
 
 // a definition is a special case of an axiom.

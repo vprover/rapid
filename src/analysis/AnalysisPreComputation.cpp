@@ -151,7 +151,8 @@ AnalysisPreComputation::computeAssignedVars(const program::Statement* statement,
       if (casted->lhs->type() == program::Type::VariableAccess) {
         auto access = static_cast<const program::VariableAccess*>(
             casted->lhs.get());
-        if(casted->lhs->isPointerExpr() && pointerVars){
+        if((casted->lhs->isPointerExpr() && pointerVars) || 
+           !casted->lhs->isPointerExpr()){
           assignedVars.insert(access->var);
         }
       } else if (casted->lhs->type() == program::Type::IntArrayApplication) {
@@ -190,6 +191,52 @@ AnalysisPreComputation::computeAssignedVars(const program::Statement* statement,
     }
   }
   return assignedVars;
+}
+
+bool AnalysisPreComputation::doNotOccurIn(
+    std::unordered_set<std::shared_ptr<const program::Variable>>& vars,
+    std::shared_ptr<const program::Expression> expr) {
+    switch (expr->type()) {
+    case program::Type::VariableAccess: {
+      auto var =
+          std::static_pointer_cast<const program::VariableAccess>(expr);
+      return vars.find(var->var) == vars.end();
+    }
+    case program::Type::Addition: {
+      auto castedExpr = std::static_pointer_cast<const program::Addition>(expr);
+      return doNotOccurIn(vars, castedExpr->summand1) &&
+             doNotOccurIn(vars, castedExpr->summand2);
+    }
+    case program::Type::Subtraction: {
+      auto castedExpr =
+          std::static_pointer_cast<const program::Subtraction>(expr);
+      return doNotOccurIn(vars, castedExpr->child1) &&
+             doNotOccurIn(vars, castedExpr->child2);
+    }
+    case program::Type::Modulo: {
+      auto castedExpr = std::static_pointer_cast<const program::Modulo>(expr);
+      return doNotOccurIn(vars, castedExpr->child1) &&
+             doNotOccurIn(vars, castedExpr->child2);
+    }
+    case program::Type::Multiplication: {
+      auto castedExpr =
+          std::static_pointer_cast<const program::Multiplication>(expr);
+      return doNotOccurIn(vars, castedExpr->factor1) &&
+             doNotOccurIn(vars, castedExpr->factor2);
+    }
+    case program::Type::IntegerConstant: {
+      return true;
+    }
+    case program::Type::IntArrayApplication: {
+      auto var =
+          std::static_pointer_cast<const program::IntArrayApplication>(expr);
+      return vars.find(var->array) == vars.end();
+    }
+    default:
+      // TODO update with pointer constructs
+      // should never happen
+      return false;
+  }
 }
 
 void AnalysisPreComputation::computeVariablesContainedInLoopCondition(
@@ -280,7 +327,7 @@ void AnalysisPreComputation::computeVariablesContainedInLoopCondition(
       break;
     }
     default: {
-      // Currently, this function inly has use in conjunction with the inliner
+      // Currently, this function only has use in conjunction with the inliner
       // which is not sound in the presence of memory manipulating constructs
       assert(false);
     }

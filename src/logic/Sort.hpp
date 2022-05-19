@@ -50,6 +50,7 @@ private:
   const std::vector<std::string> _selectors;
  
 public:
+  std::vector<std::string> recursiveSelectors();  
   std::vector<std::string> selectors() { return _selectors; }
   bool isStructSort() const { return true; }  
 

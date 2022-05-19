@@ -36,7 +36,7 @@ class GenSolver {
     // solvers can choose how to handle chainy tasks
     // We call a task chainy if it involves proving some facts about
     // a chain of fields e.g. a->f->f->f->f ...
-    virtual bool solveTask(ReasoningTask task, bool isChainy = false) {
+    virtual bool solveTask(ReasoningTask task, TaskType tt = TaskType::OTHER) {
       convertTask(task);
       return solve();
     }
@@ -276,10 +276,12 @@ public:
     _solver->reset();
   }
 
-  bool solveTask(ReasoningTask task, bool isChainy = false) override {
+  bool solveTask(ReasoningTask task, TaskType tt = TaskType::OTHER) override {
+    if(tt == TaskType::MAIN){
+      std::cout << "MAIN" << std::endl;
+    }
     convertTask(task);
-    if(isChainy){
-      //task.outputSMTLIB(std::cout);
+    if(tt == TaskType::CHAINY || tt == TaskType::MAIN){
       std::cout << "Running Vampire's Rapid schedule for 60s" << std::endl;
       // proving chain invariants tend to be more challenging
       setTimeLimit(60);
@@ -289,6 +291,14 @@ public:
         return true;
       }      
     }
+    if(tt == TaskType::DENSE){
+      std::cout << "Running Vampire's Rapid schedule for 10s" << std::endl;
+      // proving dense invariants tend to be simple
+      setTimeLimit(10);
+      bool res = solveWithSched(Vampire::Solver::Schedule::RAPID);
+      setTimeLimit(30);
+      return res;
+    }
     std::cout << "Running Vampire's CASC schedule for 30s" << std::endl;
     return solve();
   }
@@ -297,8 +307,11 @@ public:
   bool solve() override;
   bool solveWithSched(Vampire::Solver::Schedule sched);
 
+  static VampireSolver& instance(){ return _instance; }
+
 private:
   Vampire::Solver* _solver;
+  static VampireSolver _instance;
 };
 
 }  // namespace solvers

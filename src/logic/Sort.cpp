@@ -38,6 +38,19 @@ std::string Sort::toTPTP() const {
   }
 }
 
+std::vector<std::string> StructSort::recursiveSelectors()
+{
+  std::vector<std::string> recSels;
+  for(auto& sel : _selectors){
+    auto sym = Signature::fetch(sel);
+    auto returnTypeName = sym->rngSort->name;
+    if(returnTypeName == name){
+      recSels.push_back(sel);
+    }
+  } 
+  return recSels;
+}  
+
 std::string declareSortSMTLIB(const Sort& s) {
   if (s.toSMTLIB() == "Int" || s.toSMTLIB() == "Bool" ||
       s.toSMTLIB() == "(Array Int Int)") {

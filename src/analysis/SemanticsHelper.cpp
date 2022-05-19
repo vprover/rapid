@@ -423,64 +423,51 @@ std::shared_ptr<const logic::Formula> getDensityDefinition(
   // add density definition
   auto dense = getDensityFormula(freeVarSymbols, nameSuffix, increasing);
    
-  static bool integerIts = util::Configuration::instance().integerIterations();
-
-  auto conjunctLeft = integerIts ? 
-      logic::Theory::intLessEqual(logic::Theory::intZero(), it) :
-      logic::Theory::boolTrue();
-
-  auto denseFormula = logic::Formulas::universal(
-      {itSymbol},
-      logic::Formulas::implication(
-          logic::Formulas::conjunctionSimp(
-            {conjunctLeft,
-             logic::Theory::less(it, n)}),
-          logic::Formulas::disjunction(
-              {logic::Formulas::equality(toTerm(expr, lStartSuccOfIt, trace),
-                                         toTerm(expr, lStartIt, trace)),
-               logic::Formulas::equality(
-                   toTerm(expr, lStartSuccOfIt, trace),
-                   (increasing ? logic::Theory::intAddition(
-                                     toTerm(expr, lStartIt, trace),
-                                     logic::Theory::intConstant(1))
-                               : logic::Theory::intSubtraction(
-                                     toTerm(expr, lStartIt, trace),
-                                     logic::Theory::intConstant(1))))})));
+  auto denseDef = densityDefinition(expr,itSymbol,it,lStartIt,
+                    lStartSuccOfIt,n,trace,increasing);
 
   return logic::Formulas::universal(
-      freeVarSymbols, logic::Formulas::equivalence(dense, denseFormula));
+      freeVarSymbols, logic::Formulas::equivalence(dense, denseDef));
 }
 
-std::shared_ptr<const logic::Formula> getDensityDefinition(
-    std::vector<std::shared_ptr<const logic::Symbol>> freeVarSymbols,
-    const std::shared_ptr<const program::Variable> var, std::string nameSuffix,
+std::shared_ptr<const logic::Formula> densityDefinition(
+    const std::shared_ptr<const program::Expression> expr,
     std::shared_ptr<const logic::Symbol> itSymbol,
     std::shared_ptr<const logic::LVariable> it,
     std::shared_ptr<const logic::Term> lStartIt,
     std::shared_ptr<const logic::Term> lStartSuccOfIt,
     std::shared_ptr<const logic::Term> n,
-    std::shared_ptr<const logic::Term> trace, bool increasing) {
-  // add density definition
-  auto dense = getDensityFormula(freeVarSymbols, nameSuffix, increasing);
+    std::shared_ptr<const logic::Term> trace, 
+    bool increasing,
+    bool strong) {
 
-  auto denseFormula = logic::Formulas::universal(
-      {itSymbol},
-      logic::Formulas::implication(
-          logic::Theory::natSub(it, n),
-          logic::Formulas::disjunction(
-              {logic::Formulas::equality(toTerm(var, lStartSuccOfIt, trace),
-                                         toTerm(var, lStartIt, trace)),
-               logic::Formulas::equality(
-                   toTerm(var, lStartSuccOfIt, trace),
-                   (increasing ? logic::Theory::intAddition(
-                                     toTerm(var, lStartIt, trace),
-                                     logic::Theory::intConstant(1))
-                               : logic::Theory::intSubtraction(
-                                     toTerm(var, lStartIt, trace),
-                                     logic::Theory::intConstant(1))))})));
+  static bool integerIts = util::Configuration::instance().integerIterations();
+
+  auto atIt = toTerm(expr, lStartIt, trace);
+  auto atSuccIt = toTerm(expr, lStartSuccOfIt, trace);
+  auto one = logic::Theory::intConstant(1);
+
+  auto conjunctLeft = integerIts ? 
+      logic::Theory::intLessEqual(logic::Theory::intZero(), it) :
+      logic::Theory::boolTrue();
+
+  auto disjunctLeft = strong ? 
+      logic::Theory::boolFalse() : 
+      logic::Formulas::equality(atIt, atSuccIt);
+
+  auto loopBounds = 
+    logic::Formulas::conjunctionSimp({conjunctLeft, logic::Theory::less(it, n)});
 
   return logic::Formulas::universal(
-      freeVarSymbols, logic::Formulas::equivalence(dense, denseFormula));
+      {itSymbol},
+      logic::Formulas::implication(
+          loopBounds,
+          logic::Formulas::disjunctionSimp(
+              {disjunctLeft,
+               logic::Formulas::equality(
+                   atSuccIt,
+                   (increasing ? logic::Theory::intAddition(atIt, one)
+                               : logic::Theory::intSubtraction(atIt,one)))})));
 }
 
 #pragma mark - Methods for generating sorts
@@ -900,6 +887,10 @@ std::shared_ptr<const logic::Formula> allVarEqual(
 
   for(auto sort : logic::Sorts::structSorts()){
     conjuncts.push_back(logic::Theory::allSame(timePoint2, timePoint1, sort->name));
+    auto structSort = static_cast<logic::StructSort*>(sort);
+    for(auto& recSelName : structSort->recursiveSelectors()){
+      conjuncts.push_back(logic::Theory::allSame(timePoint2, timePoint1, recSelName + "_chain"));
+    }    
   }
   conjuncts.push_back(logic::Theory::allSame(timePoint2, timePoint1, "value"));
 

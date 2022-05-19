@@ -84,14 +84,16 @@ void ReasoningTask::outputSMTLIB(std::ostream& ostr) const {
   for (const auto& axiom : axioms) {
     assert(axiom->type == ProblemItem::Type::Lemma ||
            axiom->type == ProblemItem::Type::Axiom ||
-           axiom->type == ProblemItem::Type::Definition);
+           axiom->type == ProblemItem::Type::Definition ||
+           axiom->type == ProblemItem::Type::SpecAxiom);
     if (axiom->name != "") {
       ostr << "\n; "
            << (axiom->type == ProblemItem::Type::Axiom ? "Axiom: "
                                                        : "Definition: ")
            << axiom->name;
     }
-    ostr << "\n(assert\n" << axiom->formula->toSMTLIB(3) + "\n)\n";
+    std::string assertText = axiom->type == ProblemItem::Type::SpecAxiom ? "assert-axiom" : "assert";
+    ostr << "\n(" + assertText + "\n" << axiom->formula->toSMTLIB(3) + "\n)\n";
   }
 
   // output conjecture
