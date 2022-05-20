@@ -5,8 +5,8 @@ struct Node {
 
 func main() {
   Node* head = NULL;
-  Int len = 20;
-  Int dat = 1;
+  const Int len;
+  const Int dat = 1;
 
   Int i = len;
   while(i > 0) {
@@ -18,8 +18,18 @@ func main() {
     i = i - 1;
   }
 
+  Int j = len;
+  while(j > 0) {
+    head = head->next;
+    j = j - 1;
+  }
+
 }
 
+(axiom
+  (<= 0 (value_const len))
+)
+
 (conjecture
-  (= (value main_end head) null_loc)
+  (= (value_node main_end head) node_null_loc)
 )

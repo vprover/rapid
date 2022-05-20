@@ -114,11 +114,12 @@ int main(int argc, char* argv[]) {
               task.outputSMTLIBToDir(outputDir, inputFileName, preamble.str());
             }
           } else {
-            std::cout << "Attempting to prove main conjecture" << std::endl;
+            std::cout << "Attempting to prove main conjecture\n" << std::endl;
+            std::cout << task.conjecture->formula->prettyString() << "\n" << std::endl; 
             auto& solver = solvers::VampireSolver::instance();
             bool proofFound = solver.solveTask(task, logic::TaskType::MAIN);
             if(proofFound){
-              std::cout << "Verification successful! Thanks to Allah!" << std::endl;
+              std::cout << "Verification successful! Thanks to God!" << std::endl;
             } else {
               std::cout << "Verification failed. You can try adding hand crafted invariants and running again" << std::endl;              
             }

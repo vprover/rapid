@@ -453,9 +453,9 @@ void  InvariantGenerator::attemptToProveInvariants(){
   for(auto& vec : _potentialInvariants){
     for(auto& item : vec){
 
-      std::cout << "Attempting to prove \n" << 
-        "Potential invariant of loop at location " + item.loopLoc() << "\n" <<
-        item.conclusion()->formula->prettyString() << std::endl;
+      std::cout << "Attempting to prove " << 
+        "formula below holds for loop at location " + item.loopLoc() << "\n\n" <<
+        item.conclusion()->formula->prettyString() << "\n" << std::endl;
 
       auto& solver = solvers::VampireSolver::instance();
       bool baseCaseProven = true;
@@ -465,13 +465,15 @@ void  InvariantGenerator::attemptToProveInvariants(){
         baseCaseProven = solver.solveTask(*item.baseCase(), item.taskType());
       }
       if(stepCaseProven && baseCaseProven){
-        std::cout << "Proof attempt successful!\n" << std::endl;
+        std::cout << "Proof attempt successful!" << std::endl;
+        std::cout << "---------------------------------------------------------------------\n" << std::endl;
         item.setStatus(InvariantTask::Status::SOLVED);
         auto inv = item.conclusion();
         insertAxiomsIntoTasks({inv}, item.loopLoc());
         break; // from inner for. No need to proceed to less general invariants.
       } else {
-        std::cout << "Proof attempt failed!\n" << std::endl;
+        std::cout << "Proof attempt failed!" << std::endl;
+        std::cout << "---------------------------------------------------------------------\n" << std::endl;
         item.setStatus(InvariantTask::Status::FAILED);      
       }
     }

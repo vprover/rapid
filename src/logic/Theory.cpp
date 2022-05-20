@@ -53,12 +53,12 @@ std::shared_ptr<const FuncTerm> Theory::intZero() {
 
 std::shared_ptr<const FuncTerm> Theory::intAddition(
     std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2) {
-  return Terms::func("+", {t1, t2}, Sorts::intSort(), true);
+  return Terms::func("+", {t1, t2}, Sorts::intSort(), true, Symbol::SymbolType::Plus);
 }
 
 std::shared_ptr<const FuncTerm> Theory::intSubtraction(
     std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2) {
-  return Terms::func("-", {t1, t2}, Sorts::intSort(), true);
+  return Terms::func("-", {t1, t2}, Sorts::intSort(), true, Symbol::SymbolType::Minus);
 }
 
 std::shared_ptr<const FuncTerm> Theory::intModulo(
@@ -68,7 +68,7 @@ std::shared_ptr<const FuncTerm> Theory::intModulo(
 
 std::shared_ptr<const FuncTerm> Theory::intMultiplication(
     std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2) {
-  return Terms::func("*", {t1, t2}, Sorts::intSort(), true);
+  return Terms::func("*", {t1, t2}, Sorts::intSort(), true, Symbol::SymbolType::Multiply);
 }
 
 std::shared_ptr<const FuncTerm> Theory::intAbsolute(
@@ -87,25 +87,25 @@ std::shared_ptr<const FuncTerm> Theory::intSucc(std::shared_ptr<const Term> t) {
 std::shared_ptr<const Formula> Theory::intLess(std::shared_ptr<const Term> t1,
                                                std::shared_ptr<const Term> t2,
                                                std::string label) {
-  return Formulas::predicate("<", {t1, t2}, label, true);
+  return Formulas::predicate("<", {t1, t2}, label, true, Symbol::SymbolType::LessThan);
 }
 
 std::shared_ptr<const Formula> Theory::intLessEqual(
     std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2,
     std::string label) {
-  return Formulas::predicate("<=", {t1, t2}, label, true);
+  return Formulas::predicate("<=", {t1, t2}, label, true, Symbol::SymbolType::LessEq);
 }
 
 std::shared_ptr<const Formula> Theory::intGreater(
     std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2,
     std::string label) {
-  return Formulas::predicate(">", {t1, t2}, label, true);
+  return Formulas::predicate(">", {t1, t2}, label, true, Symbol::SymbolType::GreaterThan);
 }
 
 std::shared_ptr<const Formula> Theory::intGreaterEqual(
     std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2,
     std::string label) {
-  return Formulas::predicate(">=", {t1, t2}, label, true);
+  return Formulas::predicate(">=", {t1, t2}, label, true, Symbol::SymbolType::GreaterEq);
 }
 
 std::shared_ptr<const Formula> Theory::boolTrue(std::string label) {

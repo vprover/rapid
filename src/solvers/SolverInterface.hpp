@@ -277,13 +277,15 @@ public:
   }
 
   bool solveTask(ReasoningTask task, TaskType tt = TaskType::OTHER) override {
-    if(tt == TaskType::MAIN){
-      std::cout << "MAIN" << std::endl;
-    }
     convertTask(task);
     if(tt == TaskType::CHAINY || tt == TaskType::MAIN){
       std::cout << "Running Vampire's Rapid schedule for 60s" << std::endl;
-      // proving chain invariants tend to be more challenging
+      if(tt == TaskType::MAIN){
+        _solver->setOption("multi_clause_nat_ind", "on");
+        // no need to unset afterwards since we try to prove the 
+        // main conjecture at the end 
+      }
+      // proving chain invariants tends to be more challenging
       setTimeLimit(60);
       bool res = solveWithSched(Vampire::Solver::Schedule::RAPID);
       setTimeLimit(30);
@@ -293,7 +295,7 @@ public:
     }
     if(tt == TaskType::DENSE){
       std::cout << "Running Vampire's Rapid schedule for 10s" << std::endl;
-      // proving dense invariants tend to be simple
+      // proving dense invariants tends to be simple
       setTimeLimit(10);
       bool res = solveWithSched(Vampire::Solver::Schedule::RAPID);
       setTimeLimit(30);

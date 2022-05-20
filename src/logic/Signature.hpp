@@ -40,6 +40,13 @@ class Symbol {
     Selector,
     ChainFunc,
     ObjectArray,
+    LessThan,
+    GreaterThan,
+    LessEq,
+    GreaterEq,
+    Plus,
+    Minus,
+    Multiply,
     Other
   };
 
@@ -93,7 +100,7 @@ class Symbol {
   const bool
       noDeclaration;  // true iff the symbol needs no declaration in smtlib
                       // (i.e. true only for interpreted symbols and variables)
-  const SymbolType symbolType;  // true if represents variable
+  const SymbolType symbolType; 
 
   // used for symbol elimination, values are either "left" or "right", can be
   // empty for non-color symbols
@@ -103,9 +110,13 @@ class Symbol {
   bool isPredicateSymbol() const { return rngSort == Sorts::boolSort(); }
   bool isMallocSymbol() const { return symbolType == SymbolType::MallocFunc; }
   bool isSelectorSymbol() const { return symbolType == SymbolType::Selector; }
-  //bool isConstMemoryArray() const {
-  //  return (symbolType == SymbolType::MemoryArray) && (argSorts.size() == 0);
-  //}
+  bool integerCompSym() const { return (symbolType == SymbolType::LessEq ||
+                                        symbolType == SymbolType::GreaterEq || 
+                                        symbolType == SymbolType::LessThan ||
+                                        symbolType == SymbolType::GreaterThan); }
+  bool isBinaryIntOp() const { return (symbolType == SymbolType::Plus ||
+                                       symbolType == SymbolType::Minus || 
+                                       symbolType == SymbolType::Multiply ); }
 
   std::string toSMTLIB() const;
   std::string toTPTP() const;
@@ -161,8 +172,7 @@ class Signature {
   // construct new symbols
   static std::shared_ptr<const Symbol> add(
       std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort,
-      bool noDeclaration = false,
-      Symbol::SymbolType sym = Symbol::SymbolType::Other);
+      bool noDeclaration = false, SyS sym = SyS::Other);
   static std::shared_ptr<const Symbol> fetch(std::string name);
   static std::shared_ptr<const Symbol> fetchOrAdd(
       std::string name, std::vector<const Sort*> argSorts, const Sort* rngSort,

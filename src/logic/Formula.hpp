@@ -249,10 +249,12 @@ inline std::ostream& operator<<(std::ostream& ostr, const Formula& e) {
 
 // We use Formulas as a manager-class for Formula-instances
 class Formulas {
+   typedef Symbol::SymbolType SyS;
+
  public:
   static std::shared_ptr<const Formula> predicate(
       std::string name, std::vector<std::shared_ptr<const Term>> subterms,
-      std::string label = "", bool noDeclaration = false);
+      std::string label = "", bool noDeclaration = false, SyS sym = SyS::Other);
   static std::shared_ptr<const Formula> lemmaPredicate(
       std::string name, std::vector<std::shared_ptr<const Term>> subterms,
       std::string label = "");

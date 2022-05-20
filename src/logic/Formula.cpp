@@ -314,6 +314,14 @@ std::string FalseFormula::toTPTP(unsigned indentation) const {
 
 std::string PredicateFormula::prettyString(unsigned indentation) const {
   auto str = std::string(indentation, ' ');
+
+  if(symbol->integerCompSym()){
+    assert(subterms.size() == 2);
+    str += subterms[0]->toSMTLIB() + " "  + symbol->toSMTLIB() + " " + 
+        subterms[1]->toSMTLIB();
+    return str;
+  }
+
   if (subterms.size() == 0) {
     str += symbol->toSMTLIB();
   } else {
@@ -418,13 +426,13 @@ std::string FalseFormula::prettyString(unsigned indentation) const {
 #pragma mark - Formulas
 std::shared_ptr<const Formula> Formulas::predicate(
     std::string name, std::vector<std::shared_ptr<const Term>> subterms,
-    std::string label, bool noDeclaration) {
+    std::string label, bool noDeclaration, SyS sym) {
   std::vector<const Sort*> subtermSorts;
   for (const auto& subterm : subterms) {
     subtermSorts.push_back(subterm->symbol->rngSort);
   }
   auto symbol = Signature::fetchOrAdd(name, subtermSorts, Sorts::boolSort(),
-                                      noDeclaration);
+                                      noDeclaration, sym);
   return std::make_shared<const PredicateFormula>(symbol, subterms, label);
 }
 std::shared_ptr<const Formula> Formulas::lemmaPredicate(

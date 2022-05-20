@@ -113,6 +113,13 @@ std::string FuncTerm::toTPTP() const {
 }
 
 std::string FuncTerm::prettyString() const {
+
+  if(symbol->isBinaryIntOp()){
+    assert(subterms.size() == 2);
+    return subterms[0]->toSMTLIB() + " "  + symbol->toSMTLIB() + " " + 
+        subterms[1]->toSMTLIB();
+  }
+
   if (subterms.size() == 0) {
     return symbol->toSMTLIB();
   } else {
