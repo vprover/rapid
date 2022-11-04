@@ -481,7 +481,11 @@ logic::Sort* toSort(
     return toSort(type->getChild());
   }
 
-  if(type->isIntType() || type->isPointerType()){
+  if(type->isPointerType()){
+    return logic::Sorts::varSort();    
+  }
+
+  if(type->isIntType()){
     return logic::Sorts::intSort();
   }
 
@@ -666,11 +670,14 @@ std::shared_ptr<const logic::Term> toTerm(
   bool typedModel = (util::Configuration::instance().memoryModel() == "typed");
 
   std::string array = "Int";
-  if(typedModel && var->vt->isPointerToStruct()){
-    array = toSort(var->vt)->name;
+  auto sort = logic::Sorts::intSort();
+  if(typedModel){
+    sort = logic::Sorts::varSort();
+    if(var->vt->isPointerToStruct())
+      array = toSort(var->vt)->name;
   }
   
-  auto varAsConst = logic::Terms::func(var->name, {}, logic::Sorts::intSort(), false, typ);
+  auto varAsConst = logic::Terms::func(var->name, {}, sort, false, typ);
   return logic::Theory::valueAt(timePoint, varAsConst, array, var->isConstant);
 }
 
@@ -812,11 +819,14 @@ std::shared_ptr<const logic::Formula> toFormula(
           return logic::Theory::intLessEqual(
               toTerm(castedExpr->child1, timePoint, trace),
               toTerm(castedExpr->child2, timePoint, trace));
-        case program::ArithmeticComparison::Kind::EQ:
-          return logic::Formulas::equality(
-              toTerm(castedExpr->child1, timePoint, trace),
-              toTerm(castedExpr->child2, timePoint, trace));
-      }
+        }
+    }
+    case program::BoolExpression::Type::Equality: {
+      auto castedExpr =
+          std::static_pointer_cast<const program::Equality>(expr);      
+      return logic::Formulas::equality(
+          toTerm(castedExpr->child1, timePoint, trace),
+          toTerm(castedExpr->child2, timePoint, trace));      
     }
   }
   assert(false);

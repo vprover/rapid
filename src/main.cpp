@@ -23,7 +23,7 @@ void outputUsage() {
 }
 
 int main(int argc, char* argv[]) {
-  if (argc < 1) {
+  if (argc <= 1) {
     outputUsage();
   } else {
     if (util::Configuration::instance().setAllValues(argc, argv)) {
@@ -46,8 +46,12 @@ int main(int argc, char* argv[]) {
           inputFileName = inputFileWithoutExtension;
         }
 
+        std::cout << "#### Status: ##### Parsing benchmark" << std::endl;
+
         // parse inputFile
         auto parserResult = parser::parse(inputFile);
+
+        std::cout << "#### Status: ##### Parsing successful. Translating to FOL" << std::endl;
 
         // generate problem
         std::vector<std::shared_ptr<const logic::ProblemItem>> problemItems;
@@ -114,7 +118,7 @@ int main(int argc, char* argv[]) {
               task.outputSMTLIBToDir(outputDir, inputFileName, preamble.str());
             }
           } else {
-            std::cout << "Attempting to prove main conjecture\n" << std::endl;
+            std::cout << "#### Status: ##### Attempting to prove main conjecture\n" << std::endl;
             std::cout << task.conjecture->formula->prettyString() << "\n" << std::endl; 
             auto& solver = solvers::VampireSolver::instance();
             bool proofFound = solver.solveTask(task, logic::TaskType::MAIN);

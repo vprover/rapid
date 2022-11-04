@@ -15,21 +15,21 @@ class InvariantTask {
     // TODO we leak memory since we never delete these
     InvariantTask(logic::ReasoningTask* baseCase,
                  logic::ReasoningTask* stepCase,
-                 std::shared_ptr<const logic::Axiom> conclusion,
+                 std::vector<std::shared_ptr<const logic::Axiom>> conclusions,
                  std::string loopLocation,
                  TaskType tt = TaskType::OTHER,
                  std::vector<std::shared_ptr<const logic::Axiom>> chainAxioms = {}) :
     _baseCase(baseCase), _stepCase(stepCase),
-    _conclusion(conclusion), _status(Status::NOT_ATTEMPTED),
+    _conclusions(conclusions), _status(Status::NOT_ATTEMPTED),
     _loopLocation(loopLocation), _tt(tt), _chainAxioms(chainAxioms) {}
 
     InvariantTask(logic::ReasoningTask* stepCase,
-                 std::shared_ptr<const logic::Axiom> conclusion,
+                 std::vector<std::shared_ptr<const logic::Axiom>> conclusions,
                  std::string loopLocation,
                  TaskType tt = TaskType::OTHER,
                  std::vector<std::shared_ptr<const logic::Axiom>> chainAxioms = {}) :
     _baseCase(nullptr), _stepCase(stepCase),
-    _conclusion(conclusion), _status(Status::NOT_ATTEMPTED),
+    _conclusions(conclusions), _status(Status::NOT_ATTEMPTED),
     _loopLocation(loopLocation), _tt(tt), _chainAxioms(chainAxioms) {}
 
     void setStatus(Status status);
@@ -49,17 +49,54 @@ class InvariantTask {
 
     logic::ReasoningTask* baseCase() { return _baseCase; }
     logic::ReasoningTask* stepCase() { return _stepCase; }
-    std::shared_ptr<const logic::Axiom> conclusion() { return _conclusion; }    
+    
+    std::vector<std::shared_ptr<const logic::Axiom>> 
+    conclusions() { return _conclusions; }    
+    
     std::string loopLoc(){ return _loopLocation; }
  
   private:
     Status _status;
     logic::ReasoningTask* _baseCase;
     logic::ReasoningTask* _stepCase;
-    std::shared_ptr<const logic::Axiom> _conclusion;
+    // from one base and step case can sometimes derive multiple conclusion 
+    // at least for DENSE tasks
+     std::vector<std::shared_ptr<const logic::Axiom>> _conclusions;
     std::string _loopLocation;
     TaskType _tt;
     std::vector<std::shared_ptr<const logic::Axiom>> _chainAxioms;
+};
+
+/*
+ *  In some cases if we fail to prove an invariant, we want to try alternatives
+ *  In other cases, if we prove an invariant, we want to try and prove others
+ */
+class InvariantTaskList {
+  public:
+
+    enum class ListType { SINGLETON, CONTINUE_ON_SUCCESS, CONTINUE_ON_FAILURE };
+
+    InvariantTaskList(ListType lt, InvariantTask main) :
+     _lt(lt), _mainTask(main) {}
+
+    void addTask(InvariantTask task){ _fallBackTasks.push_back(task); }
+
+    std::vector<InvariantTask>& fallBackTasks() { return _fallBackTasks; }
+    //WARNING, should only be used when _fallBakcs are no longer required
+    std::vector<InvariantTask>& allTasks() {
+      _fallBackTasks.push_back(_mainTask);
+      return _fallBackTasks;
+    }
+
+    InvariantTask& mainTask() { return _mainTask;}
+
+    bool continueOnFailure(){ return _lt == ListType::CONTINUE_ON_FAILURE; }
+    bool continueOnSuccess(){ return _lt == ListType::CONTINUE_ON_SUCCESS; }
+
+  private:
+    ListType _lt;
+    InvariantTask _mainTask;
+    std::vector<InvariantTask> _fallBackTasks;
 };
 
 class InvariantGenerator {
@@ -69,14 +106,14 @@ class InvariantGenerator {
                          std::vector<std::shared_ptr<const program::Variable>>>
           locationToActiveVars) : 
     _typed(typed), _locationToActiveVars(locationToActiveVars) {
-      solvers::VampireSolver::instance().setTimeLimit();
+      solvers::VampireSolver::instance().setTimeLimit(10);
     }
  
     void generateInvariants( 
       const program::WhileStatement* whileStatement,
-      std::shared_ptr<const logic::Formula> loopSemantics);
+      std::shared_ptr<const logic::Formula> semantics);
 
-    std::vector<std::vector<InvariantTask>>&
+    std::vector<InvariantTaskList>&
     getPotentialInvariants(){ return _potentialInvariants; }
   
     /*
@@ -94,7 +131,23 @@ class InvariantGenerator {
     std::vector<std::shared_ptr<const logic::Axiom>>
     getProvenInvariantsAndAxioms();
   private:
+
+    bool attemptToProveInvariant(InvariantTask& task);
   
+    /*
+     * Generate a reasoning tasks whose conclusions are the following invariant:
+     *
+     * forall it.
+     *   0 <= it /\ it < nl  =>
+     *   f (*struc) it = null 
+     *
+     *  for each pointer field f over the type of *struc
+     *  where struc is a pointer to a struc
+     */
+    void generatePointsToNullInvariants(      
+      const program::WhileStatement* whileStatement,
+      std::shared_ptr<const logic::Axiom> semantics);
+
     /*
      * Generate a reasoning tasks whose conclusions are the following invariant:
      *
@@ -106,7 +159,7 @@ class InvariantGenerator {
      */
     void generateMallocInLoopInvariants(      
       const program::WhileStatement* whileStatement,
-      std::shared_ptr<const logic::Axiom> loopSemantics);
+      std::shared_ptr<const logic::Axiom> semantics);
 
     /*
      * Generate reasoning tasks whose conclusions are the following invariant:
@@ -120,7 +173,22 @@ class InvariantGenerator {
      */
     void generateStructsStaySameInvariants(      
       const program::WhileStatement* whileStatement,
-      std::shared_ptr<const logic::Axiom> loopSemantics);
+      std::shared_ptr<const logic::Axiom> semantics);
+
+
+    /*
+     * if 
+     *  forall it n.
+     *    0 <= it < n =>
+     *    value_* var it = value_* var (+ it 1)
+     *
+     * then conclude 
+     *    value_* var 0 = value_* var nl#   
+     * 
+     */
+    void generateStaticVarInvariants(
+      const program::WhileStatement* whileStatement,
+      std::shared_ptr<const logic::Axiom> semantics);
 
     /*
      * Generate reasoning tasks whose conclusions are the following invariant:
@@ -137,7 +205,7 @@ class InvariantGenerator {
      */
     void generateChainingInvariants(      
       const program::WhileStatement* whileStatement,
-      std::shared_ptr<const logic::Axiom> loopSemantics);
+      std::shared_ptr<const logic::Axiom> semantics);
 
     /*
      * Attempts to prove the density / strong density of a variable / term
@@ -145,7 +213,7 @@ class InvariantGenerator {
      */
     void generateDenseInvariants(
       const program::WhileStatement* whileStatement,
-      std::shared_ptr<const logic::Axiom> loopSemantics);
+      std::shared_ptr<const logic::Axiom> semantics);
 
 
     std::map<std::string,std::vector<std::shared_ptr<logic::Axiom>>> _chainAxiomsUsed; 
@@ -154,11 +222,8 @@ class InvariantGenerator {
     const std::unordered_map<
       std::string, std::vector<std::shared_ptr<const program::Variable>>>
       _locationToActiveVars;
-    // vector of vector as the inner vectors contain 
-    // multiple potential invariant ranging from very general
-    // to very specific. We try and prove in order of generality
-    // and stop as soon as a proof is found
-    std::vector<std::vector<InvariantTask>> _potentialInvariants;
+
+    std::vector<InvariantTaskList> _potentialInvariants;
     bool _typed;
 };
 

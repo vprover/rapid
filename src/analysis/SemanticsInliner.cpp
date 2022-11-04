@@ -275,10 +275,13 @@ std::shared_ptr<const logic::Formula> SemanticsInliner::toCachedFormula(
         case program::ArithmeticComparison::Kind::LE:
           return logic::Theory::intLessEqual(toCachedTerm(castedExpr->child1),
                                              toCachedTerm(castedExpr->child2));
-        case program::ArithmeticComparison::Kind::EQ:
-          return logic::Formulas::equality(toCachedTerm(castedExpr->child1),
-                                           toCachedTerm(castedExpr->child2));
       }
+    }
+    case program::BoolExpression::Type::Equality: {
+      auto castedExpr =
+          std::static_pointer_cast<const program::Equality>(expr);    
+      return logic::Formulas::equality(toCachedTerm(castedExpr->child1),
+                                       toCachedTerm(castedExpr->child2));            
     }
   }
 }
@@ -693,14 +696,17 @@ std::shared_ptr<const logic::Formula> InlinedVariableValues::toInlinedFormula(
                             trace),
               toInlinedTerm(whileStatement, castedExpr->child2, timepoint,
                             trace));
-        case program::ArithmeticComparison::Kind::EQ:
-          return logic::Formulas::equality(
-              toInlinedTerm(whileStatement, castedExpr->child1, timepoint,
-                            trace),
-              toInlinedTerm(whileStatement, castedExpr->child2, timepoint,
-                            trace));
-      }
+      }  
     }
+    case program::BoolExpression::Type::Equality: {
+      auto castedExpr =
+          std::static_pointer_cast<const program::Equality>(expr);    
+      return logic::Formulas::equality(
+          toInlinedTerm(whileStatement, castedExpr->child1, timepoint,
+                        trace),
+          toInlinedTerm(whileStatement, castedExpr->child2, timepoint,
+                        trace));          
+    }        
   }
 }
 }  // namespace analysis

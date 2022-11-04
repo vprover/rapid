@@ -90,7 +90,8 @@ class Configuration {
       : _outputDir("-dir", "directory in which to store the SMT file", ""),
         _generateBenchmark("-generateBenchmark", "", false),
         _outputToFile("-outputToFile", "output benchmark to a file rather than attempting to prove via provers' APIs", false),        
-        _nativeNat("-nat", "use natural numbers to denote loop iterations", true),
+        _nativeNat("-nat", "use custom SMTLIB declaration for nat, to allow Vampire to treat specially", true),
+        _nativeStruct("-struct", "use custom SMTLIB declaration for structs, to allow Vampire to treat specially", true),
         _inlineSemantics("-inlineSemantics", "", true),
         _variableDifferences("-varDiff", "", false),
         _axiomatiseToInt("-axToInt", "axiomatises the toInt function which converts nats to ints", false),
@@ -114,6 +115,7 @@ class Configuration {
     registerOption(&_generateBenchmark);
     registerOption(&_outputToFile);
     registerOption(&_nativeNat);
+    registerOption(&_nativeStruct);
     registerOption(&_inlineSemantics);
     registerOption(&_variableDifferences);
     registerOption(&_axiomatiseToInt);
@@ -169,6 +171,7 @@ class Configuration {
   bool generateBenchmark() { return _generateBenchmark.getValue(); }
   bool outputToFile() { return _outputToFile.getValue(); }
   bool nativeNat() { return _nativeNat.getValue(); }
+  bool nativeStructs() { return _nativeStruct.getValue(); }
   bool inlineSemantics() { return _inlineSemantics.getValue(); }
   bool variableDifferences() { return _variableDifferences.getValue(); }
   bool axiomatiseToInt() { return _axiomatiseToInt.getValue(); }
@@ -197,6 +200,7 @@ class Configuration {
   BooleanOption _generateBenchmark;
   BooleanOption _outputToFile;
   BooleanOption _nativeNat;
+  BooleanOption _nativeStruct;
   BooleanOption _inlineSemantics;
   BooleanOption _variableDifferences;
   BooleanOption _axiomatiseToInt;

@@ -33,9 +33,14 @@ bool Configuration::setAllValues(int argc, char* argv[]) {
   int i = 1;
   bool b = true;
 
+  if(strcmp(argv[i], "-help") ==0){
+    outputOptionsHelp();
+    return false;
+  }
+
   // ignore first argument (program name) and last (input file)
   while (i < argc - 1) {
-
+  
     if(strcmp(argv[i], "-help") ==0){
       outputOptionsHelp();
       return false;

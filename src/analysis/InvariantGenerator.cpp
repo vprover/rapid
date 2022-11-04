@@ -19,25 +19,78 @@ void InvariantTask::setStatus(Status status){
 
 void InvariantGenerator::generateInvariants( 
     const program::WhileStatement* whileStatement,
-    std::shared_ptr<const logic::Formula> loopSemantics)
+    std::shared_ptr<const logic::Formula> semantics)
 {
 
-  auto loopSemanticsAxiom = std::make_shared<Axiom>(loopSemantics);
+  auto semanticsAxiom = std::make_shared<Axiom>(semantics);
 
-  generateMallocInLoopInvariants(whileStatement, loopSemanticsAxiom);
+  generatePointsToNullInvariants(whileStatement, semanticsAxiom);
+  generateMallocInLoopInvariants(whileStatement, semanticsAxiom);
   if(_typed){
-    generateStructsStaySameInvariants(whileStatement, loopSemanticsAxiom);
+    generateStructsStaySameInvariants(whileStatement, semanticsAxiom);
   } 
-  generateDenseInvariants(whileStatement, loopSemanticsAxiom);
+  generateDenseInvariants(whileStatement, semanticsAxiom);
   // TODO in the untyped case we want to generate invariants over active mallocs
   // we should actually add such invariants as fall backs even in the typed case
   // as well
-  generateChainingInvariants(whileStatement, loopSemanticsAxiom);
+  generateChainingInvariants(whileStatement, semanticsAxiom);
+
+  generateStaticVarInvariants(whileStatement, semanticsAxiom);
+}
+
+void InvariantGenerator::generatePointsToNullInvariants(      
+      const program::WhileStatement* whileStatement,
+      std::shared_ptr<const logic::Axiom> semantics)
+{
+  auto assignedVars = AnalysisPreComputation::computeAssignedVars(whileStatement, true);     
+  auto freeVarSymbols = enclosingIteratorsSymbols(whileStatement);
+  
+  for(auto& var : assignedVars){
+    if(var->vt->isPointerToStruct()){
+      auto childType = var->vt->getChild();
+      assert(childType->isStructType());      
+      auto structType = std::static_pointer_cast<const program::StructType>(childType);
+      for(auto& field : structType->getFields()){
+        if(field->vt->isPointerToStruct()){
+
+          std::string structSortName = structType->getName();
+          std::string selectorName = toLower(structSortName) + "_" + field->name;
+
+          auto trace = traceTerm(1);
+          auto n = lastIterationTermForLoop(whileStatement, 1, trace); 
+
+          auto nullTerm = Theory::nullLoc(structSortName);
+
+          auto inductionHypothesis =
+          [&](std::shared_ptr<const logic::Term> arg) {
+            auto lStartArg = timepointForLoopStatement(whileStatement, arg);
+            auto lhs = Theory::selectorAt(selectorName, lStartArg, toTerm(var, lStartArg, trace));
+            return Formulas::equality(lhs, nullTerm);
+          };
+
+          auto [baseCase, stepCase, conclusion] = 
+          inductionAxiom0("Invariant of loop at location " + whileStatement->location,
+                         inductionHypothesis, n ,freeVarSymbols); 
+
+          auto conclusionInstance = 
+            std::make_shared<Axiom>(Formulas::universal(freeVarSymbols, inductionHypothesis(n)), 
+            "Useful instance of above invariant");
+
+          auto rtBase = new ReasoningTask({semantics}, baseCase);
+          auto rtStep = new ReasoningTask({semantics}, stepCase);
+          auto itl = InvariantTaskList(InvariantTaskList::ListType::SINGLETON,
+            InvariantTask(rtBase, rtStep, {conclusion, conclusionInstance}, whileStatement->location));
+          _potentialInvariants.push_back(itl);  
+        }
+      }
+    }
+  }
+
 }
 
 void InvariantGenerator::generateMallocInLoopInvariants(      
   const program::WhileStatement* whileStatement,
-  std::shared_ptr<const logic::Axiom> loopSemantics)
+  std::shared_ptr<const logic::Axiom> semantics)
 {
 
   // try and prove invariant that after object malloced in a loop
@@ -50,12 +103,8 @@ void InvariantGenerator::generateMallocInLoopInvariants(
       if(rhs->type() == program::Type::MallocFunc){
 
         auto trace = traceTerm(1);
-        auto n = lastIterationTermForLoop(whileStatement, 1, trace);              
-        auto itSym = Signature::varSymbol("it", logic::Sorts::intSort());
-        auto it = Terms::var(itSym);       
-        auto itLessNl = Theory::less(it, n);
+        auto n = lastIterationTermForLoop(whileStatement, 1, trace); 
         auto freeVarSymbols = enclosingIteratorsSymbols(whileStatement);
-        freeVarSymbols.push_back(itSym);
 
         if(_typed){
           auto type = rhs->exprType();
@@ -63,83 +112,42 @@ void InvariantGenerator::generateMallocInLoopInvariants(
           assert(childType->isStructType());
           auto structType = std::static_pointer_cast<const program::StructType>(childType);
           for(auto& field : structType->getFields()){
-            std::vector<InvariantTask> rtVec;
-            if(field->vt->isPointerToStruct()){
-              std::string selectorName = toLower(structType->getName()) + "_" + field->name;
-              auto blSym = Signature::varSymbol("bl", logic::Sorts::intSort());
-              auto bl = Terms::var(blSym);
-              auto succBl = Theory::succ(bl);
-              auto succIt = Theory::succ(it);                                   
-              auto zeroLessBl = Theory::lessEq(Theory::zero(), bl);
-              auto blLessIt = Theory::less(bl, it);
-              auto blLessNl = Theory::less(bl, n);              
-              auto tp = timepointForNonLoopStatement(castedStatement, bl);
-              auto mallocTerm = toTerm(rhs, tp, trace);
+            std::string selectorName = toLower(structType->getName()) + "_" + field->name;
 
-              auto inductionHypothesis =
-              [&](std::shared_ptr<const logic::Term> arg) {
-                auto lStartArg = timepointForLoopStatement(whileStatement, arg);
-                auto lStartSuccBl = timepointForLoopStatement(whileStatement, succBl);
-                auto lhs = Theory::selectorAt(selectorName, lStartSuccBl, mallocTerm);
-                auto rhs = Theory::selectorAt(selectorName, lStartArg, mallocTerm);
-                return Formulas::equality(lhs, rhs);
-              };
+            auto inductionHypothesis2 =
+            [&](std::shared_ptr<const logic::Term> arg1, 
+                std::shared_ptr<const logic::Term> arg2) {
+              auto asFuncTerm = std::static_pointer_cast<const logic::FuncTerm>(arg1);
 
-              freeVarSymbols.push_back(blSym);
+              auto lStartArg1 = timepointForLoopStatement(whileStatement, arg1);
+              auto lStartArg2 = timepointForLoopStatement(whileStatement, arg2);  
+              auto lStartBl = timepointForNonLoopStatement(castedStatement, asFuncTerm->subterms[0]);
 
-              auto conclusion = 
-                Formulas::universal(freeVarSymbols,
-                  Formulas::implication(
-                    Formulas::conjunctionSimp({zeroLessBl, blLessNl}), 
-                      inductionHypothesis(n)));
-              // TODO add "potential" to the name here, but remove it if proof found
-              auto conclusionAx = std::make_shared<Axiom>(conclusion, 
-                "Invariant of loop at location " + whileStatement->location);
+              // really dirty hack here as want malloc(l15(bl)) and not
+              // malloc(l15(bl + 2)) or malloc(l15(bl + 1))
+              auto mallocTerm = toTerm(rhs, lStartBl, trace);           
 
-              auto lhsOfImp = Formulas::conjunctionSimp({zeroLessBl, blLessIt, itLessNl, inductionHypothesis(it)});
-              auto rhsOfImp = inductionHypothesis(succIt);
-              auto imp = Formulas::implication(lhsOfImp, rhsOfImp);
-              auto toProve = Formulas::universal(freeVarSymbols, imp);
-              
-              auto stepCase = std::make_shared<Conjecture>(toProve);
-              auto rt = new ReasoningTask({loopSemantics}, stepCase);
-              rtVec.push_back(InvariantTask(rt, conclusionAx, whileStatement->location));
-              _potentialInvariants.push_back(rtVec);
-              freeVarSymbols.pop_back();
-            }
-          }
-        }
+              auto lhs = Theory::selectorAt(selectorName, lStartArg1, mallocTerm);
+              auto rhs = Theory::selectorAt(selectorName, lStartArg2, mallocTerm);
+              return Formulas::equality(lhs, rhs);
+            };  
+ 
+            auto [stepCase1, conclusion1] = 
+            inductionAxiom3("Invariant of loop at location " + whileStatement->location,
+                            inductionHypothesis2, 1, n ,freeVarSymbols); 
 
-        // for mallocs within a loop, we add an axiom
-        // stating that the returned location is fresh and cannot
-        // be in the support of any chains at the start of the loop
-        for(auto sort : logic::Sorts::structSorts()){
-          auto rhsSort = toSort(rhs->exprType());
-          if(sort->name == rhsSort->name){
-            auto structSort = static_cast<logic::StructSort*>(sort);
-            for(auto& recSelName : structSort->recursiveSelectors()){
-              auto startTp = timepointForLoopStatement(whileStatement, it);
-              auto tp = timepointForNonLoopStatement(castedStatement, it);
-              auto mallocTerm = toTerm(rhs, tp, trace);   
-              auto osym = Signature::varSymbol("o", rhsSort);
-              auto lsym = Signature::varSymbol("chain_len", Sorts::intSort());
+            auto [stepCase2, conclusion2] = 
+            inductionAxiom3("Invariant of loop at location " + whileStatement->location,
+                            inductionHypothesis2, 2, n ,freeVarSymbols); 
 
-              auto ovar = logic::Terms::var(osym); 
-              auto len = logic::Terms::var(lsym);  
+            auto rt1 = new ReasoningTask({semantics}, stepCase1);
+            auto rt2 = new ReasoningTask({semantics}, stepCase2);
 
-              auto notInSup = Formulas::negation(
-                Theory::inChainSupport(recSelName, startTp, mallocTerm, ovar, len));
+            auto itl = InvariantTaskList(InvariantTaskList::ListType::CONTINUE_ON_FAILURE,
+              InvariantTask(rt1, {conclusion1}, whileStatement->location, TaskType::MALLOC));
+            itl.addTask(InvariantTask(rt2, {conclusion2}, whileStatement->location, TaskType::MALLOC));
 
-              auto bounds = Formulas::conjunction({
-                Theory::lessEq(Theory::zero(), it),
-                  itLessNl});
-
-              freeVarSymbols.push_back(osym);
-              freeVarSymbols.push_back(lsym);
-              auto formula = Formulas::universal(freeVarSymbols, 
-                Formulas::implication(bounds, notInSup));
-              _supportAxioms.push_back(std::make_shared<Axiom>(formula, "Malloc returns fresh location"));
-            }  
+            _potentialInvariants.push_back(itl);
           }
         }
         
@@ -154,7 +162,7 @@ void InvariantGenerator::generateMallocInLoopInvariants(
 
 void InvariantGenerator::generateStructsStaySameInvariants(      
   const program::WhileStatement* whileStatement,
-  std::shared_ptr<const logic::Axiom> loopSemantics)
+  std::shared_ptr<const logic::Axiom> semantics)
 {
   auto freeVarSymbols = enclosingIteratorsSymbols(whileStatement);
   auto trace = traceTerm(1);
@@ -183,7 +191,6 @@ void InvariantGenerator::generateStructsStaySameInvariants(
     auto structSort = static_cast<logic::StructSort*>(sort);
 
     for(auto& selector : structSort->selectors()){
-      std::vector<InvariantTask> rtVec;    
       auto inductionHypothesis =
       [&](std::shared_ptr<const logic::Term> arg) {
         auto lStartArg = timepointForLoopStatement(whileStatement, arg);
@@ -196,9 +203,10 @@ void InvariantGenerator::generateStructsStaySameInvariants(
       inductionAxiom0("Invariant of loop at location " + whileStatement->location,
                      inductionHypothesis, n ,freeVarSymbols); 
 
-      auto rt = new ReasoningTask({loopSemantics}, stepCase);
-      rtVec.push_back(InvariantTask(rt, conclusion, whileStatement->location));
-      _potentialInvariants.push_back(rtVec);      
+      auto rt = new ReasoningTask({semantics}, stepCase);
+      auto itl = InvariantTaskList(InvariantTaskList::ListType::SINGLETON,
+        InvariantTask(rt, {conclusion}, whileStatement->location));
+      _potentialInvariants.push_back(itl);      
     }
   
   }
@@ -207,7 +215,7 @@ void InvariantGenerator::generateStructsStaySameInvariants(
 
 void InvariantGenerator::generateDenseInvariants(      
   const program::WhileStatement* whileStatement,
-  std::shared_ptr<const logic::Axiom> loopSemantics)
+  std::shared_ptr<const logic::Axiom> semantics)
 {
 
   auto assignedVars = AnalysisPreComputation::computeAssignedVars(whileStatement);
@@ -231,74 +239,74 @@ void InvariantGenerator::generateDenseInvariants(
 
     auto condCasted =
         std::static_pointer_cast<const program::ArithmeticComparison>(cond);
-    if (condCasted->kind != program::ArithmeticComparison::Kind::EQ) {
-      auto left = condCasted->child1;
-      auto right = condCasted->child2;
-      if (AnalysisPreComputation::doNotOccurIn(assignedVars, right)) {
-        // Right is constant through the loop. 
-        // This is a cheap way of statically dsicovering this.
-        // A better method would be to make this a part of the proof obligation 
+    auto left = condCasted->child1;
+    auto right = condCasted->child2;
+    if (AnalysisPreComputation::doNotOccurIn(assignedVars, right)) {
+      // Right is constant through the loop. 
+      // This is a cheap way of statically dsicovering this.
+      // A better method would be to make this a part of the proof obligation 
 
-        auto newLeft = toTerm(left, lStartZero, trace);
-        auto newRight = toTerm(right, lStartZero, trace);
+      // TODO, the above is unsafe in the presence of pointers...!
 
-        auto conc = logic::Formulas::equality(
-          toTerm(left, lStartN, trace), 
-            toTerm(right, lStartN, trace));
+      auto newLeft = toTerm(left, lStartZero, trace);
+      auto newRight = toTerm(right, lStartZero, trace);
 
-        auto op = condCasted->kind;
-        bool lessThan = false;
+      auto conc = logic::Formulas::equality(
+        toTerm(left, lStartN, trace), 
+          toTerm(right, lStartN, trace));
 
-        switch (op) {
-          case program::ArithmeticComparison::Kind::LT: {
-            lessThan = true;
-            break;
-          }
+      auto op = condCasted->kind;
+      bool lessThan = false;
 
-          case program::ArithmeticComparison::Kind::LE: {
-            lessThan = true;
-            auto one = Theory::intConstant(1);
-            newRight = Theory::intAddition(newRight, one);
-            break;
-          }
-
-          case program::ArithmeticComparison::Kind::GT: {
-            break;
-          }
-
-          default: {
-            // the equality case should never occur
-            auto one = Theory::intConstant(1);
-            newRight = Theory::intSubtraction(newRight, one);
-            break;
-          }
+      switch (op) {
+        case program::ArithmeticComparison::Kind::LT: {
+          lessThan = true;
+          break;
         }
-        
-        auto prem =
-            lessThan ? Theory::lessEq(newLeft, newRight)
-                     : Theory::intGreaterEqual(newLeft, newRight);
-        
-        auto lemma = logic::Formulas::universal(
-              freeVarSymbols, logic::Formulas::implication(prem, conc));
 
-        auto conclusionAx = std::make_shared<Axiom>(lemma, 
-          "Invariant of loop at location " + loc);
+        case program::ArithmeticComparison::Kind::LE: {
+          lessThan = true;
+          auto one = Theory::intConstant(1);
+          newRight = Theory::intAddition(newRight, one);
+          break;
+        }
 
-        auto conjunctLeft = logic::Theory::lessEq(logic::Theory::zero(), it);
+        case program::ArithmeticComparison::Kind::GT: {
+          break;
+        }
 
-
-        auto denseFormula = 
-           densityDefinition(left, itSym, it, lStartIt, lStartSuccOfIt, n, trace, lessThan);
-        denseFormula = Formulas::universalSimp(freeVarSymbols, denseFormula);
-
-        auto toProve = std::make_shared<Conjecture>(denseFormula);
-
-        std::vector<InvariantTask> rtVec; 
-        auto rt = new ReasoningTask({loopSemantics}, toProve);
-  
-        rtVec.push_back(InvariantTask(rt, conclusionAx, loc, TaskType::DENSE));
-        _potentialInvariants.push_back(rtVec);     
+        default: {
+          // the equality case should never occur
+          auto one = Theory::intConstant(1);
+          newRight = Theory::intSubtraction(newRight, one);
+          break;
+        }
       }
+      
+      auto prem =
+          lessThan ? Theory::lessEq(newLeft, newRight)
+                   : Theory::intGreaterEqual(newLeft, newRight);
+      
+      auto lemma = logic::Formulas::universal(
+            freeVarSymbols, logic::Formulas::implication(prem, conc));
+
+      auto conclusionAx = std::make_shared<Axiom>(lemma, 
+        "Invariant of loop at location " + loc);
+
+      auto conjunctLeft = logic::Theory::lessEq(logic::Theory::zero(), it);
+
+
+      auto denseFormula = 
+         densityDefinition(left, itSym, it, lStartIt, lStartSuccOfIt, n, trace, lessThan);
+      denseFormula = Formulas::universalSimp(freeVarSymbols, denseFormula);
+
+      auto toProve = std::make_shared<Conjecture>(denseFormula);
+
+      auto rt = new ReasoningTask({semantics}, toProve);
+
+      auto itl = InvariantTaskList(InvariantTaskList::ListType::SINGLETON,
+        InvariantTask(rt, {conclusionAx}, loc, TaskType::DENSE));
+      _potentialInvariants.push_back(itl);     
     }
   }
 
@@ -310,16 +318,40 @@ void InvariantGenerator::generateDenseInvariants(
     auto varExpr = 
       std::shared_ptr<const program::VariableAccess>(new program::VariableAccess(v));
     auto varAtStart = toTerm(varExpr, lStartZero, trace);
-    auto varAtEnd = toTerm(varExpr, lStartN, trace);   
-    auto concIncreasing = Formulas::equality(n,
-      Theory::intSubtraction(varAtEnd, varAtStart)); 
-    auto concDecreasing = Formulas::equality(n,
+    auto varAtIt    = toTerm(varExpr, lStartIt, trace);
+    auto varAtEnd   = toTerm(varExpr, lStartN, trace);  
+
+    
+    auto addBounds = [&](std::shared_ptr<const logic::Formula> form){
+      auto zeroLessIt = Theory::lessEq(Theory::zero(), it);
+      auto itLessNl = Theory::lessEq(it,n);
+      return Formulas::implication(
+              Formulas::conjunctionSimp({zeroLessIt, itLessNl}), 
+                form);
+    };
+
+    
+    auto concIncreasing1 = addBounds(Formulas::equality(varAtIt,
+      Theory::intAddition(varAtStart, it))); 
+    auto concIncreasing2 = addBounds(Formulas::equality(n,
+      Theory::intSubtraction(varAtEnd, varAtStart))); 
+
+    auto concDecreasing1 = Formulas::equality(varAtIt,
+      Theory::intSubtraction(varAtStart, it));
+    auto concDecreasing2 = Formulas::equality(n,
       Theory::intSubtraction(varAtStart, varAtEnd)); 
 
-    auto c1 = std::make_shared<Axiom>(Formulas::universal(freeVarSymbols, concIncreasing), 
+    freeVarSymbols.push_back(itSym);
+    auto ci1 = std::make_shared<Axiom>(Formulas::universal(freeVarSymbols, concIncreasing1), 
       "Invariant of loop at location " + loc);
-    auto c2 = std::make_shared<Axiom>(Formulas::universal(freeVarSymbols, concDecreasing), 
+    auto cd1 = std::make_shared<Axiom>(Formulas::universal(freeVarSymbols, concDecreasing1), 
       "Invariant of loop at location " + loc);
+    freeVarSymbols.pop_back();
+
+    auto ci2 = std::make_shared<Axiom>(Formulas::universal(freeVarSymbols, concIncreasing2), 
+      "Useful instance of above invariant");
+    auto cd2 = std::make_shared<Axiom>(Formulas::universal(freeVarSymbols, concDecreasing2), 
+      "Useful instance of above invariant");
 
     auto stronglyDenseIncreasing = 
       densityDefinition(varExpr, itSym, it, lStartIt, lStartSuccOfIt, n, trace, true, true);    
@@ -331,17 +363,17 @@ void InvariantGenerator::generateDenseInvariants(
     auto toProveDecreasing = std::make_shared<Conjecture>(
       Formulas::universal(freeVarSymbols, stronglyDenseDecreasing));
 
-    std::vector<InvariantTask> rtVecIncreasing; 
-    auto rtIncreasing = new ReasoningTask({loopSemantics}, toProveIncreasing);
+    auto rtIncreasing = new ReasoningTask({semantics}, toProveIncreasing);
 
-    rtVecIncreasing.push_back(InvariantTask(rtIncreasing, c1, loc, TaskType::DENSE));
-    _potentialInvariants.push_back(rtVecIncreasing);  
+     auto itl1 = InvariantTaskList(InvariantTaskList::ListType::SINGLETON,
+      InvariantTask(rtIncreasing, {ci1, ci2}, loc, TaskType::DENSE));
+    _potentialInvariants.push_back(itl1);  
 
-    std::vector<InvariantTask> rtVec; 
-    auto rt = new ReasoningTask({loopSemantics}, toProveDecreasing);
+    auto rt = new ReasoningTask({semantics}, toProveDecreasing);
 
-    rtVec.push_back(InvariantTask(rt, c2, loc, TaskType::DENSE));
-    _potentialInvariants.push_back(rtVec); 
+     auto itl2 = InvariantTaskList(InvariantTaskList::ListType::CONTINUE_ON_FAILURE,
+      InvariantTask(rt, {cd1, cd2} , loc, TaskType::DENSE));
+    _potentialInvariants.push_back(itl2); 
   }
 
 }
@@ -349,7 +381,7 @@ void InvariantGenerator::generateDenseInvariants(
 
 void InvariantGenerator::generateChainingInvariants(      
   const program::WhileStatement* whileStatement,
-  std::shared_ptr<const logic::Axiom> loopSemantics)
+  std::shared_ptr<const logic::Axiom> semantics)
 {
   for (const auto& statement : whileStatement->bodyStatements) {
         
@@ -370,7 +402,6 @@ void InvariantGenerator::generateChainingInvariants(
           auto strctAsVar = std::static_pointer_cast<const program::VariableAccess>(strct);
           
           if(lhsAsVar->var == strctAsVar->var){
-            std::vector<InvariantTask> rtVec;    
              // at this point we know that the statement is of the form
              // var = var->f for some field f
             auto freeVarSymbols = enclosingIteratorsSymbols(whileStatement);
@@ -386,21 +417,51 @@ void InvariantGenerator::generateChainingInvariants(
             [&](std::shared_ptr<const logic::Term> arg) {
               auto lStartArg = timepointForLoopStatement(whileStatement, arg);
               auto lhsTerm = toTerm(lhs, lStartArg, trace);
-              auto rhsTerm = Theory::chain(selectorName, toTerm(lhsAsVar, lStartZero, trace), lStartZero, arg, sort->name);
+              auto rhsTerm = Theory::chain(selectorName, toTerm(lhsAsVar, lStartZero, trace), lStartArg, arg, sort->name);
               return Formulas::equality(lhsTerm, rhsTerm);
             }; 
 
-            auto [baseCase, stepCase, conclusion] = 
+            auto [baseCase1, stepCase1, conclusion1] = 
             inductionAxiom0("Invariant of loop at location " + whileStatement->location,
                            inductionHypothesis, n ,freeVarSymbols); 
 
-            auto [bCase, inductiveCase, helperLemma] =
-              logic::Theory::chainAxioms(selectorName, sort->name);
+            auto conclusionInstance = 
+              std::make_shared<Axiom>(Formulas::universal(freeVarSymbols, inductionHypothesis(n)), 
+              "Useful instance of above invariant");
 
-            auto rt = new ReasoningTask({loopSemantics, bCase, inductiveCase, helperLemma}, stepCase);
-            rtVec.push_back(InvariantTask(rt, conclusion, whileStatement->location,
-             TaskType::CHAINY, {bCase, inductiveCase, helperLemma}));
-            _potentialInvariants.push_back(rtVec);      
+
+            auto inductionHypothesis2 =
+            [&](std::shared_ptr<const logic::Term> arg1, 
+                std::shared_ptr<const logic::Term> arg2) {
+              auto lStartArg1 = timepointForLoopStatement(whileStatement, arg1);
+              auto lStartArg2 = timepointForLoopStatement(whileStatement, arg2);              
+              auto lhsTerm = Theory::chain(selectorName, toTerm(lhsAsVar, lStartZero, trace), lStartArg1, arg1, sort->name);
+              auto rhsTerm = Theory::chain(selectorName, toTerm(lhsAsVar, lStartZero, trace), lStartArg2, arg1, sort->name);
+              return Formulas::equality(lhsTerm, rhsTerm);
+            };            
+
+            auto [stepCase2, conclusion2] = 
+            inductionAxiom3("Invariant of loop at location " + whileStatement->location,
+                            inductionHypothesis2, 0, n ,freeVarSymbols); 
+
+            auto [stepCase3, conclusion3] = 
+            inductionAxiom4("Invariant of loop at location " + whileStatement->location,
+                            inductionHypothesis2, n ,freeVarSymbols); 
+         
+            /*auto [bCase, inductiveCase, helperLemma] =
+              logic::Theory::chainAxioms(selectorName, sort->name);*/
+
+            auto rt1 = new ReasoningTask({semantics/*, bCase, inductiveCase, helperLemma*/}, stepCase1);
+            auto rt2 = new ReasoningTask({semantics}, stepCase2);
+            auto rt3 = new ReasoningTask({semantics}, stepCase3);
+
+            auto itl = InvariantTaskList(InvariantTaskList::ListType::CONTINUE_ON_SUCCESS,
+              InvariantTask(rt1, {conclusion1, conclusionInstance}, 
+              whileStatement->location, TaskType::CHAINY /* add chainy axioms here if we really want */));
+            itl.addTask(InvariantTask(rt2, {conclusion2}, whileStatement->location, TaskType::CHAINY));
+            itl.addTask(InvariantTask(rt3, {conclusion3}, whileStatement->location, TaskType::CHAINY));
+
+            _potentialInvariants.push_back(itl);      
           }
         }
       }
@@ -408,15 +469,89 @@ void InvariantGenerator::generateChainingInvariants(
   }
 }
 
+void  InvariantGenerator::generateStaticVarInvariants(
+  const program::WhileStatement* whileStatement,
+  std::shared_ptr<const logic::Axiom> semantics)
+{
+
+  auto itSym = Signature::varSymbol("it", logic::Sorts::intSort());
+  auto it = Terms::var(itSym); 
+
+  auto trace = traceTerm(1);
+  auto n = lastIterationTermForLoop(whileStatement, 1, trace);  
+
+  auto lStart0 = timepointForLoopStatement(whileStatement, Theory::zero());
+  auto lStartIt = timepointForLoopStatement(whileStatement, it);
+  auto lStartSuccOfIt = timepointForLoopStatement(whileStatement, Theory::succ(it));
+  auto lStartN = timepointForLoopStatement(whileStatement, n);
+  auto freeVarSymbols = enclosingIteratorsSymbols(whileStatement);
+  freeVarSymbols.push_back(itSym);
+
+  auto zeroLessEqIt = Theory::lessEq(Theory::zero(), it);
+  auto itLessNlTerm = Theory::less(it, n);
+
+  auto activeVars = _locationToActiveVars.at(lStart0->symbol->name);
+  auto assignedVars = AnalysisPreComputation::computeAssignedVars(whileStatement, true);
+
+  auto loc = whileStatement->location;
+
+  auto inAssignedVars = [&](std::string varName){
+    for(auto& var : assignedVars){
+      if(varName == var->name){
+        return true;
+      }
+    }
+    return false;
+  };
+
+
+  for(auto& var : activeVars){
+    // TODO, potentially a variable is assigned within a loop,
+    // but still stays constant. We ignore that possibility for
+    // now
+    if(!inAssignedVars(var->name) && !var->isConstant){
+ 
+      auto varAtStart = toTerm(var, lStart0, trace);
+      auto varAtIt = toTerm(var, lStartIt, trace);
+      auto varAtSuccIt = toTerm(var, lStartSuccOfIt, trace);
+      auto varAtEnd = toTerm(var, lStartN, trace);
+
+      auto stepCase = Formulas::universal(freeVarSymbols, 
+          Formulas::implication(
+            Formulas::conjunctionSimp({zeroLessEqIt, itLessNlTerm}),
+            Formulas::equality(varAtIt, varAtSuccIt)
+          )
+        );
+
+      auto formula = Formulas::equality(varAtStart, varAtEnd);
+      auto toProve = std::make_shared<Conjecture>(stepCase);
+
+      auto conclusionAx = std::make_shared<Axiom>(formula, 
+        "Invariant of loop at location " + loc);
+
+      auto rt = new ReasoningTask({semantics}, toProve);
+
+      auto itl = InvariantTaskList(InvariantTaskList::ListType::SINGLETON,
+        InvariantTask(rt, {conclusionAx}, loc, TaskType::OTHER));
+      _potentialInvariants.push_back(itl); 
+    }
+  }
+
+}
+
 void InvariantGenerator::insertAxiomsIntoTasks(
   std::vector<std::shared_ptr<const Axiom>> items, 
   std::string location)
 {
-  for(auto& vec : _potentialInvariants){
-    for(auto& item : vec){
+  for(auto& invList : _potentialInvariants){
+    
+    auto& item = invList.mainTask();
+    if(location.empty() || (item.loopLoc() == location))
+        item.addAxioms(items);
+
+    for(auto& item : invList.fallBackTasks()){
       if(location.empty() || (item.loopLoc() == location))
         item.addAxioms(items);
-      //item.outputSMTLIB(std::cout); 
     }
   }
 }
@@ -427,11 +562,13 @@ InvariantGenerator::getProvenInvariantsAndAxioms()
   std::vector<std::shared_ptr<const logic::Axiom>> axioms;
   std::set<std::string> chainDefsAdded;
 
-  for(auto& vec : _potentialInvariants){
-    for(auto& item : vec){
-      if(item.status() == InvariantTask::Status::SOLVED){
-        axioms.push_back(item.conclusion());
-        if(item.isChainyTask()){
+  for(auto& invList : _potentialInvariants){
+    for(auto& invTask : invList.allTasks()){
+      if(invTask.status() == InvariantTask::Status::SOLVED){
+        for(auto& conc : invTask.conclusions()){
+          axioms.push_back(conc);          
+        }
+        /*if(item.isChainyTask()){
           for(auto& ax : item.getChainAxioms()){
             auto axName = ax->name;
             if(chainDefsAdded.find(axName) == chainDefsAdded.end()){
@@ -439,7 +576,7 @@ InvariantGenerator::getProvenInvariantsAndAxioms()
               axioms.push_back(ax);
             }
           }
-        }      
+        }*/     
       }
     }
   }
@@ -449,33 +586,63 @@ InvariantGenerator::getProvenInvariantsAndAxioms()
   return axioms;  
 }
 
+bool InvariantGenerator::attemptToProveInvariant(InvariantTask& item){
+
+  std::cout << "Attempting to prove " << 
+    "formula below holds for loop at location " + item.loopLoc() << "\n\n" <<
+    item.conclusions()[0]->formula->prettyString() << "\n" << std::endl;
+
+  auto& solver = solvers::VampireSolver::instance();
+  bool baseCaseProven = true;
+  bool stepCaseProven = false;
+
+  if(item.baseCase()){
+    std::cout << "Attempting to prove step case" << std::endl;
+  }
+
+  stepCaseProven = solver.solveTask(*item.stepCase(), item.taskType());
+  if(item.baseCase()){
+    std::cout << "Attempting to prove base case" << std::endl;        
+    baseCaseProven = solver.solveTask(*item.baseCase(), item.taskType());
+  }
+  if(stepCaseProven && baseCaseProven){
+    std::cout << "Proof attempt successful!" << std::endl;
+    std::cout << "---------------------------------------------------------------------\n" << std::endl;
+    item.setStatus(InvariantTask::Status::SOLVED);
+    insertAxiomsIntoTasks(item.conclusions(), item.loopLoc());
+    return true;
+  }
+
+  std::cout << "Proof attempt failed!" << std::endl;
+  if(item.baseCase() && !stepCaseProven){
+    std::cout << "Could not prove step case" << std::endl;        
+  }
+  if(item.baseCase() && !baseCaseProven){
+    std::cout << "Could not prove base case" << std::endl;        
+  }
+  std::cout << "---------------------------------------------------------------------\n" << std::endl;
+  item.setStatus(InvariantTask::Status::FAILED); 
+  return false;
+
+}
+
 void  InvariantGenerator::attemptToProveInvariants(){
-  for(auto& vec : _potentialInvariants){
-    for(auto& item : vec){
 
-      std::cout << "Attempting to prove " << 
-        "formula below holds for loop at location " + item.loopLoc() << "\n\n" <<
-        item.conclusion()->formula->prettyString() << "\n" << std::endl;
+  std::cout << "#### Status: ##### Stengthening semantics with loop invariants" << std::endl;
 
-      auto& solver = solvers::VampireSolver::instance();
-      bool baseCaseProven = true;
-      bool stepCaseProven = false;
-      stepCaseProven = solver.solveTask(*item.stepCase(), item.taskType());
-      if(item.baseCase()){
-        baseCaseProven = solver.solveTask(*item.baseCase(), item.taskType());
-      }
-      if(stepCaseProven && baseCaseProven){
-        std::cout << "Proof attempt successful!" << std::endl;
-        std::cout << "---------------------------------------------------------------------\n" << std::endl;
-        item.setStatus(InvariantTask::Status::SOLVED);
-        auto inv = item.conclusion();
-        insertAxiomsIntoTasks({inv}, item.loopLoc());
-        break; // from inner for. No need to proceed to less general invariants.
-      } else {
-        std::cout << "Proof attempt failed!" << std::endl;
-        std::cout << "---------------------------------------------------------------------\n" << std::endl;
-        item.setStatus(InvariantTask::Status::FAILED);      
-      }
+  for(auto& invList : _potentialInvariants){
+
+    auto& item = invList.mainTask();
+  
+    bool proved = attemptToProveInvariant(item);
+
+    if(( proved && invList.continueOnSuccess()) || 
+       (!proved && invList.continueOnFailure())){
+      
+      for(auto& task : invList.fallBackTasks()){
+        attemptToProveInvariant(task);
+      }  
+
     }
   }
 }

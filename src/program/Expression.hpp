@@ -251,7 +251,8 @@ class BoolExpression {
     BooleanAnd,
     BooleanOr,
     BooleanNot,
-    ArithmeticComparison
+    ArithmeticComparison,
+    Equality
   };
   virtual Type type() const = 0;
 
@@ -306,11 +307,27 @@ class BooleanNot : public BoolExpression {
   std::string toString() const override;
 };
 
+class Equality : public BoolExpression {
+ public:
+  Equality(std::shared_ptr<const Expression> child1,
+           std::shared_ptr<const Expression> child2)
+      : child1(std::move(child1)), child2(std::move(child2)) {}
+
+  const std::shared_ptr<const Expression> child1;
+  const std::shared_ptr<const Expression> child2;
+
+  Type type() const override {
+    return BoolExpression::Type::Equality;
+  }
+  std::string toString() const override;
+};
+
 class ArithmeticComparison : public BoolExpression {
  public:
-  enum class Kind { GE, GT, LE, LT, EQ };
+  enum class Kind { GE, GT, LE, LT };
 
-  ArithmeticComparison(Kind kind, std::shared_ptr<const Expression> child1,
+  ArithmeticComparison(Kind kind, 
+                       std::shared_ptr<const Expression> child1,
                        std::shared_ptr<const Expression> child2)
       : kind(kind), child1(std::move(child1)), child2(std::move(child2)) {}
 

@@ -32,7 +32,15 @@ void Theory::declareTheories() {
 }
 
 void Theory::declareMemoryArrays() {
-  auto null = nullLoc();
+  auto typedModel = util::Configuration::instance().memoryModel() == "typed";
+  if(typedModel){
+    // to ensured that it is declared
+    Sorts::varSort();
+  }
+
+  auto nullSort = typedModel ? "Var" : "Int";
+
+  auto null = nullLoc(nullSort);
   auto tp = arbitraryTP();
 
   auto sel = Signature::fetchArraySelect();
@@ -188,7 +196,8 @@ std::shared_ptr<const FuncTerm> Theory::nullLoc(std::string sortName) {
     prefix = toLower(sortName) + "_";
   }
 
-  return Terms::func(prefix + "null_loc", {}, sort, false);
+  return Terms::func(prefix + "null_loc", {}, sort, false, 
+    logic::Symbol::SymbolType::NullPtr);
 }
 
 std::shared_ptr<const FuncTerm> Theory::valueAt(
@@ -204,10 +213,16 @@ std::shared_ptr<const FuncTerm> Theory::valueAt(
   subterms.push_back(location);
 
   std::string str = isConst ? "_const" : "";
-  str = str + (sortName == "Int" ? "" : "_" + toLower(sortName));
-  std::string funcName = "value" + str;
+  if(sortName == "Int"){
+    str = "value" + str;
+  } else if (sortName == "Var"){
+    // TODO constant pointers
+    str = "deref";
+  } else {
+    str = "value" + str + "_" + toLower(sortName);
+  }
 
-  return Terms::func(funcName, subterms, Sorts::fetch(sortName), false);
+  return Terms::func(str, subterms, Sorts::fetch(sortName), false);
 }
 
 std::shared_ptr<const FuncTerm> Theory::selectorAt(
@@ -232,6 +247,7 @@ std::shared_ptr<const FuncTerm> Theory::chain(
  
   auto sort = Sorts::fetch(sortName);
   auto name = selectorName + "_chain";
+
   return Terms::func(name, {location, timePoint, length}, sort, false, 
     logic::Symbol::SymbolType::ChainFunc);
 }
@@ -245,7 +261,8 @@ std::shared_ptr<const Formula> Theory::inChainSupport(
 
   assert(util::Configuration::instance().memoryModel() == "typed");
   auto name = "in_support_" + selectorName + "_chain";
-  return Formulas::predicate(name, {location1, timePoint, location2, length});
+  return Formulas::predicate(name, {location1, timePoint, location2, length},
+    "", false, logic::Symbol::SymbolType::SupportPredicate);
 }
 
 std::tuple<std::shared_ptr<logic::Axiom>,
@@ -451,7 +468,7 @@ std::shared_ptr<logic::Axiom> Theory::typedFrameAxiom(
   auto tpVar2 = logic::Terms::var(tpVarSym2);
 
   auto framePred = Theory::framePred(m1Var, tpVar, tpVar2);
-  auto m2VarSym = Signature::varSymbol("m2", logic::Sorts::intSort());
+  auto m2VarSym = Signature::varSymbol("m2", logic::Sorts::varSort());
   auto m2Var = Terms::var(m2VarSym); 
 
   
@@ -466,8 +483,11 @@ std::shared_ptr<logic::Axiom> Theory::typedFrameAxiom(
     conjuncts.push_back(holdsValue);
   }
   conjuncts.push_back(Formulas::equality(
-    valueAt(tpVar, m2Var), 
-    valueAt(tpVar2, m2Var)));
+    valueAt(tpVar, m2Var, "Var"), 
+    valueAt(tpVar2, m2Var, "Var")));
+  conjuncts.push_back(Formulas::equality(
+    valueAt(tpVar, m2Var, "Int"), 
+    valueAt(tpVar2, m2Var, "Int")));
 
   auto conj = Formulas::conjunctionSimp(conjuncts);
   auto imp = Formulas::implication(locsNotEqual, conj);
@@ -570,13 +590,13 @@ std::shared_ptr<logic::Axiom> Theory::allSameAxiom(
   std::shared_ptr<const logic::Symbol> tpVarSym1,
   std::shared_ptr<const logic::Symbol> tpVarSym2,
   std::string sortName) {
-
+ 
   auto tp1 = logic::Terms::var(tpVarSym1);  
   auto tp2 = logic::Terms::var(tpVarSym2);
 
-  bool value = sortName == "Int";
-  auto sort = logic::Sorts::fetch(sortName);
-  auto varName = sort->isIntSort() ? "n" : toLower(sort->name) + "_var"; 
+  bool value = sortName == "";
+  auto sort = value ? logic::Sorts::varSort() : logic::Sorts::fetch(sortName);
+  auto varName = value ? "var" : toLower(sort->name) + "_var"; 
 
   auto varSym = Signature::varSymbol(varName, sort);
   auto var = Terms::var(varSym);
@@ -593,8 +613,11 @@ std::shared_ptr<logic::Axiom> Theory::allSameAxiom(
       conjuncts.push_back(holdsValue);
     }
     conjuncts.push_back(Formulas::equality(
-        valueAt(tp1, var), 
-        valueAt(tp2, var)));
+        valueAt(tp1, var, "Var"), 
+        valueAt(tp2, var, "Var")));    
+    conjuncts.push_back(Formulas::equality(
+        valueAt(tp1, var, "Int"), 
+        valueAt(tp2, var, "Int")));
   } else {
     assert(sort->isStructSort());
     auto structSort = static_cast<logic::StructSort*>(sort);
@@ -824,6 +847,105 @@ inductionAxiom0(
       std::make_shared<logic::Conjecture>(stepCase),
       std::make_shared<logic::Axiom>(conclusion, concName));
 }
+
+std::tuple<std::shared_ptr<logic::Conjecture>,
+           std::shared_ptr<logic::Axiom>>
+inductionAxiom3(std::string concName,
+    std::function<std::shared_ptr<const Formula>(
+      std::shared_ptr<const Term>, 
+      std::shared_ptr<const Term>)>
+        inductionHypothesis,
+    unsigned from,    
+    std::shared_ptr<const Term> nlTerm,    
+    std::vector<std::shared_ptr<const Symbol>> freeVarSymbols) {
+
+  assert(from >= 0 && from <= 2);
+
+  auto itSym  = Signature::varSymbol("it", logic::Sorts::intSort());
+  auto it     = Terms::var(itSym);      
+  auto succIt = Theory::succ(it);
+  auto predIt = Theory::intSubtraction(it, Theory::intConstant(1));
+
+  auto blSym      = Signature::varSymbol("bl", logic::Sorts::intSort());
+  auto bl         = Terms::var(blSym);
+  auto succBl     = Theory::succ(bl);
+  auto succSuccBl = Theory::intAddition(bl, Theory::intConstant(2));
+
+  auto blTerm = std::static_pointer_cast<const Term>(bl);
+
+  auto arg1 = from == 0 ? blTerm : (from == 1 ? succBl : succSuccBl);
+
+  auto zeroLessBl = Theory::lessEq(Theory::zero(), bl);
+  auto blLessNl   = from == 0 ? Theory::lessEq(bl,nlTerm) :
+                      (from == 1 ? Theory::less(bl,nlTerm) : Theory::less(succBl,nlTerm));
+  auto blLessIt   = from == 0 ? Theory::lessEq(bl,it) :
+                      (from == 1 ? Theory::less(bl,it) : Theory::less(succBl,it));
+  auto itLessNl   = Theory::less(it, nlTerm);
+
+  freeVarSymbols.push_back(blSym);
+  freeVarSymbols.push_back(itSym);
+  auto stepCase = Formulas::universal(freeVarSymbols, 
+    Formulas::implication(
+      Formulas::conjunction({zeroLessBl, blLessIt, itLessNl, inductionHypothesis(arg1, it)}),
+      inductionHypothesis(arg1, succIt)
+    ));
+
+  freeVarSymbols.pop_back();  
+
+  auto conclusion = Formulas::universal(freeVarSymbols, 
+    Formulas::implication(
+      Formulas::conjunction({zeroLessBl,blLessNl}),
+      inductionHypothesis(arg1,nlTerm)
+    ));
+
+  return std::make_tuple(
+      std::make_shared<logic::Conjecture>(stepCase),
+      std::make_shared<logic::Axiom>(conclusion, concName));
+}
+
+std::tuple<std::shared_ptr<logic::Conjecture>,
+           std::shared_ptr<logic::Axiom>>
+inductionAxiom4(std::string concName,
+    std::function<std::shared_ptr<const Formula>(
+      std::shared_ptr<const Term>, 
+      std::shared_ptr<const Term>)>
+        inductionHypothesis,
+    std::shared_ptr<const Term> nlTerm,    
+    std::vector<std::shared_ptr<const Symbol>> freeVarSymbols) {
+
+  auto itSym  = Signature::varSymbol("it", logic::Sorts::intSort());
+  auto it     = Terms::var(itSym);      
+  auto succIt = Theory::succ(it);
+
+  auto brSym      = Signature::varSymbol("br", logic::Sorts::intSort());
+  auto br         = Terms::var(brSym);
+
+  auto zeroLessBr = Theory::lessEq(Theory::zero(), br);  
+  auto zeroLessIt = Theory::lessEq(Theory::zero(), it);
+  auto itLessBr   = Theory::less(it,br);
+  auto brLessNl   = Theory::lessEq(br,nlTerm); 
+
+  freeVarSymbols.push_back(brSym);
+  freeVarSymbols.push_back(itSym);
+  auto stepCase = Formulas::universal(freeVarSymbols, 
+    Formulas::implication(
+      Formulas::conjunction({zeroLessIt, itLessBr, brLessNl, inductionHypothesis(br, succIt)}),
+      inductionHypothesis(br, it)
+    ));
+
+  freeVarSymbols.pop_back();  
+
+  auto conclusion = Formulas::universal(freeVarSymbols, 
+    Formulas::implication(
+      Formulas::conjunction({zeroLessBr,brLessNl}),
+      inductionHypothesis(br,Theory::zero())
+    ));
+
+  return std::make_tuple(
+      std::make_shared<logic::Conjecture>(stepCase),
+      std::make_shared<logic::Axiom>(conclusion, concName));
+}
+
 
 std::tuple<std::shared_ptr<logic::Definition>,
            std::shared_ptr<logic::Definition>,

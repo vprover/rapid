@@ -109,11 +109,19 @@ class Semantics {
   // used to hold axioms that assert that final loop counters are 
   // not negative
   std::vector<std::shared_ptr<const logic::Axiom>> finalCountersNotNeg;
+  // used to hold axioms that assert that malloc returns a fresh location
+  // not in the support of any existing chains
+  std::vector<std::shared_ptr<const logic::Axiom>> mallocFreshAxioms;
+
 
   std::vector<std::pair<std::shared_ptr<const logic::Term>, int>> mallocStatements;
   std::set<std::pair<std::string, std::string>> frameAxiomsToAdd;
   std::set<std::pair<std::string, std::string>> sameChainAxiomsToAdd;
   std::set<std::string> sameAxiomsToAdd;
+
+  // as we generate semantics, we record all loops we pass
+  // in order to create invariants subsequently
+  std::vector<const program::WhileStatement*> _loops;
 
   void addAllSameAxioms();
 
@@ -121,6 +129,11 @@ class Semantics {
       std::shared_ptr<const logic::Term> m1, int size1,
       std::shared_ptr<const logic::Term> m2, int size2);
 
+  void addMallocFreshnessAxiom(
+     const program::Assignment* assignment,
+     std::shared_ptr<const logic::Term> tp,
+     std::shared_ptr<const logic::Term> assignedToVar,     
+     std::shared_ptr<const logic::Term> mallocTerm);
   void generateMemoryLocationSemantics(
       std::vector<std::shared_ptr<const logic::Axiom>>& axioms,
       std::vector<std::shared_ptr<const logic::Axiom>>& axioms2);

@@ -51,19 +51,41 @@ std::vector<std::string> StructSort::recursiveSelectors()
   return recSels;
 }  
 
-std::string declareSortSMTLIB(const Sort& s) {
-  if (s.toSMTLIB() == "Int" || s.toSMTLIB() == "Bool" ||
-      s.toSMTLIB() == "(Array Int Int)") {
+std::string declareSortSMTLIB(const Sort* s) {
+  if (s->toSMTLIB() == "Int" || s->toSMTLIB() == "Bool" ||
+      s->toSMTLIB() == "(Array Int Int)" || s->toSMTLIB() == "Time") {
     // SMTLIB already knows Int, Array and Bool.
+    // Non-standard extension to Vampire recognises time sorts
+    // TODO add option to output valid SMTLIB benchmark if required
     return "";
-  } else if (s.toSMTLIB() == "Nat") {
+  } else if (s->toSMTLIB() == "Nat") {
     if (util::Configuration::instance().nativeNat()) {
       return "(declare-nat Nat zero s p Sub)\n";
     } else {
       return "(declare-datatypes ((Nat 0)) (( (zero) (s (p Nat)) )) )\n";
     }
+  } else if (s->isStructSort() && util::Configuration::instance().nativeStructs()){
+    std::string name = s->name;
+    std::string lowerName = logic::toLower(name);
+    std::string res = "(declare-struct " + name + " " + lowerName + "_null_loc (";
+
+    auto structSort = static_cast<const logic::StructSort*>(s);
+    for(auto& sel : structSort->selectors()){
+      auto sym = logic::Signature::fetch(sel);
+      const Sort* range = sym->rngSort;
+      res += "(" + sel + " " + range->name;      
+      if(range == s){
+        std::string chain = sel + "_chain";
+        std::string support = "in_support_" + sel + "_chain";
+        res += " " + chain + " " + support;
+      } 
+      res += ")";
+    } 
+
+    res += "))";
+    return res;
   } else {
-    return "(declare-sort " + s.toSMTLIB() + " 0)\n";
+    return "(declare-sort " + s->toSMTLIB() + " 0)\n";
   }
 }
 

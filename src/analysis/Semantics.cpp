@@ -58,10 +58,11 @@ Semantics::generateSemantics() {
 
   // generate semantics compositionally
   std::vector<std::shared_ptr<const logic::Axiom>> axioms;
-  // used for invariant proving tasks. TO help with invariant proving
-  // we do not use the complete program semantics, but rather just the 
-  // semantics of the relvant loops
   std::vector<std::shared_ptr<const logic::Axiom>> axioms2;
+
+  // declared here so that we can use in creating loop invariants
+  // WARNING, TODO this wouldn't work if we actually supported multiple functions
+  std::shared_ptr<const logic::Formula> axiomFormula;
 
   for (const auto& function : program.functions) {
     std::vector<std::shared_ptr<const logic::Formula>> conjunctsFunction;
@@ -95,7 +96,7 @@ Semantics::generateSemantics() {
       }
     }
 
-    auto axiomFormula = logic::Formulas::conjunctionSimp(conjunctsFunction);
+    axiomFormula = logic::Formulas::conjunctionSimp(conjunctsFunction);
     axioms.push_back(std::make_shared<logic::Axiom>(
         axiomFormula, "Semantics of function " + function->name,
         logic::ProblemItem::Visibility::Implicit));
@@ -129,9 +130,21 @@ Semantics::generateSemantics() {
     axioms.push_back(axiom);
     axioms2.push_back(axiom);
   }
-  
+  for(auto& axiom : mallocFreshAxioms){
+    axioms.push_back(axiom);
+    axioms2.push_back(axiom);
+  }
+
   generateMemoryLocationSemantics(axioms, axioms2);
   if (util::Configuration::instance().generateInvariants()){
+    // generate potential loop invariants.
+    // below we try and prove the invariants using the complete semantics.
+    // An alternative would be to use just the sematnics of the loop
+    // but these can at time not be sufficient. Particularly for proving base cases
+    for(auto& loop : _loops){
+      _ig->generateInvariants(loop, axiomFormula);
+    }
+
     _ig->insertAxiomsIntoTasks(axioms2);
     _ig->attemptToProveInvariants();
     auto additionalAxioms = _ig->getProvenInvariantsAndAxioms();
@@ -344,8 +357,58 @@ std::shared_ptr<const logic::Formula> Semantics::explode(
   return logic::Formulas::conjunctionSimp(forms);
 }
 
+void Semantics::addMallocFreshnessAxiom(
+   const program::Assignment* assignment,
+   std::shared_ptr<const logic::Term> tp,
+   std::shared_ptr<const logic::Term> assignedToVar,     
+   std::shared_ptr<const logic::Term> mallocTerm)
+{
+
+  auto freeVarSymbols = enclosingIteratorsSymbols(assignment);
+
+  for(auto sort : logic::Sorts::structSorts()){
+    auto rhsSort = toSort(assignment->rhs->exprType());
+    if(sort->name == rhsSort->name){
+      auto structSort = static_cast<logic::StructSort*>(sort);
+      for(auto& recSelName : structSort->recursiveSelectors()){
+
+        auto osym = Signature::varSymbol("o", rhsSort);
+        auto lsym = Signature::varSymbol("chain_len", Sorts::intSort());
+
+        auto ovar = logic::Terms::var(osym); 
+        auto len = logic::Terms::var(lsym);  
+
+        auto notInSup = Formulas::negation(
+          Theory::inChainSupport(recSelName, tp, mallocTerm, ovar, len));
+        auto notEqual = Formulas::disequality(ovar,mallocTerm);
+
+        freeVarSymbols.push_back(osym);
+        freeVarSymbols.push_back(lsym);
+        auto formula = Formulas::universal(freeVarSymbols, 
+          Formulas::implication(notEqual, notInSup));
+        mallocFreshAxioms.push_back(std::make_shared<Axiom>(formula, "Malloc returns fresh location"));
+   
+        auto sym = Signature::varSymbol("var", logic::Sorts::varSort());
+        auto var = logic::Terms::var(sym); 
+
+        freeVarSymbols.pop_back();
+        freeVarSymbols.pop_back();
+        freeVarSymbols.push_back(sym);
+
+        auto notEqual2 = Formulas::disequality(var,assignedToVar);
+        auto notEqual3 = Formulas::disequality(
+          logic::Theory::valueAt(tp, var, rhsSort->name),
+          mallocTerm);
+        auto formula2 = Formulas::universal(freeVarSymbols, 
+          Formulas::implication(notEqual2, notEqual3));
+        mallocFreshAxioms.push_back(std::make_shared<Axiom>(formula2, "Helpful fact"));
+      }  
+    }
+  }
+}
+
 void Semantics::addAllSameAxioms() {
-  sameAxiomsToAdd.insert("Int");
+  sameAxiomsToAdd.insert("");
   for(auto sort : logic::Sorts::structSorts()){
     sameAxiomsToAdd.insert(sort->name);
   }  
@@ -494,6 +557,10 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
       return (!isVar(e) && e->isArithmeticExpr());
     };
 
+    auto isMalloc = [](std::shared_ptr<const program::Expression> e) {
+      return (e->type() == program::Type::MallocFunc);
+    };    
+
     std::shared_ptr<const logic::Term> lhsTerm;
     std::shared_ptr<const logic::Term> rhsTerm;
 
@@ -529,7 +596,12 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
       lhsTerm = toTerm(lhs, l2, trace, nullptr, true);
     }
 
-    if(rhsTerm->isMallocFun()){
+    if(isVar(lhs) && isMalloc(rhs)){
+      auto var = logic::Terms::locConstant(lhs->toString());
+      addMallocFreshnessAxiom(assignment,l1,var,rhsTerm);
+    }
+
+    if(isMalloc(rhs)){
       mallocStatements.push_back(make_pair(rhsTerm, lhs->exprType()->getChild()->size()));
     }
 
@@ -546,8 +618,6 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     //auto locSymbol = locVarSymbol();
    // auto loc = memLocVar();
  
-    bool activeVarsContainsPointerVars = false;
-
 
     std::string suffix = "";
     std::string selectorName = "";
@@ -576,7 +646,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
       // just updated a memory object
       // variable values stay unchanged
       conjuncts.push_back(logic::Theory::allSame(l1, l2, "value"));
-      sameAxiomsToAdd.insert("Int");
+      sameAxiomsToAdd.insert("");
     }
 
     return logic::Formulas::conjunction(
@@ -755,6 +825,8 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     const program::WhileStatement* whileStatement, SemanticsInliner& inliner,
     std::shared_ptr<const logic::Term> trace) {
   std::vector<std::shared_ptr<const logic::Formula>> conjuncts;
+
+  _loops.push_back(whileStatement);
 
   auto itSymbol = iteratorSymbol(whileStatement);
   auto it = logic::Terms::var(itSymbol);
@@ -996,8 +1068,6 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     auto loopSemantics = logic::Formulas::conjunction(
         conjuncts, "Loop at location " + whileStatement->location);
     
-    if (util::Configuration::instance().generateInvariants())
-      _ig->generateInvariants(whileStatement, loopSemantics);
     return loopSemantics;
   }
 }

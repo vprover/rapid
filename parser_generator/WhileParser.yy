@@ -517,7 +517,12 @@ var_decl_statement:
   var_definition_head SCOL
   {
     // declare var
-    parsing_context.addProgramVar($1);
+    try{
+      parsing_context.addProgramVar($1);
+    }
+    catch( const std::invalid_argument& e ) {
+      error(@1, e.what());            
+    }
     declareSymbolsForProgramVar($1.get());
 
     $$ = std::shared_ptr<const program::VarDecl>(new program::VarDecl(@1.begin.line, std::move($1)));        
@@ -575,7 +580,12 @@ assignment_statement:
 | var_definition_head ASSIGN expr SCOL
   {
     // declare var
-    parsing_context.addProgramVar($1);
+    try{
+      parsing_context.addProgramVar($1);
+    }
+    catch( const std::invalid_argument& e ) {
+      error(@1, e.what());            
+    }    
     declareSymbolsForProgramVar($1.get());
 
     // construct location
@@ -595,7 +605,12 @@ assignment_statement:
 | var_definition_head ASSIGN malloc_or_null SCOL
   {
     // declare var
-    parsing_context.addProgramVar($1);
+    try{
+      parsing_context.addProgramVar($1);
+    }
+    catch( const std::invalid_argument& e ) {
+      error(@1, e.what());            
+    }    
     declareSymbolsForProgramVar($1.get());
 
     // construct location
@@ -797,27 +812,67 @@ formula:
          (new program::ArithmeticComparison(program::ArithmeticComparison::Kind::LE, std::move($1), std::move($3)));
   }
 | expr EQ expr             
-  { 
-    if(!$1->isArithmeticExpr()){
-      error(@1, "Cannot carry out arithmetic operation on non-arithmetic expression");
+  {     
+    if(*($1->exprType()) != *($3->exprType()) ){
+      error(@1, "Cannot compare expressions of different types!");
     }
-    if(!$3->isArithmeticExpr()){
-      error(@3, "Cannot carry out arithmetic operation on non-arithmetic expression");
-    }
-    $$ = std::shared_ptr<const program::ArithmeticComparison>
-         (new program::ArithmeticComparison(program::ArithmeticComparison::Kind::EQ, std::move($1), std::move($3)));
+    $$ = std::shared_ptr<const program::Equality>
+         (new program::Equality(std::move($1), std::move($3)));
   }
 | expr NEQ expr            
   { 
-    if(!$1->isArithmeticExpr()){
-      error(@1, "Cannot carry out arithmetic operation on non-arithmetic expression");
+    if(*($1->exprType()) != *($3->exprType()) ){
+      error(@1, "Cannot compare expressions of different types!");
     }
-    if(!$3->isArithmeticExpr()){
-      error(@3, "Cannot carry out arithmetic operation on non-arithmetic expression");
-    }
-    auto formula = std::shared_ptr<const program::ArithmeticComparison>
-         (new program::ArithmeticComparison(program::ArithmeticComparison::Kind::EQ, std::move($1), std::move($3)));
+    auto formula = std::shared_ptr<const program::Equality>
+         (new program::Equality(std::move($1), std::move($3)));
     $$ = std::shared_ptr<const program::BooleanNot>(new program::BooleanNot(std::move(formula)));
+  }
+| expr EQ NULL
+  {
+    if(!$1->exprType()->isPointerType()){
+      error(@1, "Invalid comparison! " + $1->toString() + " is not of pointer type");
+    }
+
+    auto nullTerm = std::shared_ptr<const program::NullPtr>(new program::NullPtr());
+    nullTerm->exprType()->setChild($1->exprType()->getChild());
+    $$ = std::shared_ptr<const program::Equality>
+         (new program::Equality(std::move($1), nullTerm));    
+  }
+| expr NEQ NULL
+  {
+    if(!$1->exprType()->isPointerType()){
+      error(@1, "Invalid comparison! " + $1->toString() + " is not of pointer type");
+    }
+
+    auto nullTerm = std::shared_ptr<const program::NullPtr>(new program::NullPtr());
+    nullTerm->exprType()->setChild($1->exprType()->getChild());
+    auto formula = std::shared_ptr<const program::Equality>
+         (new program::Equality(std::move($1), nullTerm));    
+    $$ = std::shared_ptr<const program::BooleanNot>(new program::BooleanNot(std::move(formula))); 
+  }  
+| NULL EQ expr
+  {
+    if(!$3->exprType()->isPointerType()){
+      error(@1, "Invalid comparison! " + $3->toString() + " is not of pointer type");
+    }
+
+    auto nullTerm = std::shared_ptr<const program::NullPtr>(new program::NullPtr());
+    nullTerm->exprType()->setChild($3->exprType()->getChild());
+    $$ = std::shared_ptr<const program::Equality>
+         (new program::Equality(std::move($3), nullTerm)); 
+  }
+| NULL NEQ expr
+  {
+    if(!$3->exprType()->isPointerType()){
+      error(@1, "Invalid comparison! " + $3->toString() + " is not of pointer type");
+    }
+
+    auto nullTerm = std::shared_ptr<const program::NullPtr>(new program::NullPtr());
+    nullTerm->exprType()->setChild($3->exprType()->getChild());
+    auto formula = std::shared_ptr<const program::Equality>
+         (new program::Equality(std::move($3), nullTerm));    
+    $$ = std::shared_ptr<const program::BooleanNot>(new program::BooleanNot(std::move(formula))); 
   }
 | formula AND formula      
   {

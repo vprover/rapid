@@ -16,6 +16,17 @@ class GenSolver {
     void convertTask(ReasoningTask task){
       reset();
       try{
+
+        for(auto& sort : Sorts::structSorts()){
+          declareStruct(sort);
+        }
+
+        // To ensure same ordering and hence precedence of symbols as in file
+        // makes comparisons easier.
+        for (const auto& symbol : Signature::signatureOrderedByInsertion()) {
+          declareSymbol(symbol);
+        }
+
         for(auto& axiom : task.axioms){
           // We treat all user defined items equivalently
           // and do not differentiate between lemmas, axioms etc.
@@ -161,6 +172,9 @@ class GenSolver {
 
         case Formula::Type::Conjunction : {
           auto castedF = std::static_pointer_cast<const ConjunctionFormula>(f);
+          if(castedF->conj.size() == 1){
+            return convertForm(castedF->conj[0]);
+          }          
           std::vector<SolverExpression> conjuncts;
           for(auto form : castedF->conj){
             conjuncts.push_back(convertForm(form));
@@ -170,6 +184,9 @@ class GenSolver {
     
         case Formula::Type::Disjunction : {
           auto castedF = std::static_pointer_cast<const DisjunctionFormula>(f);
+          if(castedF->disj.size() == 1){
+            return convertForm(castedF->disj[0]);
+          }
           std::vector<SolverExpression> disjuncts;
           for(auto form : castedF->disj){
             disjuncts.push_back(convertForm(form));
@@ -214,6 +231,10 @@ class GenSolver {
       }
     } 
 
+    virtual void declareSymbol(std::shared_ptr<const Symbol>) const = 0;
+    // not = 0, since besides for Vampire no other prover supports structs
+    // internally
+    virtual void declareStruct(Sort* sort) const {}
     // Assumes that ATP API has a way to take a strategy as a string.
     // True for Vampire, may not be true for other ATPs.
     virtual void setStrategy(std::string strat) const {};
@@ -275,13 +296,25 @@ public:
   void reset() const override {
     _solver->reset();
   }
+  void declareSymbol(std::shared_ptr<const Symbol> sym) const override;
+  void declareStruct(Sort* sort) const override;
 
   bool solveTask(ReasoningTask task, TaskType tt = TaskType::OTHER) override {
     convertTask(task);
+    _solver->setOption("lemma_literal_selection","on");
+    _solver->setOption("theory_axioms","off");    
+    _solver->setOption("cancellation","cautious");
+    _solver->setOption("gaussian_variable_elimination","force");
+
     if(tt == TaskType::CHAINY || tt == TaskType::MAIN){
       std::cout << "Running Vampire's Rapid schedule for 60s" << std::endl;
       if(tt == TaskType::MAIN){
         _solver->setOption("multi_clause_nat_ind", "on");
+        _solver->setOption("extensionality_resolution", "chain");
+        //_solver->setOptions("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=off:plsq=off_10");
+        //_solver->setVerbose();
+        //_solver->solve();//
+        //return true;
         // no need to unset afterwards since we try to prove the 
         // main conjecture at the end 
       }
@@ -293,16 +326,25 @@ public:
         return true;
       }      
     }
-    if(tt == TaskType::DENSE){
+    if(tt == TaskType::MALLOC){
+      _solver->setOption("unification_with_abstraction","one_side_interp");
+      _solver->setOption("theory_axioms","on");    
+      bool res = solveWithSched(Vampire::Solver::Schedule::RAPID);
+      _solver->setOption("unification_with_abstraction","off");      
+      return res;            
+      //task.outputSMTLIB(std::cout);
+    }
+    if(tt == TaskType::DENSE){      
       std::cout << "Running Vampire's Rapid schedule for 10s" << std::endl;
       // proving dense invariants tends to be simple
       setTimeLimit(10);
       bool res = solveWithSched(Vampire::Solver::Schedule::RAPID);
-      setTimeLimit(30);
+      setTimeLimit(10);
       return res;
     }
-    std::cout << "Running Vampire's CASC schedule for 30s" << std::endl;
-    return solve();
+    std::cout << "Running Vampire's Rapid schedule for 30s" << std::endl;
+    //assert(false);
+    return solveWithSched(Vampire::Solver::Schedule::RAPID);
   }
 
   // trys to solve the problem using Vampire's CASC mode

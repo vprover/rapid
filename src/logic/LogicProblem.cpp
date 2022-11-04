@@ -72,12 +72,19 @@ void ReasoningTask::outputSMTLIB(std::ostream& ostr) const {
 
   // output sort declarations
   for (const auto& pair : Sorts::nameToSort()) {
-    ostr << declareSortSMTLIB(*pair.second);
+    ostr << declareSortSMTLIB(pair.second.get());
   }
 
   // output symbol definitions
   for (const auto& symbol : Signature::signatureOrderedByInsertion()) {
-    ostr << symbol->declareSymbolSMTLIB();
+    bool nativeStructs = util::Configuration::instance().nativeStructs();
+    // don't declare these functions and predicates twice
+    if(!nativeStructs || (symbol->symbolType != Signature::SyS::Selector && 
+                          symbol->symbolType != Signature::SyS::ChainFunc &&
+                          symbol->symbolType != Signature::SyS::NullPtr &&
+                          symbol->symbolType != Signature::SyS::SupportPredicate)){
+      ostr << symbol->declareSymbolSMTLIB();
+    }
   }
 
   // output each axiom

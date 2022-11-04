@@ -48,12 +48,13 @@ std::string ArithmeticComparison::toString() const {
     return child1->toString() + " >= " + child2->toString();
   } else if (kind == ArithmeticComparison::Kind::LT) {
     return child1->toString() + " < " + child2->toString();
-  } else if (kind == ArithmeticComparison::Kind::LE) {
-    return child1->toString() + " <= " + child2->toString();
   } else {
-    assert(kind == ArithmeticComparison::Kind::EQ);
-    return child1->toString() + " == " + child2->toString();
+    assert(kind == ArithmeticComparison::Kind::LE);    
+    return child1->toString() + " <= " + child2->toString();
   }
+}
+std::string Equality::toString() const {
+  return child1->toString() + " == " + child2->toString();
 }
 
 std::ostream& operator<<(std::ostream& ostr, const Expression& e) {

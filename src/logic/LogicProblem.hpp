@@ -12,7 +12,7 @@
 
 namespace logic {
 
-enum class TaskType { MAIN, CHAINY, DENSE, OTHER };
+enum class TaskType { MAIN, CHAINY, DENSE, MALLOC, OTHER };
 
 /*
  * abstract class for wrapping a formula and tagging it as either axiom,

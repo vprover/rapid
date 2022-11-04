@@ -82,11 +82,11 @@ std::shared_ptr<const logic::Symbol> posVarSymbol() {
 }
 
 std::shared_ptr<const logic::Symbol> locVarSymbol() {
-  return logic::Signature::varSymbol("mem-loc", logic::Sorts::intSort());
+  return logic::Signature::varSymbol("mem-loc", logic::Sorts::varSort());
 }
 
 std::shared_ptr<const logic::Symbol> locVarSymbol(std::string varName) {
-  return logic::Signature::varSymbol(varName, logic::Sorts::intSort());
+  return logic::Signature::varSymbol(varName, logic::Sorts::varSort());
 }
 
 std::shared_ptr<const logic::Symbol> traceSymbol(unsigned traceNumber) {
@@ -102,8 +102,10 @@ void declareSymbolsForProgramVar(const program::Variable* var) {
     typ = logic::Symbol::SymbolType::ConstProgramVar;
   }
   
+  // TODO scoping issue here! If we have two variables with same names
+  // in different scopes, we crash at this point
   //declare variable (constant of type integer)
-  logic::Signature::add(var->name, {}, logic::Sorts::intSort(), false, typ);
+  logic::Signature::add(var->name, {}, logic::Sorts::varSort(), false, typ);
   
   if (util::Configuration::instance().memoryModel() == "typed") {
     // declare further memory arrays when using typed model   
@@ -119,7 +121,7 @@ void declareSymbolsForProgramVar(const program::Variable* var) {
     if(!var->isConstant){
       subtermSorts.push_back(logic::Sorts::timeSort());
     }
-    subtermSorts.push_back(logic::Sorts::intSort());
+    subtermSorts.push_back(logic::Sorts::varSort());
     
     std::string str = var->isConstant ? "const_" : "";
     std::string arrName = "value_" + str + logic::toLower(sort->name);
@@ -141,7 +143,8 @@ void declareSymbolsForStructType(std::shared_ptr<const program::ExprType> type) 
     auto lowerName = logic::toLower(structSort->name);
     // declare null locations here in case they are 
     // used in the conjecture
-    logic::Terms::func(lowerName + "_null_loc", {}, structSort, false);
+    logic::Terms::func(lowerName + "_null_loc", {}, structSort, false,
+      logic::Symbol::SymbolType::NullPtr);
 
     for (auto field : structType->getFields())
     {

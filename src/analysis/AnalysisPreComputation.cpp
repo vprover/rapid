@@ -271,6 +271,13 @@ void AnalysisPreComputation::computeVariablesContainedInLoopCondition(
       computeVariablesContainedInLoopCondition(castedExpr->child2, variables);
       break;
     }
+    case program::BoolExpression::Type::Equality: {
+      auto castedExpr =
+          std::static_pointer_cast<const program::Equality>(expr);    
+      computeVariablesContainedInLoopCondition(castedExpr->child1, variables);
+      computeVariablesContainedInLoopCondition(castedExpr->child2, variables);
+      break;            
+    }
     case program::BoolExpression::Type::BooleanConstant: {
       // do nothing
       break;

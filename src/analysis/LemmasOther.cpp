@@ -86,93 +86,91 @@ void LoopConditionAnalysisLemmas::generateOutputFor(
 
       auto condCasted =
           std::static_pointer_cast<const program::ArithmeticComparison>(cond);
-      if (condCasted->kind != program::ArithmeticComparison::Kind::EQ) {
         auto left = condCasted->child1;
         auto right = condCasted->child2;
-        if (AnalysisPreComputation::doNotOccurIn(assignedVars, right)) {
-          auto newLeft = toTerm(left, lStartZero, trace);
-          auto newRight = toTerm(right, lStartZero, trace);
+      if (AnalysisPreComputation::doNotOccurIn(assignedVars, right)) {
+        auto newLeft = toTerm(left, lStartZero, trace);
+        auto newRight = toTerm(right, lStartZero, trace);
 
-          auto concLeft = toTerm(left, lStartN, trace);
-          auto concRight = toTerm(right, lStartN, trace);
+        auto concLeft = toTerm(left, lStartN, trace);
+        auto concRight = toTerm(right, lStartN, trace);
 
-          auto op = condCasted->kind;
-          bool lessThan = false;
+        auto op = condCasted->kind;
+        bool lessThan = false;
 
-          switch (op) {
-            case program::ArithmeticComparison::Kind::LT: {
-              lessThan = true;
-              break;
-            }
-
-            case program::ArithmeticComparison::Kind::LE: {
-              lessThan = true;
-              auto one = logic::Theory::intConstant(1);
-              newRight = logic::Theory::intAddition(newRight, one);
-              break;
-            }
-
-            case program::ArithmeticComparison::Kind::GT: {
-              break;
-            }
-
-            default: {
-              // the equality case should never occur
-              auto one = logic::Theory::intConstant(1);
-              newRight = logic::Theory::intSubtraction(newRight, one);
-              break;
-            }
+        switch (op) {
+          case program::ArithmeticComparison::Kind::LT: {
+            lessThan = true;
+            break;
           }
 
-          auto freeVarSymbols = enclosingIteratorsSymbols(statement);
+          case program::ArithmeticComparison::Kind::LE: {
+            lessThan = true;
+            auto one = logic::Theory::intConstant(1);
+            newRight = logic::Theory::intAddition(newRight, one);
+            break;
+          }
 
-          auto prem1 =
-              lessThan ? logic::Theory::intLessEqual(newLeft, newRight)
-                       : logic::Theory::intGreaterEqual(newLeft, newRight);
+          case program::ArithmeticComparison::Kind::GT: {
+            break;
+          }
 
-          auto leftStr = left->toString();
-          auto rightStr = right->toString();
-
-          leftStr.erase(std::remove(leftStr.begin(), leftStr.end(), ' '),
-                        leftStr.end());
-          leftStr.erase(std::remove(leftStr.begin(), leftStr.end(), ')'),
-                        leftStr.end());
-          leftStr.erase(std::remove(leftStr.begin(), leftStr.end(), '('),
-                        leftStr.end());
-
-          rightStr.erase(std::remove(rightStr.begin(), rightStr.end(), ' '),
-                         rightStr.end());
-          rightStr.erase(std::remove(rightStr.begin(), rightStr.end(), ')'),
-                         rightStr.end());
-          rightStr.erase(std::remove(rightStr.begin(), rightStr.end(), '('),
-                         rightStr.end());
-
-          auto nameSuffix = leftStr + "-" + statement->location;
-
-          auto densityDef = getDensityDefinition(
-              freeVarSymbols, left, nameSuffix, itSymbol, it, lStartIt,
-              lStartSuccOfIt, n, trace, lessThan);
-
-          std::string direction = lessThan ? "increasing" : "decreasing";
-          auto denseDef = std::make_shared<logic::Definition>(
-              densityDef, "Dense-" + direction + " for " + nameSuffix,
-              logic::ProblemItem::Visibility::Implicit);
-
-          items.push_back(denseDef);
-
-          auto dense =
-              getDensityFormula(freeVarSymbols, nameSuffix, lessThan);
-          auto prem = logic::Formulas::conjunction({dense, prem1});
-          auto conc = logic::Formulas::equality(concLeft, concRight);
-
-          auto lemma = logic::Formulas::universal(
-              freeVarSymbols, logic::Formulas::implication(prem, conc));
-
-          // TODO don't understand all this implicit explicit business
-          items.push_back(std::make_shared<logic::Lemma>(
-              lemma, leftStr + "-" + rightStr + "-" + "equality-axiom",
-              logic::ProblemItem::Visibility::Implicit));
+          default: {
+            // the equality case should never occur
+            auto one = logic::Theory::intConstant(1);
+            newRight = logic::Theory::intSubtraction(newRight, one);
+            break;
+          }
         }
+
+        auto freeVarSymbols = enclosingIteratorsSymbols(statement);
+
+        auto prem1 =
+            lessThan ? logic::Theory::intLessEqual(newLeft, newRight)
+                     : logic::Theory::intGreaterEqual(newLeft, newRight);
+
+        auto leftStr = left->toString();
+        auto rightStr = right->toString();
+
+        leftStr.erase(std::remove(leftStr.begin(), leftStr.end(), ' '),
+                      leftStr.end());
+        leftStr.erase(std::remove(leftStr.begin(), leftStr.end(), ')'),
+                      leftStr.end());
+        leftStr.erase(std::remove(leftStr.begin(), leftStr.end(), '('),
+                      leftStr.end());
+
+        rightStr.erase(std::remove(rightStr.begin(), rightStr.end(), ' '),
+                       rightStr.end());
+        rightStr.erase(std::remove(rightStr.begin(), rightStr.end(), ')'),
+                       rightStr.end());
+        rightStr.erase(std::remove(rightStr.begin(), rightStr.end(), '('),
+                       rightStr.end());
+
+        auto nameSuffix = leftStr + "-" + statement->location;
+
+        auto densityDef = getDensityDefinition(
+            freeVarSymbols, left, nameSuffix, itSymbol, it, lStartIt,
+            lStartSuccOfIt, n, trace, lessThan);
+
+        std::string direction = lessThan ? "increasing" : "decreasing";
+        auto denseDef = std::make_shared<logic::Definition>(
+            densityDef, "Dense-" + direction + " for " + nameSuffix,
+            logic::ProblemItem::Visibility::Implicit);
+
+        items.push_back(denseDef);
+
+        auto dense =
+            getDensityFormula(freeVarSymbols, nameSuffix, lessThan);
+        auto prem = logic::Formulas::conjunction({dense, prem1});
+        auto conc = logic::Formulas::equality(concLeft, concRight);
+
+        auto lemma = logic::Formulas::universal(
+            freeVarSymbols, logic::Formulas::implication(prem, conc));
+
+        // TODO don't understand all this implicit explicit business
+        items.push_back(std::make_shared<logic::Lemma>(
+            lemma, leftStr + "-" + rightStr + "-" + "equality-axiom",
+            logic::ProblemItem::Visibility::Implicit));
       }
     }
   }

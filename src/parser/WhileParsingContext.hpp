@@ -83,7 +83,7 @@ class WhileParsingContext {
 
   void pushProgramVars();
   void popProgramVars();
-  bool addProgramVar(std::shared_ptr<const program::Variable> programVar);
+  void addProgramVar(std::shared_ptr<const program::Variable> programVar);
   bool addTypeName(std::string name);
   bool validTypeName(std::string name);
   void addStructType(std::string name, std::shared_ptr<const program::ExprType>);

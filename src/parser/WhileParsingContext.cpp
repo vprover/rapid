@@ -60,15 +60,36 @@ void WhileParsingContext::popProgramVars() {
   programVarsStack.pop_back();
 }
 
-bool WhileParsingContext::addProgramVar(
+void WhileParsingContext::addProgramVar(
     std::shared_ptr<const program::Variable> programVar) {
+ 
+  auto isValidVariableName = [&](std::string name){
+    std::string error = "";
+
+    if(!util::Configuration::instance().integerIterations()){
+      if(name == "p" || name == "Sub" || name == "zero" || name == "s"){
+        error =  name + " is and invalid variable name. When using natural number iterations, 'p','Sub','zero' and 's' are reserved";
+      }
+    }
+    if(name == "if" || name == "while" || name == "then" || name == "Int" || name == "else"){
+      error = name + " is an invalid variable name as it is a reserved keyword";
+    }
+    //TODO add other errors
+    return error;
+  };
+
+  auto message = isValidVariableName(programVar->name);
+  if(message != ""){
+    throw std::invalid_argument( message );    
+  }
+
+  // TODO too restrictive? We can allow different variables
+  // to have the same name so long as they are in difference scopes...
   if (programVarsDeclarations.count(programVar->name) > 0) {
-    return false;
+    throw std::invalid_argument( "redeclaring variable " + programVar->name );
   }
   programVarsDeclarations[programVar->name] = programVar;
   programVarsStack.back().push_back(programVar->name);
-
-  return true;
 }
 
 bool WhileParsingContext::addTypeName(std::string name){

@@ -28,6 +28,7 @@ class Sort {
   bool isIntSort() const { return name == "Int"; }
   bool isArraySort() const { return name == "Array"; }
   bool isBoolSort() const { return name == "Bool"; }
+  bool isTimeSort() const { return name == "Time"; }
 
   virtual bool isStructSort() const { return false; }
 
@@ -51,12 +52,12 @@ private:
  
 public:
   std::vector<std::string> recursiveSelectors();  
-  std::vector<std::string> selectors() { return _selectors; }
+  std::vector<std::string> selectors() const { return _selectors; }
   bool isStructSort() const { return true; }  
 
 };
 
-std::string declareSortSMTLIB(const Sort& s);
+std::string declareSortSMTLIB(const Sort* s);
 std::string declareSortTPTP(const Sort& s);
 
 #pragma mark - Sorts
@@ -69,6 +70,12 @@ class Sorts {
   static Sort* boolSort() { return fetchOrDeclare("Bool"); }
   static Sort* intSort() { return fetchOrDeclare("Int"); }
   static Sort* natSort() { return fetchOrDeclare("Nat"); }
+  static Sort* varSort() { 
+    if(util::Configuration::instance().memoryModel() != "typed"){
+      return intSort();
+    }
+    return fetchOrDeclare("Var"); 
+  }
   static Sort* iterSort() {
     if(util::Configuration::instance().integerIterations()){
       return intSort();

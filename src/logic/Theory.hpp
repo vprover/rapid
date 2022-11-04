@@ -64,7 +64,7 @@ class Theory {
 
   // Memory management
   static std::shared_ptr<const FuncTerm> nullLoc(
-    std::string sortName = "Int");
+    std::string sortName = "Var");
   static std::shared_ptr<const FuncTerm> arbitraryTP();
   static std::shared_ptr<const FuncTerm> valueAt(
       std::shared_ptr<const Term> timePoint,
@@ -361,6 +361,32 @@ inductionAxiom2(
     std::shared_ptr<const logic::Term> nt2,
     std::vector<std::shared_ptr<const Symbol>> freeVarSymbols,
     ProblemItem::Visibility visibility = ProblemItem::Visibility::None);
+
+std::tuple<std::shared_ptr<logic::Conjecture>,
+           std::shared_ptr<logic::Axiom>>
+inductionAxiom3(std::string concName,
+    std::function<std::shared_ptr<const Formula>(
+      std::shared_ptr<const Term>, 
+      std::shared_ptr<const Term>)>
+        inductionHypothesis,
+    unsigned from,
+    std::shared_ptr<const Term> nlTerm,    
+    std::vector<std::shared_ptr<const Symbol>> freeVarSymbols);
+
+
+
+
+std::tuple<std::shared_ptr<logic::Conjecture>,
+           std::shared_ptr<logic::Axiom>>
+inductionAxiom4(std::string concName,
+    std::function<std::shared_ptr<const Formula>(
+      std::shared_ptr<const Term>, 
+      std::shared_ptr<const Term>)>
+        inductionHypothesis,
+    std::shared_ptr<const Term> nlTerm,    
+    std::vector<std::shared_ptr<const Symbol>> freeVarSymbols);
+
 }  // namespace logic
+
 
 #endif

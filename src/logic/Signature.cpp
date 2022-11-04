@@ -50,6 +50,11 @@ std::string Symbol::declareSymbolSMTLIB() const {
                rngSort->toSMTLIB() + ")\n";
       }
 
+      if (symbolType == SymbolType::NullPtr) {
+        return "(declare-null " + toSMTLIB() + " " +
+               rngSort->toSMTLIB() + ")\n";
+      }
+
       if (symbolType == SymbolType::ConstProgramVar) {
         return "(declare-const-var " + toSMTLIB() + " " + rngSort->toSMTLIB() +
                ")\n";
@@ -266,6 +271,7 @@ std::shared_ptr<const Symbol> Signature::fetchOrAdd(
 std::shared_ptr<const Symbol> Signature::varSymbol(std::string name,
                                                    const Sort* rngSort) {
   // there must be no symbol with name name already added
+  // TODO does this actually make sense for variables?
   assert(_signature.count(name) == 0);
 
   return std::shared_ptr<Symbol>(
