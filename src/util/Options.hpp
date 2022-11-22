@@ -7,7 +7,7 @@
 #include <vector>
 
 namespace util {
-
+ 
 class Option {
  public:
   std::string name() { return _name; }

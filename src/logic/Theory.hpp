@@ -86,13 +86,11 @@ class Theory {
       std::shared_ptr<const Term> timePoint,
       std::shared_ptr<const Term> location1,
       std::shared_ptr<const Term> location2,      
-      std::shared_ptr<const Term> length);  
-  static std::tuple<std::shared_ptr<logic::Axiom>,
-                    std::shared_ptr<logic::Axiom>,
-                    std::shared_ptr<logic::Axiom>>
-  chainAxioms(
-      std::string selectorName,      
-      std::string sortName);
+      std::shared_ptr<const Term> length);
+
+  // used to add chain axioms, but now do it in Vampire
+  // one axiom that was previously added was:
+  // next(chain(loc,tp,len)) = chain(next(loc),tp,len)
 
   static std::shared_ptr<const FuncTerm> mallocFun(
       std::shared_ptr<const Term> timePoint,
@@ -236,13 +234,15 @@ class Theory {
  */
 std::tuple<std::shared_ptr<logic::Conjecture>,
            std::shared_ptr<logic::Conjecture>,
+           std::shared_ptr<logic::Axiom>,
            std::shared_ptr<logic::Axiom>>
 inductionAxiom0(
     std::string concName,
     std::function<std::shared_ptr<const Formula>(std::shared_ptr<const Term>)>
         inductionHypothesis,
     std::shared_ptr<const Term> nlTerm,    
-    std::vector<std::shared_ptr<const Symbol>> freeVarSymbols);
+    std::vector<std::shared_ptr<const Symbol>> freeVarSymbols,
+    std::shared_ptr<const Formula> boundsFromEnclosingLoops);
 
 /*
  * Generates inductionAxiom1 from the induction hypothesis 'inductionHypothesis'
@@ -371,7 +371,8 @@ inductionAxiom3(std::string concName,
         inductionHypothesis,
     unsigned from,
     std::shared_ptr<const Term> nlTerm,    
-    std::vector<std::shared_ptr<const Symbol>> freeVarSymbols);
+    std::vector<std::shared_ptr<const Symbol>> freeVarSymbols,
+    std::shared_ptr<const Formula> boundsFromEnclosingLoops);
 
 
 
@@ -384,7 +385,8 @@ inductionAxiom4(std::string concName,
       std::shared_ptr<const Term>)>
         inductionHypothesis,
     std::shared_ptr<const Term> nlTerm,    
-    std::vector<std::shared_ptr<const Symbol>> freeVarSymbols);
+    std::vector<std::shared_ptr<const Symbol>> freeVarSymbols,
+    std::shared_ptr<const Formula> boundsFromEnclosingLoops);
 
 }  // namespace logic
 

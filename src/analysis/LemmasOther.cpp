@@ -124,6 +124,8 @@ void LoopConditionAnalysisLemmas::generateOutputFor(
         }
 
         auto freeVarSymbols = enclosingIteratorsSymbols(statement);
+        auto enclosingLastIterationTs = enclosingLastIterationTerms(statement);
+        auto enclosingLoopBounds = createBoundsForEnclosingLoops(freeVarSymbols,enclosingLastIterationTs);
 
         auto prem1 =
             lessThan ? logic::Theory::intLessEqual(newLeft, newRight)
@@ -150,7 +152,7 @@ void LoopConditionAnalysisLemmas::generateOutputFor(
 
         auto densityDef = getDensityDefinition(
             freeVarSymbols, left, nameSuffix, itSymbol, it, lStartIt,
-            lStartSuccOfIt, n, trace, lessThan);
+            lStartSuccOfIt, n, trace, enclosingLoopBounds, lessThan);
 
         std::string direction = lessThan ? "increasing" : "decreasing";
         auto denseDef = std::make_shared<logic::Definition>(

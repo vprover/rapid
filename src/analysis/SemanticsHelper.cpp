@@ -292,9 +292,6 @@ std::shared_ptr<const logic::Term> startTimepointForStatement(
 
 std::vector<std::shared_ptr<const logic::Symbol>> enclosingIteratorsSymbols(
     const program::Statement* statement) {
-  if (util::Configuration::instance().integerIterations()) {  
-    return intEnclosingIteratorsSymbols(statement); 
-  }
 
   auto enclosingIteratorsSymbols =
       std::vector<std::shared_ptr<const logic::Symbol>>();
@@ -302,6 +299,21 @@ std::vector<std::shared_ptr<const logic::Symbol>> enclosingIteratorsSymbols(
     enclosingIteratorsSymbols.push_back(iteratorSymbol(enclosingLoop));
   }
   return enclosingIteratorsSymbols;
+}
+
+std::vector<std::shared_ptr<const logic::Term>> enclosingLastIterationTerms(
+    const program::Statement* statement) {
+
+  auto enclosingIteratorsTerms =
+      std::vector<std::shared_ptr<const logic::Term>>();
+  for (const auto& enclosingLoop : *statement->enclosingLoops) {
+    // TODO not safe for multiple traces. However, current code base already 
+    // breaks this badly, so nothing new here.
+    auto trace = traceTerm(1);
+    auto n = lastIterationTermForLoop(enclosingLoop, 1, trace); 
+    enclosingIteratorsTerms.push_back(n);
+  }
+  return enclosingIteratorsTerms;
 }
 
 #pragma mark - Methods for generating most used timepoint terms and symbols in integer sort
@@ -385,17 +397,28 @@ std::shared_ptr<const logic::Term> intStartTimepointForStatement(
   }
 }
 
-std::vector<std::shared_ptr<const logic::Symbol>> intEnclosingIteratorsSymbols(
-    const program::Statement* statement) {
-  auto enclosingIteratorsSymbols =
-      std::vector<std::shared_ptr<const logic::Symbol>>();
-  for (const auto& enclosingLoop : *statement->enclosingLoops) {
-    enclosingIteratorsSymbols.push_back(intIteratorSymbol(enclosingLoop));
+#pragma mark - Methods for generating most used formulas
+
+std::shared_ptr<const logic::Formula>
+createBoundsForEnclosingLoops(
+  std::vector<std::shared_ptr<const logic::Symbol>>& syms,
+  std::vector<std::shared_ptr<const logic::Term>>& terms
+  ) {
+  assert(syms.size() == terms.size());
+
+  static bool integerIts = util::Configuration::instance().integerIterations();
+
+  std::vector<std::shared_ptr<const logic::Formula>> conjs;
+  for(unsigned i = 0; i  < syms.size(); i++){
+    auto var = logic::Terms::var(syms[i]);
+    if(integerIts){
+      conjs.push_back(logic::Theory::lessEq(logic::Theory::zero(), var));
+    }
+    conjs.push_back(logic::Theory::less(var, terms[i]));
   }
-  return enclosingIteratorsSymbols;
+  return logic::Formulas::conjunctionSimp(conjs);
 }
 
-#pragma mark - Methods for generating most used formulas
 
 std::shared_ptr<const logic::Formula> getDensityFormula(
     std::vector<std::shared_ptr<const logic::Symbol>> freeVarSymbols,
@@ -419,12 +442,14 @@ std::shared_ptr<const logic::Formula> getDensityDefinition(
     std::shared_ptr<const logic::Term> lStartIt,
     std::shared_ptr<const logic::Term> lStartSuccOfIt,
     std::shared_ptr<const logic::Term> n,
-    std::shared_ptr<const logic::Term> trace, bool increasing) {
+    std::shared_ptr<const logic::Term> trace, 
+    std::shared_ptr<const logic::Formula> boundsFromEnclosingLoops,
+    bool increasing) {
   // add density definition
   auto dense = getDensityFormula(freeVarSymbols, nameSuffix, increasing);
    
   auto denseDef = densityDefinition(expr,itSymbol,it,lStartIt,
-                    lStartSuccOfIt,n,trace,increasing);
+                    lStartSuccOfIt,n,trace,boundsFromEnclosingLoops,increasing);
 
   return logic::Formulas::universal(
       freeVarSymbols, logic::Formulas::equivalence(dense, denseDef));
@@ -437,7 +462,8 @@ std::shared_ptr<const logic::Formula> densityDefinition(
     std::shared_ptr<const logic::Term> lStartIt,
     std::shared_ptr<const logic::Term> lStartSuccOfIt,
     std::shared_ptr<const logic::Term> n,
-    std::shared_ptr<const logic::Term> trace, 
+    std::shared_ptr<const logic::Term> trace,
+    std::shared_ptr<const logic::Formula> boundsFromEnclosingLoops,     
     bool increasing,
     bool strong) {
 
@@ -448,7 +474,7 @@ std::shared_ptr<const logic::Formula> densityDefinition(
   auto one = logic::Theory::intConstant(1);
 
   auto conjunctLeft = integerIts ? 
-      logic::Theory::intLessEqual(logic::Theory::intZero(), it) :
+      logic::Theory::intLessEqual(logic::Theory::zero(), it) :
       logic::Theory::boolTrue();
 
   auto disjunctLeft = strong ? 
@@ -456,7 +482,7 @@ std::shared_ptr<const logic::Formula> densityDefinition(
       logic::Formulas::equality(atIt, atSuccIt);
 
   auto loopBounds = 
-    logic::Formulas::conjunctionSimp({conjunctLeft, logic::Theory::less(it, n)});
+    logic::Formulas::conjunctionSimp({boundsFromEnclosingLoops, conjunctLeft, logic::Theory::less(it, n)});
 
   return logic::Formulas::universal(
       {itSymbol},
@@ -727,7 +753,12 @@ std::shared_ptr<const logic::Term> toIntTerm(
     case program::Type::FieldAccess: {
       auto castedExpr =
           std::static_pointer_cast<const program::StructFieldAccess>(expr);
-      assert(innerTp != nullptr);
+      
+      if(innerTp == nullptr){
+        // in case where no innerTp specified assume that we want to use the one tp
+        innerTp = tp;
+      }
+
       if(!typedModel){
         return logic::Theory::valueAt(tp, toTerm(castedExpr, innerTp, trace));    
       } else {

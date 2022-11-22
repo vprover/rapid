@@ -11,6 +11,7 @@ bool WhileParsingContext::pushQuantifiedVars(
     std::vector<std::shared_ptr<const logic::Symbol>> quantifiedVars) {
   // TODO: later check that those don't exist yet.
   // insert each var into into map
+
   for (const auto& quantifiedVar : quantifiedVars) {
     if (quantifiedVarsDeclarations.count(quantifiedVar->name) > 0) {
       return false;
@@ -39,6 +40,10 @@ void WhileParsingContext::popQuantifiedVars() {
 bool WhileParsingContext::isDeclared(std::string name) {
   return logic::Signature::isDeclared(name) ||
          (quantifiedVarsDeclarations.count(name) > 0);
+}
+
+bool WhileParsingContext::isVariableName(std::string name) {
+  return quantifiedVarsDeclarations.count(name) > 0;
 }
 
 std::shared_ptr<const logic::Symbol> WhileParsingContext::fetch(

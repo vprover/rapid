@@ -17,6 +17,8 @@
 #include "Statements.hpp"
 #include "InvariantGenerator.hpp"
 
+#include "Output.hpp"
+
 namespace analysis {
 
 class Semantics {
@@ -63,8 +65,8 @@ class Semantics {
 
     if (util::Configuration::instance().inlineSemantics() &&
         containsPointerVariable) {
-      std::cerr << "WARNING: Ignoring request to inline semantics as inlining is "
-                   "currently not sound in the presence of pointer variables\n";
+      util::Output::warning("Ignoring request to inline semantics as inlining is "
+                   "currently not sound in the presence of pointer variables");
       util::Configuration::instance().setDontInline();
     }
   }

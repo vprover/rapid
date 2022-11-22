@@ -265,62 +265,6 @@ std::shared_ptr<const Formula> Theory::inChainSupport(
     "", false, logic::Symbol::SymbolType::SupportPredicate);
 }
 
-std::tuple<std::shared_ptr<logic::Axiom>,
-          std::shared_ptr<logic::Axiom>,
-          std::shared_ptr<logic::Axiom>>
-Theory::chainAxioms(
-    std::string selectorName,      
-    std::string sortName) {
-
-  auto sort = Sorts::fetch(sortName);
-  auto zero = Theory::zero();
-
-  auto varName = toLower(sortName) + "_var";
-  auto varSym = logic::Signature::varSymbol(varName, sort);
-  auto var = Terms::var(varSym);
-
-  auto tpSym = logic::Signature::varSymbol("tp", Sorts::timeSort());
-  auto tp = Terms::var(tpSym);
-
-  // TODO ensure uniqueness of variable names 
-  auto lenSym = logic::Signature::varSymbol("chain_len", Sorts::intSort());
-  auto len = Terms::var(lenSym);
-  auto lenSubOne = Theory::intSubtraction(len, Theory::intConstant(1));
-
-  auto zeroLessLen = Theory::less(zero, len);
-
-  // f_chain(loc, tp, 0)
-  auto lhs1 = Theory::chain(selectorName, var, tp, zero, sortName);
-  // f_chain(loc, tp, 0) = loc;
-  auto baseCase = Formulas::universal({varSym, tpSym},
-                    Formulas::equality(lhs1, var));
-
-
-  auto lhs2 = Theory::chain(selectorName, var, tp, len, sortName);
-  auto term = Theory::selectorAt(selectorName, tp, var);  
-  auto rhs = Theory::chain(selectorName, term, tp, lenSubOne, sortName);
-
-  auto inductiveCase = 
-    Formulas::universal({varSym, tpSym, lenSym},
-      Formulas::implication(
-        zeroLessLen,              
-        Formulas::equality(lhs2, rhs)));
-
-  // f(tp, f_chain(loc, tp, len))
-  auto lhs3 = Theory::selectorAt(selectorName, tp, lhs2);
-  // f_chain(f(loc), tp, len)  
-  auto rhs3 = Theory::chain(selectorName, term, tp, len, sortName);
-
-  auto helperLemma =
-     Formulas::universal({varSym, tpSym, lenSym}, 
-      Formulas::equality(lhs3, rhs3));
-
-  return std::make_tuple(
-      std::make_shared<logic::Axiom>(baseCase, "Base case " + selectorName),
-      std::make_shared<logic::Axiom>(inductiveCase, "Inductive case " + selectorName),
-      std::make_shared<logic::Axiom>(helperLemma, "Helpful lemma " + selectorName));
-}
-
 std::shared_ptr<const Formula> Theory::isList(
       std::shared_ptr<const Term> loc1,
       std::shared_ptr<const Term> loc2,
@@ -810,13 +754,15 @@ std::shared_ptr<const Formula> Theory::in(
 
 std::tuple<std::shared_ptr<logic::Conjecture>,
            std::shared_ptr<logic::Conjecture>,
-           std::shared_ptr<logic::Axiom>>
+           std::shared_ptr<logic::Axiom>,
+          std::shared_ptr<logic::Axiom>>
 inductionAxiom0(
     std::string concName,
     std::function<std::shared_ptr<const Formula>(std::shared_ptr<const Term>)>
         inductionHypothesis,
     std::shared_ptr<const Term> nlTerm,        
-    std::vector<std::shared_ptr<const Symbol>> freeVarSymbols) {
+    std::vector<std::shared_ptr<const Symbol>> freeVarSymbols,
+    std::shared_ptr<const Formula> boundsFromEnclosingLoops) {
 
   auto itSymbol = logic::Signature::varSymbol("it", logic::Sorts::iterSort());
   auto it = Terms::var(itSymbol);
@@ -827,25 +773,36 @@ inductionAxiom0(
   auto itLessEqNlTerm = Theory::lessEq(it, nlTerm);
   auto itPlusOne = Theory::succ(it);
 
-  auto baseCase = Formulas::universal(freeVarSymbols, inductionHypothesis(zero));
+  auto baseCase = Formulas::universal(freeVarSymbols, 
+    Formulas::implicationSimp(
+      boundsFromEnclosingLoops,
+      inductionHypothesis(zero)
+    ));
 
   freeVarSymbols.push_back(itSymbol);
   auto stepCase = Formulas::universal(freeVarSymbols, 
     Formulas::implication(
-      Formulas::conjunction({zeroLessEqIt,itLessNlTerm, inductionHypothesis(it)}),
+      Formulas::conjunctionSimp({boundsFromEnclosingLoops,zeroLessEqIt,itLessNlTerm, inductionHypothesis(it)}),
       inductionHypothesis(itPlusOne)
     ));
   
   auto conclusion = Formulas::universal(freeVarSymbols, 
     Formulas::implication(
-      Formulas::conjunction({zeroLessEqIt,itLessEqNlTerm}),
+      Formulas::conjunctionSimp({boundsFromEnclosingLoops,zeroLessEqIt,itLessEqNlTerm}),
       inductionHypothesis(it)
+    ));
+
+  auto conclusionVariant = Formulas::universal(freeVarSymbols, 
+    Formulas::implication(
+      Formulas::conjunctionSimp({boundsFromEnclosingLoops,zeroLessEqIt,itLessNlTerm}),
+      inductionHypothesis(itPlusOne)
     ));
 
   return std::make_tuple(
       std::make_shared<logic::Conjecture>(baseCase),
       std::make_shared<logic::Conjecture>(stepCase),
-      std::make_shared<logic::Axiom>(conclusion, concName));
+      std::make_shared<logic::Axiom>(conclusion, concName),
+      std::make_shared<logic::Axiom>(conclusionVariant, concName));
 }
 
 std::tuple<std::shared_ptr<logic::Conjecture>,
@@ -857,7 +814,8 @@ inductionAxiom3(std::string concName,
         inductionHypothesis,
     unsigned from,    
     std::shared_ptr<const Term> nlTerm,    
-    std::vector<std::shared_ptr<const Symbol>> freeVarSymbols) {
+    std::vector<std::shared_ptr<const Symbol>> freeVarSymbols,
+    std::shared_ptr<const Formula> boundsFromEnclosingLoops) {
 
   assert(from >= 0 && from <= 2);
 
@@ -886,7 +844,7 @@ inductionAxiom3(std::string concName,
   freeVarSymbols.push_back(itSym);
   auto stepCase = Formulas::universal(freeVarSymbols, 
     Formulas::implication(
-      Formulas::conjunction({zeroLessBl, blLessIt, itLessNl, inductionHypothesis(arg1, it)}),
+      Formulas::conjunctionSimp({boundsFromEnclosingLoops, zeroLessBl, blLessIt, itLessNl, inductionHypothesis(arg1, it)}),
       inductionHypothesis(arg1, succIt)
     ));
 
@@ -894,7 +852,7 @@ inductionAxiom3(std::string concName,
 
   auto conclusion = Formulas::universal(freeVarSymbols, 
     Formulas::implication(
-      Formulas::conjunction({zeroLessBl,blLessNl}),
+      Formulas::conjunctionSimp({boundsFromEnclosingLoops,zeroLessBl,blLessNl}),
       inductionHypothesis(arg1,nlTerm)
     ));
 
@@ -911,7 +869,8 @@ inductionAxiom4(std::string concName,
       std::shared_ptr<const Term>)>
         inductionHypothesis,
     std::shared_ptr<const Term> nlTerm,    
-    std::vector<std::shared_ptr<const Symbol>> freeVarSymbols) {
+    std::vector<std::shared_ptr<const Symbol>> freeVarSymbols,
+    std::shared_ptr<const Formula> boundsFromEnclosingLoops) {
 
   auto itSym  = Signature::varSymbol("it", logic::Sorts::intSort());
   auto it     = Terms::var(itSym);      
@@ -929,7 +888,7 @@ inductionAxiom4(std::string concName,
   freeVarSymbols.push_back(itSym);
   auto stepCase = Formulas::universal(freeVarSymbols, 
     Formulas::implication(
-      Formulas::conjunction({zeroLessIt, itLessBr, brLessNl, inductionHypothesis(br, succIt)}),
+      Formulas::conjunctionSimp({boundsFromEnclosingLoops,zeroLessIt, itLessBr, brLessNl, inductionHypothesis(br, succIt)}),
       inductionHypothesis(br, it)
     ));
 
@@ -937,7 +896,7 @@ inductionAxiom4(std::string concName,
 
   auto conclusion = Formulas::universal(freeVarSymbols, 
     Formulas::implication(
-      Formulas::conjunction({zeroLessBr,brLessNl}),
+      Formulas::conjunctionSimp({boundsFromEnclosingLoops,zeroLessBr,brLessNl}),
       inductionHypothesis(br,Theory::zero())
     ));
 

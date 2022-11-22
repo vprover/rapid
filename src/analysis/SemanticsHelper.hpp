@@ -73,6 +73,9 @@ std::shared_ptr<const logic::Term> startTimepointForStatement(
 std::vector<std::shared_ptr<const logic::Symbol>> enclosingIteratorsSymbols(
     const program::Statement* statement);
 
+std::vector<std::shared_ptr<const logic::Term>> enclosingLastIterationTerms(
+    const program::Statement* statement);
+
 #pragma mark - Methods for generating sorts
 
 logic::Sort* toSort(
@@ -106,10 +109,11 @@ std::shared_ptr<const logic::Term> intTimepointForLoopStatement(
 std::shared_ptr<const logic::Term> intStartTimepointForStatement(
     const program::Statement* statement);
 
-std::vector<std::shared_ptr<const logic::Symbol>> intEnclosingIteratorsSymbols(
-    const program::Statement* statement);
-
 #pragma mark - Methods for generating most used formulas
+
+std::shared_ptr<const logic::Formula> createBoundsForEnclosingLoops(
+    std::vector<std::shared_ptr<const logic::Symbol>>& syms,
+    std::vector<std::shared_ptr<const logic::Term>>& terms);
 
 std::shared_ptr<const logic::Formula> getDensityFormula(
     std::vector<std::shared_ptr<const logic::Symbol>> freeVarSymbols,
@@ -123,7 +127,9 @@ std::shared_ptr<const logic::Formula> getDensityDefinition(
     std::shared_ptr<const logic::Term> lStartIt,
     std::shared_ptr<const logic::Term> lStartSuccOfIt,
     std::shared_ptr<const logic::Term> n,
-    std::shared_ptr<const logic::Term> trace, bool increasing);
+    std::shared_ptr<const logic::Term> trace, 
+    std::shared_ptr<const logic::Formula> boundsFromEnclosingLoops,
+    bool increasing);
 
 std::shared_ptr<const logic::Formula> densityDefinition(
     const std::shared_ptr<const program::Expression> expr,
@@ -133,6 +139,7 @@ std::shared_ptr<const logic::Formula> densityDefinition(
     std::shared_ptr<const logic::Term> lStartSuccOfIt,
     std::shared_ptr<const logic::Term> n,
     std::shared_ptr<const logic::Term> trace, 
+    std::shared_ptr<const logic::Formula> boundsFromEnclosingLoops,    
     bool increasing,
     bool strong = false);
 

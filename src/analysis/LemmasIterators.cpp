@@ -72,6 +72,9 @@ void IntermediateValueLemmas::generateOutputFor(
               };
 
           auto freeVarSymbols1 = enclosingIteratorsSymbols(statement);
+          auto enclosingLastIterationTs = enclosingLastIterationTerms(statement);
+          auto enclosingLoopBounds = createBoundsForEnclosingLoops(freeVarSymbols1,enclosingLastIterationTs);
+
           if (v->isArray()) {
             freeVarSymbols1.push_back(posSymbol);
           }
@@ -107,7 +110,7 @@ void IntermediateValueLemmas::generateOutputFor(
 
           auto denseDefinition = getDensityDefinition(
               freeVarSymbols1, varExpr, nameSuffix, itSymbol, it, lStartIt,
-              lStartSuccOfIt, n, trace, true);
+              lStartSuccOfIt, n, trace, enclosingLoopBounds, true);
 
           auto denseDef = std::make_shared<logic::Definition>(
               denseDefinition, "Dense for " + nameSuffix,

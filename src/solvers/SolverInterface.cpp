@@ -264,43 +264,37 @@ void VampireSolver::declareStruct(Sort* sort) const
   }
   _solver->declareStruct(structName, nullName, fields);
 }
-
-bool VampireSolver::solve()
+  
+VampireSolver::SolverResult VampireSolver::solve()
 {
   Vampire::Result res;
   try{
     res = _solver->solveWithCasc();
   } catch (Vampire::ApiException& e){
     std::cout<< "Exception: "<<e.msg()<<std::endl;
-    return 0;
+    return std::make_pair(0,"");
   } catch (Vampire::FormulaBuilderException& f) {
     std::cout<< "Exception: "<<f.msg()<<std::endl;
-    return 0;    
+    return std::make_pair(0,"");
   }
 
-  if(res.unsatisfiable()){
-    return true;
-  }
-  return false;
+  return std::make_pair(res.unsatisfiable(), res.time());
 }
 
-bool VampireSolver::solveWithSched(Vampire::Solver::Schedule sched)
+VampireSolver::SolverResult VampireSolver::solveWithSched(Vampire::Solver::Schedule sched)
 {
   Vampire::Result res;
   try{
     res = _solver->solveWithSched(sched);
   } catch (Vampire::ApiException& e){
     std::cout<< "Exception: "<<e.msg()<<std::endl;
-    return 0;
+    return std::make_pair(0,"");
   } catch (Vampire::FormulaBuilderException& f) {
     std::cout<< "Exception: "<<f.msg()<<std::endl;
-    return 0;    
+    return std::make_pair(0,"");
   }
 
-  if(res.unsatisfiable()){
-    return true;
-  }
-  return false;  
+  return std::make_pair(res.unsatisfiable(), res.time());
 }
 
 VampireSolver VampireSolver::_instance;

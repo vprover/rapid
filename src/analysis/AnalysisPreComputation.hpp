@@ -51,6 +51,10 @@ class AnalysisPreComputation {
   computeAssignedVars(const program::Statement* statement,
                       bool pointerVars = false);
 
+
+  static std::map<std::string, std::unordered_set<std::string>>
+  computeAssignedFields(const program::Statement* statement);
+
   /** returns true if none of the vars in vars occurs in expr */
   static bool doNotOccurIn(
       std::unordered_set<std::shared_ptr<const program::Variable>>& vars,

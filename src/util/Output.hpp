@@ -20,6 +20,10 @@ class Output {
   static std::ostream& comment(std::ostream& str);
   static std::ostream& nocomment(std::ostream& str);
 
+  static void error(std::string error);
+  static void warning(std::string warning);
+  static void status(std::string status);
+
  private:
   static std::ostream* _stream;
 

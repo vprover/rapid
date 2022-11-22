@@ -138,6 +138,70 @@ void AnalysisPreComputation::addEndTimePointForWhileStatement(
                               endTimePointMap);
 }
 
+std::map<std::string, std::unordered_set<std::string>>
+AnalysisPreComputation::computeAssignedFields(const program::Statement* statement) {
+  std::map<std::string, std::unordered_set<std::string>> fields;
+
+  auto customMerge = [](std::map<std::string, std::unordered_set<std::string>>& map1,
+                        std::map<std::string, std::unordered_set<std::string>>& map2){
+
+    for(auto& [key, value] : map2){
+      if(map1.contains(key)){
+        map1[key].merge(value);
+      } else {
+        map1[key] = value;
+      }
+    }
+  };
+
+  switch (statement->type()) {
+    case program::Statement::Type::Assignment: {
+      auto casted = static_cast<const program::Assignment*>(statement);
+      // add variable on lhs to assignedVars, independently from whether those
+      // vars are simple ones or arrays.
+      if (casted->lhs->type() == program::Type::FieldAccess) {
+        auto access = static_cast<const program::StructFieldAccess*>(
+            casted->lhs.get());
+        auto structName = toSort(access->getStruct()->exprType())->name;
+        auto fieldName = logic::toLower(structName) + "_" + access->getField()->name;
+         
+        fields[structName].insert(fieldName);
+      }
+      break;
+    }
+    case program::Statement::Type::IfElse: {
+      auto castedStatement = static_cast<const program::IfElse*>(statement);
+      // collect assignedVars from both branches
+      for (const auto& statement : castedStatement->ifStatements) {
+        auto res = computeAssignedFields(statement.get());
+        customMerge(fields, res);
+      }
+      for (const auto& statement : castedStatement->elseStatements) {
+        auto res = computeAssignedFields(statement.get());
+        customMerge(fields, res);
+      }
+      break;
+    }
+    case program::Statement::Type::WhileStatement: {
+      auto castedStatement =
+          static_cast<const program::WhileStatement*>(statement);
+      // collect assignedVars from body
+      for (const auto& statement : castedStatement->bodyStatements) {
+        auto res = computeAssignedFields(statement.get());
+        customMerge(fields, res);
+      }
+      break;
+    }
+    case program::Statement::Type::SkipStatement:
+    case program::Statement::Type::VarDecl: {
+      break;
+    }
+  }
+
+  return fields;
+}
+
+
 std::unordered_set<std::shared_ptr<const program::Variable>>
 AnalysisPreComputation::computeAssignedVars(const program::Statement* statement,
                                             bool pointerVars) {

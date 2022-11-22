@@ -376,7 +376,11 @@ SMTLIB_ID
   {
     error(@1, "Not enough arguments for term " + symbol->name);
   }
-  $$ = logic::Terms::func(symbol, std::vector<std::shared_ptr<const logic::Term>>());
+  if(parsing_context.isVariableName($1)){
+    $$ = logic::Terms::var(symbol);
+  } else {
+    $$ = logic::Terms::func(symbol, std::vector<std::shared_ptr<const logic::Term>>());
+  }
 }
 | INTEGER                                 
   {

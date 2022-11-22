@@ -27,6 +27,25 @@ void Output::close() {
   _stream = nullptr;
 }
 
+void Output::error(std::string error) {
+  assert(_stream);
+
+  std::cerr << "ERROR: " << error << "\n";
+}
+
+void Output::warning(std::string warning) {
+  assert(_stream);
+
+  std::cerr << "WARNING: " << warning << "\n";
+}
+
+void Output::status(std::string status) {
+  assert(_stream);
+
+  //TODO check that _stream is not pointing to file
+  *_stream << "#### Status: ##### " << status << "\n";
+}
+
 std::ostream& Output::comment(std::ostream& ostr) {
   if (ostr.iword(_commentIndex) != 1) {
     std::streambuf* buf = new CommentingStreambuf(ostr.rdbuf());

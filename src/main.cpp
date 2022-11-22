@@ -26,8 +26,8 @@ int main(int argc, char* argv[]) {
   if (argc <= 1) {
     outputUsage();
   } else {
-    if (util::Configuration::instance().setAllValues(argc, argv)) {
-      if (util::Output::initialize()) {
+    if (util::Output::initialize()) {
+      if (util::Configuration::instance().setAllValues(argc, argv)) {
         std::string inputFile = argv[argc - 1];
 
         // check that inputFile ends in ".spec"
@@ -46,12 +46,12 @@ int main(int argc, char* argv[]) {
           inputFileName = inputFileWithoutExtension;
         }
 
-        std::cout << "#### Status: ##### Parsing benchmark" << std::endl;
+        util::Output::status("Parsing benchmark");
 
         // parse inputFile
         auto parserResult = parser::parse(inputFile);
 
-        std::cout << "#### Status: ##### Parsing successful. Translating to FOL" << std::endl;
+        util::Output::status("Parsing successful. Translating to FOL");
 
         // generate problem
         std::vector<std::shared_ptr<const logic::ProblemItem>> problemItems;
@@ -118,19 +118,20 @@ int main(int argc, char* argv[]) {
               task.outputSMTLIBToDir(outputDir, inputFileName, preamble.str());
             }
           } else {
-            std::cout << "#### Status: ##### Attempting to prove main conjecture\n" << std::endl;
+            util::Output::status("Attempting to prove main conjecture\n");
             std::cout << task.conjecture->formula->prettyString() << "\n" << std::endl; 
             auto& solver = solvers::VampireSolver::instance();
-            bool proofFound = solver.solveTask(task, logic::TaskType::MAIN);
-            if(proofFound){
-              std::cout << "Verification successful! Thanks to God!" << std::endl;
+            auto [proven, time] = solver.solveTask(task, logic::TaskType::MAIN);
+            if(proven){
+              std::cout << "Verification successful in time " + time + ". Thanks to God!" << std::endl;
             } else {
               std::cout << "Verification failed. You can try adding hand crafted invariants and running again" << std::endl;              
             }
           }
         }
-
       }
+      
+      util::Output::close();
     }
     return 0;
   }

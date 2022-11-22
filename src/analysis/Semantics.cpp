@@ -455,7 +455,12 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
       return eq;
     }
   }
-  return logic::Theory::boolTrue();
+  auto l1 = startTimepointForStatement(varDecl);
+  auto l2 = endTimePointMap.at(varDecl);  
+  
+  auto eq = logic::Formulas::equality(l1, l2, "Declaring vars does not affect values");
+  return eq;  
+//  return logic::Theory::boolTrue();
 }
 
 std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
@@ -826,8 +831,6 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     std::shared_ptr<const logic::Term> trace) {
   std::vector<std::shared_ptr<const logic::Formula>> conjuncts;
 
-  _loops.push_back(whileStatement);
-
   auto itSymbol = iteratorSymbol(whileStatement);
   auto it = logic::Terms::var(itSymbol);
   auto n = lastIterationTermForLoop(whileStatement, numberOfTraces, trace);
@@ -1067,7 +1070,10 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
 
     auto loopSemantics = logic::Formulas::conjunction(
         conjuncts, "Loop at location " + whileStatement->location);
-    
+  
+    // add at the end, so that we create invariants for inner loops first  
+    _loops.push_back(whileStatement);
+
     return loopSemantics;
   }
 }

@@ -80,6 +80,8 @@ class WhileParsingContext {
   std::shared_ptr<const logic::Symbol> fetch(
       std::string name);  // fetch symbol with given name from quantVarDecls or
                           // Signature.
+  bool isVariableName(std::string name);
+
 
   void pushProgramVars();
   void popProgramVars();

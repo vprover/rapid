@@ -1,4 +1,5 @@
 #include "Options.hpp"
+#include "Output.hpp"
 
 #include <iostream>
 #include <string>
@@ -67,17 +68,17 @@ bool Configuration::setAllValues(int argc, char* argv[]) {
 void Configuration::checkValues() {
 
   if(hol() && outputToFile() && !tptp()){
-    std::cerr << "ERORR: SMT-LIB2 syntax does not support higher-order. Must use TPTP syntax with HOL";
+    util::Output::error("SMT-LIB2 syntax does not support higher-order. Must use TPTP syntax with HOL");
     std::exit(EXIT_FAILURE);
   }
 
   if(generateBenchmark() && !outputToFile()){
-    std::cerr << "ERORR: can only generate a benchmark when outputting to a file";
+    util::Output::error("can only generate a benchmark when outputting to a file");
     std::exit(EXIT_FAILURE);        
   }
 
   if(outputDir() == "" && outputToFile()){
-    std::cerr << "ERORR: if outputting to a file, an output directory must be specified";
+    util::Output::error("if outputting to a file, an output directory must be specified");
     std::exit(EXIT_FAILURE);     
   }
 
@@ -85,7 +86,7 @@ void Configuration::checkValues() {
   // name.
 
   if(nativeNat() && integerIterations()){
-    std::cerr << "WARNING: native nat option does not make sense when using integer iterations\n";
+    util::Output::warning("native nat option does not make sense when using integer iterations");
   }
 
 

@@ -12,7 +12,9 @@ template <class SolverExpression, class SolverSort>
 class GenSolver {
   public:
     GenSolver() {}
-
+    
+    using SolverResult = std::pair<bool, std::string>;
+  
     void convertTask(ReasoningTask task){
       reset();
       try{
@@ -47,7 +49,7 @@ class GenSolver {
     // solvers can choose how to handle chainy tasks
     // We call a task chainy if it involves proving some facts about
     // a chain of fields e.g. a->f->f->f->f ...
-    virtual bool solveTask(ReasoningTask task, TaskType tt = TaskType::OTHER) {
+    virtual SolverResult solveTask(ReasoningTask task, TaskType tt = TaskType::OTHER) {
       convertTask(task);
       return solve();
     }
@@ -243,7 +245,7 @@ class GenSolver {
     virtual void addConjecture(SolverExpression) const = 0;
     virtual void reset() const = 0;
 
-    virtual bool solve() = 0;
+    virtual SolverResult solve() = 0;
   };
 
 // If there are other theorem provers that can handle quantifiers and
@@ -299,57 +301,50 @@ public:
   void declareSymbol(std::shared_ptr<const Symbol> sym) const override;
   void declareStruct(Sort* sort) const override;
 
-  bool solveTask(ReasoningTask task, TaskType tt = TaskType::OTHER) override {
+  SolverResult solveTask(ReasoningTask task, TaskType tt = TaskType::OTHER) override {
     convertTask(task);
     _solver->setOption("lemma_literal_selection","on");
     _solver->setOption("theory_axioms","off");    
     _solver->setOption("cancellation","cautious");
     _solver->setOption("gaussian_variable_elimination","force");
+    setTimeLimit(10);
 
-    if(tt == TaskType::CHAINY || tt == TaskType::MAIN){
-      std::cout << "Running Vampire's Rapid schedule for 60s" << std::endl;
-      if(tt == TaskType::MAIN){
-        _solver->setOption("multi_clause_nat_ind", "on");
-        _solver->setOption("extensionality_resolution", "chain");
-        //_solver->setOptions("lrs+1010_1_nwc=2:newcnf=on:thsq=on:bs=on:bsr=on:av=off:urr=on:lls=on:fsd=on:bsd=on:tha=on:thsqc=0,8:thsqr=20,10,1:slsq=off:plsq=off_10");
-        //_solver->setVerbose();
-        //_solver->solve();//
-        //return true;
-        // no need to unset afterwards since we try to prove the 
-        // main conjecture at the end 
-      }
-      // proving chain invariants tends to be more challenging
+    if(tt == TaskType::MAIN || tt == TaskType::STAY_SAME){
+      std::cout << "Running Vampire's Rapid schedule for 60s" << std::endl;      
       setTimeLimit(60);
-      bool res = solveWithSched(Vampire::Solver::Schedule::RAPID);
-      setTimeLimit(30);
-      if(res){
-        return true;
-      }      
+      if(tt == TaskType::MAIN){
+        task.outputSMTLIB(std::cout);
+      }
+      //_solver->setVerbose(true);
+      //_solver->setOption("show_preprocessing","on");
+      return solveWithSched(Vampire::Solver::Schedule::RAPID_MAIN_TASK);
     }
+    
+    if(tt == TaskType::CHAINY2){
+      std::cout << "Running Vampire's Rapid schedule for 10s" << std::endl;
+      _solver->setOption("forced_options","acha=acyclic");    
+      SolverResult res = solveWithSched(Vampire::Solver::Schedule::RAPID);   
+      _solver->setOption("forced_options","");    
+      return res;
+    }
+
+    std::cout << "Running Vampire's Rapid schedule for 10s" << std::endl;
     if(tt == TaskType::MALLOC){
       _solver->setOption("unification_with_abstraction","one_side_interp");
       _solver->setOption("theory_axioms","on");    
-      bool res = solveWithSched(Vampire::Solver::Schedule::RAPID);
+      SolverResult res = solveWithSched(Vampire::Solver::Schedule::RAPID);
       _solver->setOption("unification_with_abstraction","off");      
       return res;            
-      //task.outputSMTLIB(std::cout);
+//      task.outputSMTLIB(std::cout);
     }
-    if(tt == TaskType::DENSE){      
-      std::cout << "Running Vampire's Rapid schedule for 10s" << std::endl;
-      // proving dense invariants tends to be simple
-      setTimeLimit(10);
-      bool res = solveWithSched(Vampire::Solver::Schedule::RAPID);
-      setTimeLimit(10);
-      return res;
-    }
-    std::cout << "Running Vampire's Rapid schedule for 30s" << std::endl;
+
     //assert(false);
     return solveWithSched(Vampire::Solver::Schedule::RAPID);
   }
 
   // trys to solve the problem using Vampire's CASC mode
-  bool solve() override;
-  bool solveWithSched(Vampire::Solver::Schedule sched);
+  SolverResult solve() override;
+  SolverResult solveWithSched(Vampire::Solver::Schedule sched);
 
   static VampireSolver& instance(){ return _instance; }
 

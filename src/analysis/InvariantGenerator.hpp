@@ -6,8 +6,11 @@
 #include "LogicProblem.hpp"
 #include "SolverInterface.hpp"
 
+#include <unordered_set>
+
 namespace analysis {
 
+//TODO make this a super class and create subclasses
 class InvariantTask {
   public:
     enum class Status { SOLVED, FAILED, NOT_ATTEMPTED };
@@ -17,35 +20,42 @@ class InvariantTask {
                  logic::ReasoningTask* stepCase,
                  std::vector<std::shared_ptr<const logic::Axiom>> conclusions,
                  std::string loopLocation,
-                 TaskType tt = TaskType::OTHER,
-                 std::vector<std::shared_ptr<const logic::Axiom>> chainAxioms = {}) :
+                 TaskType tt = TaskType::OTHER) :
     _baseCase(baseCase), _stepCase(stepCase),
     _conclusions(conclusions), _status(Status::NOT_ATTEMPTED),
-    _loopLocation(loopLocation), _tt(tt), _chainAxioms(chainAxioms) {}
+    _loopLocation(loopLocation), _tt(tt) {}
 
     InvariantTask(logic::ReasoningTask* stepCase,
                  std::vector<std::shared_ptr<const logic::Axiom>> conclusions,
                  std::string loopLocation,
-                 TaskType tt = TaskType::OTHER,
-                 std::vector<std::shared_ptr<const logic::Axiom>> chainAxioms = {}) :
+                 TaskType tt = TaskType::OTHER) :
     _baseCase(nullptr), _stepCase(stepCase),
     _conclusions(conclusions), _status(Status::NOT_ATTEMPTED),
-    _loopLocation(loopLocation), _tt(tt), _chainAxioms(chainAxioms) {}
+    _loopLocation(loopLocation), _tt(tt) {}
+
+    InvariantTask(std::vector<std::shared_ptr<const logic::Axiom>> conclusions,
+                 std::string loopLocation,
+                 TaskType tt = TaskType::OTHER) :
+    _baseCase(nullptr), _stepCase(nullptr),
+    _conclusions(conclusions), _status(Status::NOT_ATTEMPTED),
+    _loopLocation(loopLocation), _tt(tt) {}
 
     void setStatus(Status status);
     Status status() const { return _status; }    
     bool containsBaseCase() const { return _baseCase != nullptr; }
     TaskType taskType() const { return _tt; }
-    bool isChainyTask() const { return _tt == TaskType::CHAINY; }
 
     void addAxioms(std::vector<std::shared_ptr<const logic::Axiom>> axms){
-      _stepCase->addAxioms(axms);
+      if(_stepCase){
+        _stepCase->addAxioms(axms);
+      }
       if(_baseCase){
         _baseCase->addAxioms(axms);
       }
     }
-    std::vector<std::shared_ptr<const logic::Axiom>>
-    getChainAxioms() { return  _chainAxioms; }
+
+    void removeStandardConclusion();
+    void removeVariantConclusion();
 
     logic::ReasoningTask* baseCase() { return _baseCase; }
     logic::ReasoningTask* stepCase() { return _stepCase; }
@@ -54,7 +64,7 @@ class InvariantTask {
     conclusions() { return _conclusions; }    
     
     std::string loopLoc(){ return _loopLocation; }
- 
+
   private:
     Status _status;
     logic::ReasoningTask* _baseCase;
@@ -64,39 +74,29 @@ class InvariantTask {
      std::vector<std::shared_ptr<const logic::Axiom>> _conclusions;
     std::string _loopLocation;
     TaskType _tt;
-    std::vector<std::shared_ptr<const logic::Axiom>> _chainAxioms;
 };
 
 /*
  *  In some cases if we fail to prove an invariant, we want to try alternatives
  *  In other cases, if we prove an invariant, we want to try and prove others
  */
+// TODO, make this a parent class and then create sub-classes for chainy
+// etc.
 class InvariantTaskList {
   public:
 
-    enum class ListType { SINGLETON, CONTINUE_ON_SUCCESS, CONTINUE_ON_FAILURE };
+    InvariantTaskList(TaskType tt) :
+     _tt(tt) {}
 
-    InvariantTaskList(ListType lt, InvariantTask main) :
-     _lt(lt), _mainTask(main) {}
+    void addTask(InvariantTask task){ _tasks.push_back(task); }
 
-    void addTask(InvariantTask task){ _fallBackTasks.push_back(task); }
+    std::vector<InvariantTask>& tasks() { return _tasks; }
 
-    std::vector<InvariantTask>& fallBackTasks() { return _fallBackTasks; }
-    //WARNING, should only be used when _fallBakcs are no longer required
-    std::vector<InvariantTask>& allTasks() {
-      _fallBackTasks.push_back(_mainTask);
-      return _fallBackTasks;
-    }
-
-    InvariantTask& mainTask() { return _mainTask;}
-
-    bool continueOnFailure(){ return _lt == ListType::CONTINUE_ON_FAILURE; }
-    bool continueOnSuccess(){ return _lt == ListType::CONTINUE_ON_SUCCESS; }
+    TaskType taskType() { return _tt; }
 
   private:
-    ListType _lt;
-    InvariantTask _mainTask;
-    std::vector<InvariantTask> _fallBackTasks;
+    TaskType _tt;
+    std::vector<InvariantTask> _tasks;
 };
 
 class InvariantGenerator {
@@ -209,21 +209,18 @@ class InvariantGenerator {
 
     /*
      * Attempts to prove the density / strong density of a variable / term
-     * and if successful adds reevant conclusions
+     * and if successful adds relevant conclusions
      */
     void generateDenseInvariants(
       const program::WhileStatement* whileStatement,
       std::shared_ptr<const logic::Axiom> semantics);
-
-
-    std::map<std::string,std::vector<std::shared_ptr<logic::Axiom>>> _chainAxiomsUsed; 
-    std::vector<std::shared_ptr<logic::Axiom>> _supportAxioms; 
 
     const std::unordered_map<
       std::string, std::vector<std::shared_ptr<const program::Variable>>>
       _locationToActiveVars;
 
     std::vector<InvariantTaskList> _potentialInvariants;
+    std::unordered_set<std::string> _chainsSameProved;
     bool _typed;
 };
 
