@@ -1,6 +1,6 @@
 This document explains how to build Rapid with Vampire as a backend reasoner
 
-# Building Vampire
+## Building Vampire
 
 Checkout the Vampire branch `ahmed-rapid-without-ir`
 
