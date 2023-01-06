@@ -20,7 +20,7 @@ where `n` is the number of cores. Once the command completes you should see a fi
 
 ## Building Rapid
 
-Follow, the standard build instructions provided in `README.md`, but set a flag `Vampire_DIR` to the location of the Vampire library when running CMake. For example:
+Follow the standard build instructions provided in `README.md`, but set a flag `Vampire_DIR` to the location of the Vampire library when running CMake. For example:
 
 ```
 cmake .. -DVampire_DIR=../../vampire/build_ahmed_rapid_debug/    
