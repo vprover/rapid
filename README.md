@@ -18,6 +18,8 @@ RAPID is intended to be used as follows:
 
 ### Building the executable
 
+If you would like to build with Vampire as a backend, please follow the instructions in `BUILD.md`.
+
 There are two steps involved in building RAPID.
 
 First, we generate the source-code files for the RAPID-parser using Flex and Bison:
