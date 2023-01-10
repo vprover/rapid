@@ -72,7 +72,7 @@ Semantics::generateSemantics() {
 
       SemanticsInliner inliner(problemItems, trace);
       for (const auto& statement : function->statements) {
-        auto semantics = generateSemantics(statement.get(), inliner, trace);
+        auto semantics = generateSemantics(statement.get(), inliner, trace, Formulas::trueFormula());
         conjunctsTrace.push_back(semantics);
       }
       if (util::Configuration::instance().inlineSemantics()) {
@@ -142,7 +142,7 @@ Semantics::generateSemantics() {
     // An alternative would be to use just the sematnics of the loop
     // but these can at time not be sufficient. Particularly for proving base cases
     for(auto& loop : _loops){
-      _ig->generateInvariants(loop, axiomFormula);
+      _ig->generateInvariants(loop.first, loop.second, axiomFormula);
     }
 
     _ig->insertAxiomsIntoTasks(axioms2);
@@ -402,6 +402,8 @@ void Semantics::addMallocFreshnessAxiom(
         auto formula2 = Formulas::universal(freeVarSymbols, 
           Formulas::implication(notEqual2, notEqual3));
         mallocFreshAxioms.push_back(std::make_shared<Axiom>(formula2, "Helpful fact"));
+
+        freeVarSymbols.pop_back();        
       }  
     }
   }
@@ -417,7 +419,8 @@ void Semantics::addAllSameAxioms() {
 
 std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     const program::Statement* statement, SemanticsInliner& inliner,
-    std::shared_ptr<const logic::Term> trace) {
+    std::shared_ptr<const logic::Term> trace,
+    std::shared_ptr<const logic::Formula> condition) {
   if (statement->type() == program::Statement::Type::VarDecl) {
     auto castedStatement = static_cast<const program::VarDecl*>(statement);
     return generateSemantics(castedStatement, inliner, trace);
@@ -426,11 +429,11 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     return generateSemantics(castedStatement, inliner, trace);
   } else if (statement->type() == program::Statement::Type::IfElse) {
     auto castedStatement = static_cast<const program::IfElse*>(statement);
-    return generateSemantics(castedStatement, inliner, trace);
+    return generateSemantics(castedStatement, inliner, trace, condition);
   } else if (statement->type() == program::Statement::Type::WhileStatement) {
     auto castedStatement =
         static_cast<const program::WhileStatement*>(statement);
-    return generateSemantics(castedStatement, inliner, trace);
+    return generateSemantics(castedStatement, inliner, trace, condition);
   } else {
     assert(statement->type() == program::Statement::Type::SkipStatement);
     auto castedStatement =
@@ -662,7 +665,8 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
 
 std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     const program::IfElse* ifElse, SemanticsInliner& inliner,
-    std::shared_ptr<const logic::Term> trace) {
+    std::shared_ptr<const logic::Term> trace, 
+    std::shared_ptr<const logic::Formula> cond) {
   std::vector<std::shared_ptr<const logic::Formula>> conjuncts;
 
   auto lStart = startTimepointForStatement(ifElse);
@@ -695,12 +699,12 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
 
     for (const auto& statement : ifElse->ifStatements) {
       auto semanticsOfStatement =
-          generateSemantics(statement.get(), inlinerLeft, trace);
+          generateSemantics(statement.get(), inlinerLeft, trace, cond);
       conjunctsLeft.push_back(semanticsOfStatement);
     }
     for (const auto& statement : ifElse->elseStatements) {
       auto semanticsOfStatement =
-          generateSemantics(statement.get(), inlinerRight, trace);
+          generateSemantics(statement.get(), inlinerRight, trace, cond);
       conjunctsRight.push_back(semanticsOfStatement);
     }
 
@@ -803,11 +807,14 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     conjuncts.push_back(implicationIfBranch);
     conjuncts.push_back(implicationElseBranch);
 
+    auto conditionIf = Formulas::conjunctionSimp({cond, condition});
+    auto conditionElse = Formulas::conjunctionSimp({cond, negatedCondition});
+
     // Part 2: collect all formulas describing semantics of branches and assert
     // them conditionally
     for (const auto& statement : ifElse->ifStatements) {
       auto semanticsOfStatement =
-          generateSemantics(statement.get(), inliner, trace);
+          generateSemantics(statement.get(), inliner, trace, conditionIf);
       auto implication = logic::Formulas::implication(
           condition, semanticsOfStatement, "Semantics of left branch");
       conjuncts.push_back(implication);
@@ -815,7 +822,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
 
     for (const auto& statement : ifElse->elseStatements) {
       auto semanticsOfStatement =
-          generateSemantics(statement.get(), inliner, trace);
+          generateSemantics(statement.get(), inliner, trace, conditionElse);
       auto implication = logic::Formulas::implication(
           negatedCondition, semanticsOfStatement, "Semantics of right branch");
       conjuncts.push_back(implication);
@@ -828,7 +835,8 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
 
 std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     const program::WhileStatement* whileStatement, SemanticsInliner& inliner,
-    std::shared_ptr<const logic::Term> trace) {
+    std::shared_ptr<const logic::Term> trace, 
+    std::shared_ptr<const logic::Formula> condition) {
   std::vector<std::shared_ptr<const logic::Formula>> conjuncts;
 
   auto itSymbol = iteratorSymbol(whileStatement);
@@ -941,7 +949,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     std::vector<std::shared_ptr<const logic::Formula>> conjunctsBody;
     for (const auto& statement : whileStatement->bodyStatements) {
       auto semanticsOfStatement =
-          generateSemantics(statement.get(), inliner, trace);
+          generateSemantics(statement.get(), inliner, trace, condition);
       conjunctsBody.push_back(semanticsOfStatement);
     }
 
@@ -997,6 +1005,8 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
             allVarEqual(lBodyStartIt, lStartIt, trace)),
         "Jumping into the loop body doesn't change the variable values");
 
+    std::shared_ptr<const logic::Formula> newCondition;
+
     if (util::Configuration::instance().integerIterations()) {
       part1 = logic::Formulas::universal(
           {itSymbol},
@@ -1006,13 +1016,23 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
                    logic::Theory::less(it, n)}),
               allVarEqual(lBodyStartIt, lStartIt, trace)),
           "Jumping into the loop body doesn't change the variable values");
+      newCondition = Formulas::conjunctionSimp({
+        condition,
+        Theory::lessEq(Theory::zero(), it),
+        Theory::less(it, n)
+      });
+    } else {
+      newCondition = Formulas::conjunctionSimp({
+        condition,
+        Theory::less(it, n)
+      });      
     }
     conjuncts.push_back(part1);
 
     // Part 2: collect all formulas describing semantics of body
     std::vector<std::shared_ptr<const logic::Formula>> conjunctsBody;
     for (const auto& statement : whileStatement->bodyStatements) {
-      auto conjunct = generateSemantics(statement.get(), inliner, trace);
+      auto conjunct = generateSemantics(statement.get(), inliner, trace, newCondition);
       conjunctsBody.push_back(conjunct);
     }
     auto bodySemantics = logic::Formulas::universal(
@@ -1072,7 +1092,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
         conjuncts, "Loop at location " + whileStatement->location);
   
     // add at the end, so that we create invariants for inner loops first  
-    _loops.push_back(whileStatement);
+    _loops.push_back(std::make_pair(whileStatement, condition));
 
     return loopSemantics;
   }

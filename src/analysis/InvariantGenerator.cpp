@@ -30,6 +30,7 @@ void InvariantTask::removeVariantConclusion(){
 
 void InvariantGenerator::generateInvariants( 
     const program::WhileStatement* whileStatement,
+    std::shared_ptr<const logic::Formula> conditionsFromAbove,
     std::shared_ptr<const logic::Formula> semantics)
 {
 
@@ -37,24 +38,118 @@ void InvariantGenerator::generateInvariants(
 
   auto semanticsAxiom = std::make_shared<Axiom>(semantics);
 
-  generateStaticVarInvariants(whileStatement, semanticsAxiom);
-  generateDenseInvariants(whileStatement, semanticsAxiom);
+  generateEqualMallocFormulas(whileStatement, semanticsAxiom, conditionsFromAbove);
 
-  generatePointsToNullInvariants(whileStatement, semanticsAxiom);
+  generateStaticVarInvariants(whileStatement, semanticsAxiom, conditionsFromAbove);
+  generateDenseInvariants(whileStatement, semanticsAxiom, conditionsFromAbove);
+
+  generatePointsToNullInvariants(whileStatement, semanticsAxiom, conditionsFromAbove);
   if(_typed){
-    generateStructsStaySameInvariants(whileStatement, semanticsAxiom);
+    generateStructsStaySameInvariants(whileStatement, semanticsAxiom, conditionsFromAbove);
   } 
-  generateMallocInLoopInvariants(whileStatement, semanticsAxiom);
+  generateMallocInLoopInvariants(whileStatement, semanticsAxiom, conditionsFromAbove);
   // TODO in the untyped case we want to generate invariants over active mallocs
   // we should actually add such invariants as fall backs even in the typed case
   // as well
-  generateChainingInvariants(whileStatement, semanticsAxiom);
+  generateChainingInvariants(whileStatement, semanticsAxiom, conditionsFromAbove);
+
+}
+
+void InvariantGenerator::generateEqualMallocFormulas(
+  const program::WhileStatement* whileStatement,
+  std::shared_ptr<const logic::Axiom> semantics,
+  std::shared_ptr<const logic::Formula> conditionsFromAbove)
+{
+
+  auto itSym = Signature::varSymbol("it", logic::Sorts::intSort());
+  auto it = Terms::var(itSym); 
+
+  auto trace = traceTerm(1);
+
+  auto lStart0 = timepointForLoopStatement(whileStatement, Theory::zero());
+  auto activeVars = _locationToActiveVars.at(lStart0->symbol->name);  
+
+  auto n = lastIterationTermForLoop(whileStatement, 1, trace);
+  auto nMinus1 = Theory::intSubtraction(n, Theory::intConstant(1));
+
+  auto freeVarSymbols = enclosingIteratorsSymbols(whileStatement);
+
+
+  for (const auto& statement : whileStatement->bodyStatements) {
+        
+    if(statement->type() == program::Statement::Type::Assignment){
+      auto castedStatement = static_cast<const program::Assignment*>(statement.get());
+      auto rhs = castedStatement->rhs;
+      if(rhs->type() == program::Type::MallocFunc){
+
+        auto mallocType = rhs->exprType()->getChild();
+        assert(mallocType->isStructType());
+        auto mType = std::static_pointer_cast<const program::StructType>(mallocType);
+
+        for(auto& var : activeVars){
+          if(var->vt->isPointerToStruct()){
+            auto childType = var->vt->getChild();
+            assert(childType->isStructType());
+            auto structType = std::static_pointer_cast<const program::StructType>(childType);
+            if(structType->getName() == mType->getName()){
+            
+
+              auto createFormula =
+              [&](std::shared_ptr<const logic::Term> arg) {
+
+                auto lMalloc = timepointForNonLoopStatement(castedStatement, arg);
+                auto lStartSuccArg = timepointForLoopStatement(whileStatement, Theory::succ(arg));
+                
+                auto varTerm = toTerm(var, lStartSuccArg, trace);
+                auto mallocTerm = toTerm(rhs, lMalloc, trace);    
+
+                return Formulas::equality(mallocTerm,varTerm);
+              };
+
+              freeVarSymbols.push_back(itSym);
+
+              auto conclusion = 
+                std::make_shared<Conjecture>(Formulas::universal(freeVarSymbols,
+                  Formulas::implicationSimp(
+                    Formulas::conjunctionSimp({
+                      conditionsFromAbove,
+                      Theory::lessEq(Theory::zero(), it),
+                      Theory::less(it,n)                  
+                    }),
+                    createFormula(it)
+                  )), 
+                "Invariant of loop at location " + whileStatement->location);
+
+              freeVarSymbols.pop_back();
+
+              auto conclusionInstance = 
+                std::make_shared<Axiom>(Formulas::universal(freeVarSymbols,
+                  Formulas::implicationSimp(
+                    conditionsFromAbove,
+                    createFormula(nMinus1) 
+                  )),  
+                "Useful instance of above invariant");
+
+              auto rt = new ReasoningTask({semantics}, conclusion);
+
+              InvariantTaskList itl(TaskType::OTHER); 
+              itl.addTask(InvariantTask(rt, {conclusionInstance}, whileStatement->location, TaskType::OTHER));
+
+              _potentialInvariants.push_back(itl);
+
+            }
+          }
+        }
+      }
+    }
+  }
 
 }
 
 void InvariantGenerator::generatePointsToNullInvariants(      
       const program::WhileStatement* whileStatement,
-      std::shared_ptr<const logic::Axiom> semantics)
+      std::shared_ptr<const logic::Axiom> semantics,
+      std::shared_ptr<const logic::Formula> conditionsFromAbove)
 {
 
   auto lStart0 = timepointForLoopStatement(whileStatement, Theory::zero());
@@ -62,9 +157,6 @@ void InvariantGenerator::generatePointsToNullInvariants(
   auto activeVars = _locationToActiveVars.at(lStart0->symbol->name);  
   auto assignedVars = AnalysisPreComputation::computeAssignedVars(whileStatement, true);     
   auto freeVarSymbols = enclosingIteratorsSymbols(whileStatement);
-  auto enclosingLastIterationTs = enclosingLastIterationTerms(whileStatement);
-
-  auto boundsFromEnclosingLoops = createBoundsForEnclosingLoops(freeVarSymbols, enclosingLastIterationTs);
 
   for(auto& var : activeVars){
     if(assignedVars.contains(var) && var->vt->isPointerToStruct()){
@@ -91,16 +183,17 @@ void InvariantGenerator::generatePointsToNullInvariants(
 
           auto [baseCase, stepCase, conclusion, concVariant] = 
           inductionAxiom0("Invariant of loop at location " + whileStatement->location,
-                         inductionHypothesis, n ,freeVarSymbols, boundsFromEnclosingLoops); 
+                         inductionHypothesis, n ,freeVarSymbols, conditionsFromAbove); 
 
           auto conclusionInstance = 
             std::make_shared<Axiom>(Formulas::universal(freeVarSymbols, 
               Formulas::implicationSimp(
-                boundsFromEnclosingLoops,
+                conditionsFromAbove,
                 inductionHypothesis(n))), 
             "Useful instance of above invariant");
 
           auto rtBase = new ReasoningTask({semantics}, baseCase);
+//          rtBase->setPrint();
           auto rtStep = new ReasoningTask({semantics}, stepCase);
 
           InvariantTaskList itl(TaskType::OTHER);
@@ -115,15 +208,12 @@ void InvariantGenerator::generatePointsToNullInvariants(
 
 void InvariantGenerator::generateMallocInLoopInvariants(      
   const program::WhileStatement* whileStatement,
-  std::shared_ptr<const logic::Axiom> semantics)
+  std::shared_ptr<const logic::Axiom> semantics,
+  std::shared_ptr<const logic::Formula> conditionsFromAbove)
 {
 
   auto freeVarSymbols = enclosingIteratorsSymbols(whileStatement);
-  auto enclosingLastIterationTs = enclosingLastIterationTerms(whileStatement);
-
   auto lStartZero = timepointForLoopStatement(whileStatement, Theory::zero());
-
-  auto boundsFromEnclosingLoops = createBoundsForEnclosingLoops(freeVarSymbols, enclosingLastIterationTs);
 
   auto trace = traceTerm(1);
   auto n = lastIterationTermForLoop(whileStatement, 1, trace); 
@@ -169,11 +259,11 @@ void InvariantGenerator::generateMallocInLoopInvariants(
  
             auto [stepCase1, conclusion1] = 
             inductionAxiom3("Invariant of loop at location " + whileStatement->location,
-                            inductionHypothesis2, 1, n ,freeVarSymbols,boundsFromEnclosingLoops); 
+                            inductionHypothesis2, 1, n ,freeVarSymbols,conditionsFromAbove); 
 
             auto [stepCase2, conclusion2] = 
             inductionAxiom3("Invariant of loop at location " + whileStatement->location,
-                            inductionHypothesis2, 2, n ,freeVarSymbols,boundsFromEnclosingLoops); 
+                            inductionHypothesis2, 2, n ,freeVarSymbols,conditionsFromAbove); 
 
             auto rt1 = new ReasoningTask({semantics}, stepCase1);
             auto rt2 = new ReasoningTask({semantics}, stepCase2);
@@ -232,7 +322,7 @@ void InvariantGenerator::generateMallocInLoopInvariants(
    
               auto [stepCase1, conclusion1] = 
               inductionAxiom3("Invariant of loop at location " + whileStatement->location,
-                              inductionHypothesis, 1, n ,freeVarSymbols,boundsFromEnclosingLoops); 
+                              inductionHypothesis, 1, n ,freeVarSymbols,conditionsFromAbove); 
 
 
              // std::cout << stepCase1->formula->prettyString() << std::endl;
@@ -257,11 +347,10 @@ void InvariantGenerator::generateMallocInLoopInvariants(
 
 void InvariantGenerator::generateStructsStaySameInvariants(      
   const program::WhileStatement* whileStatement,
-  std::shared_ptr<const logic::Axiom> semantics)
+  std::shared_ptr<const logic::Axiom> semantics,
+  std::shared_ptr<const logic::Formula> conditionsFromAbove)
 {
   auto freeVarSymbols = enclosingIteratorsSymbols(whileStatement);
-  auto enclosingLastIterationTs = enclosingLastIterationTerms(whileStatement);
-  auto boundsFromEnclosingLoops = createBoundsForEnclosingLoops(freeVarSymbols, enclosingLastIterationTs);
 
   auto trace = traceTerm(1);
   auto n = lastIterationTermForLoop(whileStatement, 1, trace);    
@@ -283,7 +372,7 @@ void InvariantGenerator::generateStructsStaySameInvariants(
     return 
     Formulas::implicationSimp(
       Formulas::conjunctionSimp({
-        boundsFromEnclosingLoops,
+        conditionsFromAbove,
         Theory::lessEq(Theory::zero(), it),
         Theory::lessEq(it,n)
       }), 
@@ -355,7 +444,8 @@ void InvariantGenerator::generateStructsStaySameInvariants(
 
 void InvariantGenerator::generateDenseInvariants(      
   const program::WhileStatement* whileStatement,
-  std::shared_ptr<const logic::Axiom> semantics)
+  std::shared_ptr<const logic::Axiom> semantics,
+  std::shared_ptr<const logic::Formula> conditionsFromAbove)
 {
 
 
@@ -371,8 +461,6 @@ void InvariantGenerator::generateDenseInvariants(
   auto lStartN = timepointForLoopStatement(whileStatement, n);    
 
   auto freeVarSymbols = enclosingIteratorsSymbols(whileStatement);
-  auto enclosingLastIterationTs = enclosingLastIterationTerms(whileStatement);
-  auto boundsFromEnclosingLoops = createBoundsForEnclosingLoops(freeVarSymbols, enclosingLastIterationTs);
 
   auto activeVars = _locationToActiveVars.at(lStartZero->symbol->name);
   auto assignedVars = AnalysisPreComputation::computeAssignedVars(whileStatement);
@@ -393,12 +481,14 @@ void InvariantGenerator::generateDenseInvariants(
 
       // TODO, the above is unsafe in the presence of pointers...!
 
-      auto newLeft = toTerm(left, lStartZero, trace);
-      auto newRight = toTerm(right, lStartZero, trace);
+      auto l0 = toTerm(left, lStartZero, trace);
+      auto r0 = toTerm(right, lStartZero, trace);
 
-      auto conc = logic::Formulas::equality(
-        toTerm(left, lStartN, trace), 
-          toTerm(right, lStartN, trace));
+      auto ln = toTerm(left, lStartN, trace);
+      auto rn = toTerm(right, lStartN, trace);
+
+      std::shared_ptr<const logic::Term> r0n = r0;
+      std::shared_ptr<const logic::Term> rnn = rn;
 
       auto op = condCasted->kind;
       bool lessThan = false;
@@ -412,7 +502,8 @@ void InvariantGenerator::generateDenseInvariants(
         case program::ArithmeticComparison::Kind::LE: {
           lessThan = true;
           auto one = Theory::intConstant(1);
-          newRight = Theory::intAddition(newRight, one);
+          r0n = Theory::intAddition(r0n, one);
+          rnn = Theory::intAddition(rnn, one);
           break;
         }
 
@@ -423,26 +514,26 @@ void InvariantGenerator::generateDenseInvariants(
         default: {
           // the equality case should never occur
           auto one = Theory::intConstant(1);
-          newRight = Theory::intSubtraction(newRight, one);
+          r0n = Theory::intSubtraction(r0n, one);
+          rnn = Theory::intSubtraction(rnn, one);
           break;
         }
       }
-      
-      auto prem =
-          lessThan ? Theory::lessEq(newLeft, newRight)
-                   : Theory::intGreaterEqual(newLeft, newRight);
-      
+
+      auto prem = lessThan ? Theory::lessEq(l0, r0n) : Theory::intGreaterEqual(l0, r0n);
+      auto conc = logic::Formulas::equality(ln, rnn);
+
       auto lemma = logic::Formulas::universal(
             freeVarSymbols, 
               Formulas::implicationSimp(
-                boundsFromEnclosingLoops,
+                conditionsFromAbove,
                 logic::Formulas::implication(prem, conc)));
 
       auto conclusionAx = std::make_shared<Axiom>(lemma, 
         "Invariant of loop at location " + loc);
 
       auto denseFormula = 
-         densityDefinition(left, itSym, it, lStartIt, lStartSuccOfIt, n, trace, boundsFromEnclosingLoops, lessThan);
+         densityDefinition(left, itSym, it, lStartIt, lStartSuccOfIt, n, trace, conditionsFromAbove, lessThan);
       denseFormula = Formulas::universalSimp(freeVarSymbols, denseFormula);
 
       auto toProve = std::make_shared<Conjecture>(denseFormula);
@@ -470,7 +561,7 @@ void InvariantGenerator::generateDenseInvariants(
         auto zeroLessIt = Theory::lessEq(Theory::zero(), it);
         auto itLessNl = Theory::lessEq(it,n);
         return Formulas::implication(
-                Formulas::conjunctionSimp({boundsFromEnclosingLoops, zeroLessIt, itLessNl}), 
+                Formulas::conjunctionSimp({conditionsFromAbove, zeroLessIt, itLessNl}), 
                   form);
       };
 
@@ -495,21 +586,21 @@ void InvariantGenerator::generateDenseInvariants(
       auto ci2 = 
         std::make_shared<Axiom>(Formulas::universal(freeVarSymbols, 
           Formulas::implicationSimp(
-            boundsFromEnclosingLoops,
+            conditionsFromAbove,
             concIncreasing2)), 
         "Useful instance of above invariant");
 
       auto cd2 = 
         std::make_shared<Axiom>(Formulas::universal(freeVarSymbols, 
           Formulas::implicationSimp(
-            boundsFromEnclosingLoops,
+            conditionsFromAbove,
             concDecreasing2)), 
         "Useful instance of above invariant");
 
       auto stronglyDenseIncreasing = 
-        densityDefinition(varExpr, itSym, it, lStartIt, lStartSuccOfIt, n, trace, boundsFromEnclosingLoops, true, true);    
+        densityDefinition(varExpr, itSym, it, lStartIt, lStartSuccOfIt, n, trace, conditionsFromAbove, true, true);    
       auto stronglyDenseDecreasing = 
-        densityDefinition(varExpr, itSym, it, lStartIt, lStartSuccOfIt, n, trace, boundsFromEnclosingLoops, false, true);  
+        densityDefinition(varExpr, itSym, it, lStartIt, lStartSuccOfIt, n, trace, conditionsFromAbove, false, true);  
 
       auto toProveIncreasing = std::make_shared<Conjecture>(
         Formulas::universal(freeVarSymbols, stronglyDenseIncreasing));
@@ -531,7 +622,8 @@ void InvariantGenerator::generateDenseInvariants(
 
 void InvariantGenerator::generateChainingInvariants(      
   const program::WhileStatement* whileStatement,
-  std::shared_ptr<const logic::Axiom> semantics)
+  std::shared_ptr<const logic::Axiom> semantics,
+  std::shared_ptr<const logic::Formula> conditionsFromAbove)
 {
 
   auto lStartZero = timepointForLoopStatement(whileStatement, Theory::zero());
@@ -540,12 +632,9 @@ void InvariantGenerator::generateChainingInvariants(
   auto assignedVars = AnalysisPreComputation::computeAssignedVars(whileStatement, true);
 
   auto freeVarSymbols = enclosingIteratorsSymbols(whileStatement);
-  auto enclosingLastIterationTs = enclosingLastIterationTerms(whileStatement);
-  auto boundsFromEnclosingLoops = createBoundsForEnclosingLoops(freeVarSymbols, enclosingLastIterationTs);
 
   auto trace = traceTerm(1);
   auto n = lastIterationTermForLoop(whileStatement, 1, trace);    
-
 
   // two different types of chaining invariants that we attempt to prove
   // type 1:
@@ -574,12 +663,12 @@ void InvariantGenerator::generateChainingInvariants(
 
           auto [baseCase1, stepCase1, conclusion1, concVariant] = 
             inductionAxiom0("Invariant of loop at location " + whileStatement->location,
-                           inductionHypothesis, n ,freeVarSymbols, boundsFromEnclosingLoops); 
+                           inductionHypothesis, n ,freeVarSymbols, conditionsFromAbove); 
 
           auto conclusionInstance = 
             std::make_shared<Axiom>(Formulas::universal(freeVarSymbols, 
               Formulas::implicationSimp(
-                boundsFromEnclosingLoops,
+                conditionsFromAbove,
                 inductionHypothesis(n))), 
             "Useful instance of above invariant");
 
@@ -634,12 +723,12 @@ void InvariantGenerator::generateChainingInvariants(
 
             auto [baseCase1, stepCase1, conclusion1, concVariant] = 
             inductionAxiom0("Invariant of loop at location " + whileStatement->location,
-                           inductionHypothesis, n ,freeVarSymbols, boundsFromEnclosingLoops); 
+                           inductionHypothesis, n ,freeVarSymbols, conditionsFromAbove); 
 
             auto conclusionInstance = 
               std::make_shared<Axiom>(Formulas::universal(freeVarSymbols, 
                 Formulas::implicationSimp(
-                  boundsFromEnclosingLoops,
+                  conditionsFromAbove,
                   inductionHypothesis(n))), 
               "Useful instance of above invariant");
 
@@ -670,7 +759,7 @@ void InvariantGenerator::generateChainingInvariants(
             if(!_chainsSameProved.contains(selectorName)){
               auto [stepCase2, conclusion2] = 
               inductionAxiom3("Invariant of loop at location " + whileStatement->location,
-                              inductionHypothesis2, 0, n ,freeVarSymbols, boundsFromEnclosingLoops); 
+                              inductionHypothesis2, 0, n ,freeVarSymbols, conditionsFromAbove); 
               auto rt2 = new ReasoningTask({semantics}, stepCase2);
               itl.addTask(InvariantTask(rt2, {conclusion2}, whileStatement->location, TaskType::CHAINY1));
             }
@@ -685,7 +774,8 @@ void InvariantGenerator::generateChainingInvariants(
 
 void  InvariantGenerator::generateStaticVarInvariants(
   const program::WhileStatement* whileStatement,
-  std::shared_ptr<const logic::Axiom> semantics)
+  std::shared_ptr<const logic::Axiom> semantics,
+  std::shared_ptr<const logic::Formula> conditionsFromAbove)
 {
 
   auto itSym = Signature::varSymbol("it", logic::Sorts::intSort());
@@ -699,8 +789,6 @@ void  InvariantGenerator::generateStaticVarInvariants(
   auto lStartSuccOfIt = timepointForLoopStatement(whileStatement, Theory::succ(it));
   auto lStartN = timepointForLoopStatement(whileStatement, n);
   auto freeVarSymbols = enclosingIteratorsSymbols(whileStatement);
-  auto enclosingLastIterationTs = enclosingLastIterationTerms(whileStatement);
-  auto boundsFromEnclosingLoops = createBoundsForEnclosingLoops(freeVarSymbols, enclosingLastIterationTs);
 
   auto zeroLessEqIt = Theory::lessEq(Theory::zero(), it);
   auto itLessNlTerm = Theory::less(it, n);
@@ -726,7 +814,7 @@ void  InvariantGenerator::generateStaticVarInvariants(
 
       auto stepCase = Formulas::universal(freeVarSymbols, 
           Formulas::implication(
-            Formulas::conjunctionSimp({boundsFromEnclosingLoops,zeroLessEqIt, itLessNlTerm}),
+            Formulas::conjunctionSimp({conditionsFromAbove,zeroLessEqIt, itLessNlTerm}),
             Formulas::equality(varAtIt, varAtSuccIt)
           )
         );
@@ -734,7 +822,7 @@ void  InvariantGenerator::generateStaticVarInvariants(
       auto formula = 
         Formulas::universal(freeVarSymbols,
           Formulas::implicationSimp(
-            Formulas::conjunctionSimp({boundsFromEnclosingLoops,zeroLessEqIt, itLessEqNlTerm}),
+            Formulas::conjunctionSimp({conditionsFromAbove,zeroLessEqIt, itLessEqNlTerm}),
             Formulas::equality(varAtStart, varAtIt)));
 
       freeVarSymbols.pop_back();
@@ -742,7 +830,7 @@ void  InvariantGenerator::generateStaticVarInvariants(
       auto formulaInstance = 
         Formulas::universal(freeVarSymbols,
           Formulas::implicationSimp(
-            boundsFromEnclosingLoops,
+            conditionsFromAbove,
             Formulas::equality(varAtStart, varAtEnd)));
 
       auto toProve = std::make_shared<Conjecture>(stepCase);

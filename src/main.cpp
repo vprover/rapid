@@ -105,7 +105,7 @@ int main(int argc, char* argv[]) {
         // and output or pass to prover via programmatic interface
         auto tasks = problem.generateReasoningTasks();
 
-        for (const auto& task : tasks) {
+        for (auto& task : tasks) {
           std::stringstream preamble;
           preamble << util::Output::comment << *parserResult.program
                    << util::Output::nocomment;
@@ -119,11 +119,12 @@ int main(int argc, char* argv[]) {
             }
           } else {
             util::Output::status("Attempting to prove main conjecture\n");
-            std::cout << task.conjecture->formula->prettyString() << "\n" << std::endl; 
+            std::cout << task.conjecture->formula->prettyString() << "\n" << std::endl;
+            task.setPrint(); 
             auto& solver = solvers::VampireSolver::instance();
             auto [proven, time] = solver.solveTask(task, logic::TaskType::MAIN);
             if(proven){
-              std::cout << "Verification successful in time " + time + ". Thanks to God!" << std::endl;
+              std::cout << "Verification successful in time " + time + "!" << std::endl;
             } else {
               std::cout << "Verification failed. You can try adding hand crafted invariants and running again" << std::endl;              
             }

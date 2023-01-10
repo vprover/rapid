@@ -111,6 +111,7 @@ class InvariantGenerator {
  
     void generateInvariants( 
       const program::WhileStatement* whileStatement,
+      std::shared_ptr<const logic::Formula> conditionsFromAbove,
       std::shared_ptr<const logic::Formula> semantics);
 
     std::vector<InvariantTaskList>&
@@ -146,7 +147,8 @@ class InvariantGenerator {
      */
     void generatePointsToNullInvariants(      
       const program::WhileStatement* whileStatement,
-      std::shared_ptr<const logic::Axiom> semantics);
+      std::shared_ptr<const logic::Axiom> semantics,
+      std::shared_ptr<const logic::Formula> conditionsFromAbove);
 
     /*
      * Generate a reasoning tasks whose conclusions are the following invariant:
@@ -159,7 +161,8 @@ class InvariantGenerator {
      */
     void generateMallocInLoopInvariants(      
       const program::WhileStatement* whileStatement,
-      std::shared_ptr<const logic::Axiom> semantics);
+      std::shared_ptr<const logic::Axiom> semantics,
+      std::shared_ptr<const logic::Formula> conditionsFromAbove);
 
     /*
      * Generate reasoning tasks whose conclusions are the following invariant:
@@ -173,7 +176,8 @@ class InvariantGenerator {
      */
     void generateStructsStaySameInvariants(      
       const program::WhileStatement* whileStatement,
-      std::shared_ptr<const logic::Axiom> semantics);
+      std::shared_ptr<const logic::Axiom> semantics,
+      std::shared_ptr<const logic::Formula> conditionsFromAbove);
 
 
     /*
@@ -188,7 +192,8 @@ class InvariantGenerator {
      */
     void generateStaticVarInvariants(
       const program::WhileStatement* whileStatement,
-      std::shared_ptr<const logic::Axiom> semantics);
+      std::shared_ptr<const logic::Axiom> semantics,
+      std::shared_ptr<const logic::Formula> conditionsFromAbove);
 
     /*
      * Generate reasoning tasks whose conclusions are the following invariant:
@@ -205,7 +210,8 @@ class InvariantGenerator {
      */
     void generateChainingInvariants(      
       const program::WhileStatement* whileStatement,
-      std::shared_ptr<const logic::Axiom> semantics);
+      std::shared_ptr<const logic::Axiom> semantics,
+      std::shared_ptr<const logic::Formula> conditionsFromAbove);
 
     /*
      * Attempts to prove the density / strong density of a variable / term
@@ -213,7 +219,13 @@ class InvariantGenerator {
      */
     void generateDenseInvariants(
       const program::WhileStatement* whileStatement,
-      std::shared_ptr<const logic::Axiom> semantics);
+      std::shared_ptr<const logic::Axiom> semantics,
+      std::shared_ptr<const logic::Formula> conditionsFromAbove);
+
+    void generateEqualMallocFormulas(
+      const program::WhileStatement* whileStatement,
+      std::shared_ptr<const logic::Axiom> semantics,
+      std::shared_ptr<const logic::Formula> conditionsFromAbove);
 
     const std::unordered_map<
       std::string, std::vector<std::shared_ptr<const program::Variable>>>

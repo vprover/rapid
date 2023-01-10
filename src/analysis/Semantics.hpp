@@ -123,7 +123,8 @@ class Semantics {
 
   // as we generate semantics, we record all loops we pass
   // in order to create invariants subsequently
-  std::vector<const program::WhileStatement*> _loops;
+  std::vector<std::pair<const program::WhileStatement*, 
+              std::shared_ptr<const logic::Formula>>> _loops;
 
   void addAllSameAxioms();
 
@@ -139,9 +140,13 @@ class Semantics {
   void generateMemoryLocationSemantics(
       std::vector<std::shared_ptr<const logic::Axiom>>& axioms,
       std::vector<std::shared_ptr<const logic::Axiom>>& axioms2);
+
   std::shared_ptr<const logic::Formula> generateSemantics(
       const program::Statement* statement, SemanticsInliner& inliner,
-      std::shared_ptr<const logic::Term> trace);
+      std::shared_ptr<const logic::Term> trace,
+      // conjunction of the conditions (coming from if statements)
+      // required to reach this statement
+      std::shared_ptr<const logic::Formula> condition);
   std::shared_ptr<const logic::Formula> generateSemantics(
       const program::VarDecl* varDecl, SemanticsInliner& inliner,
       std::shared_ptr<const logic::Term> trace);
@@ -150,10 +155,12 @@ class Semantics {
       std::shared_ptr<const logic::Term> trace);
   std::shared_ptr<const logic::Formula> generateSemantics(
       const program::IfElse* ifElse, SemanticsInliner& inliner,
-      std::shared_ptr<const logic::Term> trace);
+      std::shared_ptr<const logic::Term> trace,
+      std::shared_ptr<const logic::Formula> condition);
   std::shared_ptr<const logic::Formula> generateSemantics(
       const program::WhileStatement* whileStatement, SemanticsInliner& inliner,
-      std::shared_ptr<const logic::Term> trace);
+      std::shared_ptr<const logic::Term> trace,
+      std::shared_ptr<const logic::Formula> condition);
   std::shared_ptr<const logic::Formula> generateSemantics(
       const program::SkipStatement* skipStatement, SemanticsInliner& inliner,
       std::shared_ptr<const logic::Term> trace);

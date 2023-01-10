@@ -128,6 +128,7 @@ class ReasoningTask {
   ReasoningTask(std::vector<std::shared_ptr<const ProblemItem>> axioms,
                 std::shared_ptr<const Conjecture> conjecture)
       : axioms(axioms),
+        print(false),
         conjecture(conjecture) {}
 
   std::vector<std::shared_ptr<const ProblemItem>> axioms;
@@ -150,6 +151,14 @@ class ReasoningTask {
                   axms.end());
   }
 
+  void setPrint() {
+    print = true;
+  }
+
+  bool getPrint(){
+    return print;
+  }
+
   /*
    * generate a new file in the directory 'dirPath' and output the reasoning
    * task in TPTP syntax. the preamble string is added at the beginning of the
@@ -159,6 +168,8 @@ class ReasoningTask {
 
   void outputSMTLIB(std::ostream& ostr) const;
  private:
+  // For debugging purposes;
+  bool print;
   void outputTPTP(std::ostream& ostr) const;
 };
 

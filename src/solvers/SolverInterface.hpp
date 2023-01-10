@@ -303,6 +303,12 @@ public:
 
   SolverResult solveTask(ReasoningTask task, TaskType tt = TaskType::OTHER) override {
     convertTask(task);
+
+    if(task.getPrint()){
+      _solver->setVerbose(true);
+      task.outputSMTLIB(std::cout);
+    }
+
     _solver->setOption("lemma_literal_selection","on");
     _solver->setOption("theory_axioms","off");    
     _solver->setOption("cancellation","cautious");
@@ -312,14 +318,11 @@ public:
     if(tt == TaskType::MAIN || tt == TaskType::STAY_SAME){
       std::cout << "Running Vampire's Rapid schedule for 60s" << std::endl;      
       setTimeLimit(60);
-      if(tt == TaskType::MAIN){
-        task.outputSMTLIB(std::cout);
-      }
       //_solver->setVerbose(true);
       //_solver->setOption("show_preprocessing","on");
       return solveWithSched(Vampire::Solver::Schedule::RAPID_MAIN_TASK);
     }
-    
+
     if(tt == TaskType::CHAINY2){
       std::cout << "Running Vampire's Rapid schedule for 10s" << std::endl;
       _solver->setOption("forced_options","acha=acyclic");    

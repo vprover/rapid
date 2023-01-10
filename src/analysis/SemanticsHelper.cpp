@@ -566,7 +566,12 @@ std::shared_ptr<const logic::Term> toTerm(
       case program::Type::FieldAccess: {
         auto castedExpr =
             std::static_pointer_cast<const program::StructFieldAccess>(expr);
-        assert(innerTp != nullptr);
+            
+        if(innerTp == nullptr){
+          // in case where no innerTp specified assume that we want to use the one tp
+          innerTp = tp;
+        }
+
         if(!typedModel){
           return logic::Theory::valueAt(tp, toTerm(castedExpr, innerTp, trace)); 
         } else {
