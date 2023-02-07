@@ -50,21 +50,25 @@ VExpr VampireSolver::solverEquiv(VExpr v1, VExpr v2) const
 VExpr VampireSolver::solverExi(std::vector<std::shared_ptr<const Symbol>> vars, 
                                VExpr expr) const
 {
-  for(auto v : vars){
+  std::vector<Vampire::Var> vampVars;  
+  for(int j = vars.size() - 1; j >= 0; j--){
+    auto v = vars[j];
     auto var = _solver->var(v->name, convertSort(v->rngSort));
-    expr = _solver->exists(var, expr);
+    vampVars.push_back(var);
   }
-  return expr;
+  return _solver->exists(vampVars, expr);;
 }
 
 VExpr VampireSolver::solverUni(std::vector<std::shared_ptr<const Symbol>> vars, 
                                VExpr expr) const
 {
-  for(auto v : vars){
+  std::vector<Vampire::Var> vampVars;
+  for(int j = vars.size() - 1; j >= 0; j--){
+    auto v = vars[j];
     auto var = _solver->var(v->name, convertSort(v->rngSort));
-    expr = _solver->forall(var, expr);
+    vampVars.push_back(var);
   }
-  return expr;
+  return _solver->forall(vampVars, expr);;
 }
 
 VExpr VampireSolver::solverImp(VExpr v1, VExpr v2) const

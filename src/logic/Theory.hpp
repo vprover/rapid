@@ -242,7 +242,8 @@ inductionAxiom0(
         inductionHypothesis,
     std::shared_ptr<const Term> nlTerm,    
     std::vector<std::shared_ptr<const Symbol>> freeVarSymbols,
-    std::shared_ptr<const Formula> boundsFromEnclosingLoops);
+    std::shared_ptr<const Formula> boundsFromEnclosingLoops,
+    bool lessOne = false);
 
 /*
  * Generates inductionAxiom1 from the induction hypothesis 'inductionHypothesis'

@@ -52,7 +52,7 @@ void Theory::declareMemoryArrays() {
 }
 
 std::shared_ptr<const FuncTerm> Theory::intConstant(int i) {
-  return Terms::func(std::to_string(i), {}, Sorts::intSort(), true);
+  return Terms::func(std::to_string(i), {}, Sorts::intSort(), true, Symbol::SymbolType::IntConstant);
 }
 
 std::shared_ptr<const FuncTerm> Theory::intZero() {
@@ -762,16 +762,16 @@ inductionAxiom0(
         inductionHypothesis,
     std::shared_ptr<const Term> nlTerm,        
     std::vector<std::shared_ptr<const Symbol>> freeVarSymbols,
-    std::shared_ptr<const Formula> boundsFromEnclosingLoops) {
+    std::shared_ptr<const Formula> boundsFromEnclosingLoops, bool lessOne) {
 
   auto itSymbol = logic::Signature::varSymbol("it", logic::Sorts::iterSort());
   auto it = Terms::var(itSymbol);
+  auto itPlusOne = Theory::succ(it);
 
   auto zero = Theory::zero();
   auto zeroLessEqIt = Theory::lessEq(zero, it);
-  auto itLessNlTerm = Theory::less(it, nlTerm);
-  auto itLessEqNlTerm = Theory::lessEq(it, nlTerm);
-  auto itPlusOne = Theory::succ(it);
+  auto itLessNlTerm = lessOne ? Theory::less(itPlusOne, nlTerm) : Theory::less(it, nlTerm);
+  auto itLessEqNlTerm = lessOne ? Theory::lessEq(itPlusOne, nlTerm) : Theory::lessEq(it, nlTerm);
 
   auto baseCase = Formulas::universal(freeVarSymbols, 
     Formulas::implicationSimp(

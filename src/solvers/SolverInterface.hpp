@@ -26,7 +26,9 @@ class GenSolver {
         // To ensure same ordering and hence precedence of symbols as in file
         // makes comparisons easier.
         for (const auto& symbol : Signature::signatureOrderedByInsertion()) {
-          declareSymbol(symbol);
+
+          if(!symbol->noDeclaration)
+            declareSymbol(symbol);
         }
 
         for(auto& axiom : task.axioms){
@@ -34,7 +36,9 @@ class GenSolver {
           // and do not differentiate between lemmas, axioms etc.
           // All are treated as axioms. Therefore, users must take
           // care to avoid introducing unsoundness
+
           solverAssert(convertForm(axiom->formula));
+          solverResetVars();
         }
         addConjecture(convertForm(task.conjecture->formula));
       } catch (Vampire::ApiException& e){
@@ -96,7 +100,8 @@ class GenSolver {
       };
 
       if(t->type() == Term::Type::Variable){
-        return solverVar(t);
+        auto var = solverVar(t);
+        return var;
       }
      
       auto ft = std::static_pointer_cast<const FuncTerm>(t);
@@ -105,13 +110,15 @@ class GenSolver {
       // interpreted symbols
       if(ft->symbol->name == "+"){
         assert(ft->subterms.size() == 2);
-        return solverPlus(convertTerm(ft->subterms[0]), 
-                          convertTerm(ft->subterms[1]));
+        auto arg2 = convertTerm(ft->subterms[1]);
+        auto arg1 = convertTerm(ft->subterms[0]);
+        return solverPlus(arg1,arg2);
       }
 
       if(t->symbol->name == "-"){
-        return solverMin(convertTerm(ft->subterms[0]), 
-                          convertTerm(ft->subterms[1]));
+        auto arg2 = convertTerm(ft->subterms[1]);
+        auto arg1 = convertTerm(ft->subterms[0]);
+        return solverMin(arg1,arg2);
       }
 
       if(isNumber(t->symbol->name)){
@@ -120,14 +127,15 @@ class GenSolver {
         return solverIntConst(std::stoi(t->symbol->name));
       }
 
-      std::vector<SolverExpression> args;
-      for(auto term : ft->subterms){
-        args.push_back(convertTerm(term));
+      std::vector<SolverExpression> args(ft->subterms.size());
+      for(int i = ft->subterms.size() - 1; i >= 0; i--){
+        args[i] = convertTerm(ft->subterms[i]);
       }    
       return solverApp(ft->symbol, args);
     }
 
     SolverExpression convertForm(std::shared_ptr<const Formula> f){
+
       switch(f->type()){
         case Formula::Type::Predicate : {
           auto castedF = std::static_pointer_cast<const PredicateFormula>(f);
@@ -137,39 +145,45 @@ class GenSolver {
           // below. TODO change if time allows
           if(castedF->symbol->name == ">"){
             assert(castedF->subterms.size() == 2);
-            return solverGt(convertTerm(castedF->subterms[0]), 
-                            convertTerm(castedF->subterms[1]));
+            auto arg2 = convertTerm(castedF->subterms[1]);
+            auto arg1 = convertTerm(castedF->subterms[0]);
+            return solverGt(arg1,arg2);
           }  
 
           if(castedF->symbol->name == ">="){
             assert(castedF->subterms.size() == 2);
-            return solverGte(convertTerm(castedF->subterms[0]), 
-                             convertTerm(castedF->subterms[1]));
+            auto arg2 = convertTerm(castedF->subterms[1]);
+            auto arg1 = convertTerm(castedF->subterms[0]);
+            return solverGte(arg1,arg2);
           } 
 
           if(castedF->symbol->name == "<"){
             assert(castedF->subterms.size() == 2);
-            return solverLt(convertTerm(castedF->subterms[0]), 
-                            convertTerm(castedF->subterms[1]));
+            auto arg2 = convertTerm(castedF->subterms[1]);
+            auto arg1 = convertTerm(castedF->subterms[0]);
+            return solverLt(arg1,arg2);
           } 
 
           if(castedF->symbol->name == "<="){
             assert(castedF->subterms.size() == 2);
-            return solverLte(convertTerm(castedF->subterms[0]), 
-                             convertTerm(castedF->subterms[1]));
+            auto arg2 = convertTerm(castedF->subterms[1]);
+            auto arg1 = convertTerm(castedF->subterms[0]);
+            return solverLte(arg1,arg2);
           } 
 
-          std::vector<SolverExpression> args;
-          for(auto term : castedF->subterms){
-            args.push_back(convertTerm(term));
-          }          
+          std::vector<SolverExpression> args(castedF->subterms.size());
+          for(int i = castedF->subterms.size() - 1; i >= 0; i--){
+            args[i] = convertTerm(castedF->subterms[i]);
+          }       
+          
           return solverApp(castedF->symbol, args);
         }
 
         case Formula::Type::Equality : {
           auto castedF = std::static_pointer_cast<const EqualityFormula>(f);
-          return solverEq(convertTerm(castedF->left), 
-                             convertTerm(castedF->right), castedF->polarity);
+          auto right = convertTerm(castedF->right);          
+          auto left = convertTerm(castedF->left);
+          return solverEq(left, right, castedF->polarity);
         }
 
         case Formula::Type::Conjunction : {
@@ -177,11 +191,12 @@ class GenSolver {
           if(castedF->conj.size() == 1){
             return convertForm(castedF->conj[0]);
           }          
-          std::vector<SolverExpression> conjuncts;
-          for(auto form : castedF->conj){
-            conjuncts.push_back(convertForm(form));
+          std::vector<SolverExpression> conjuncts(castedF->conj.size());
+          for(int i =  castedF->conj.size() - 1; i >=0; i--){
+            conjuncts[i] = convertForm(castedF->conj[i]);
           }
-          return solverConj(conjuncts);
+          auto res = solverConj(conjuncts);
+          return res;
         }            
     
         case Formula::Type::Disjunction : {
@@ -189,9 +204,9 @@ class GenSolver {
           if(castedF->disj.size() == 1){
             return convertForm(castedF->disj[0]);
           }
-          std::vector<SolverExpression> disjuncts;
-          for(auto form : castedF->disj){
-            disjuncts.push_back(convertForm(form));
+          std::vector<SolverExpression> disjuncts(castedF->disj.size());
+          for(int i =  castedF->disj.size() - 1; i >=0; i--){
+            disjuncts[i] = convertForm(castedF->disj[i]);
           }
           return solverDisj(disjuncts);
         }        
@@ -203,22 +218,32 @@ class GenSolver {
 
         case Formula::Type::Existential : {
           auto castedF = std::static_pointer_cast<const ExistentialFormula>(f);
-          return solverExi(castedF->vars, convertForm(castedF->f));
+          solverDeclareVars(castedF->vars);
+          auto res = solverExi(castedF->vars, convertForm(castedF->f));
+          popVars();
+          return res;
         }     
 
         case Formula::Type::Universal : {
           auto castedF = std::static_pointer_cast<const UniversalFormula>(f);
-          return solverUni(castedF->vars, convertForm(castedF->f));
+          solverDeclareVars(castedF->vars);          
+          auto res =  solverUni(castedF->vars, convertForm(castedF->f));
+          popVars();
+          return res;          
         }     
 
         case Formula::Type::Implication : {
           auto castedF = std::static_pointer_cast<const ImplicationFormula>(f);
-          return solverImp(convertForm(castedF->f1), convertForm(castedF->f2));
+          auto f2 = convertForm(castedF->f2);
+          auto f1 = convertForm(castedF->f1);
+          return solverImp(f1, f2);
         }     
 
         case Formula::Type::Equivalence : {
           auto castedF = std::static_pointer_cast<const EquivalenceFormula>(f);
-          return solverEquiv(convertForm(castedF->f1), convertForm(castedF->f2));
+          auto f2 = convertForm(castedF->f2);
+          auto f1 = convertForm(castedF->f1);
+          return solverEquiv(f1, f2);        
         }    
 
         case Formula::Type::True : {
@@ -244,6 +269,10 @@ class GenSolver {
     virtual void solverAssert(SolverExpression) const = 0;
     virtual void addConjecture(SolverExpression) const = 0;
     virtual void reset() const = 0;
+    //HACKS
+    virtual void solverResetVars() const = 0;
+    virtual void solverDeclareVars(const std::vector<std::shared_ptr<const Symbol>> vars) const = 0;
+    virtual void popVars() const = 0;
 
     virtual SolverResult solve() = 0;
   };
@@ -296,8 +325,24 @@ public:
   void solverAssert(VExpr) const override;
   void addConjecture(VExpr) const override;
   void reset() const override {
-    _solver->reset();
+    _solver->resetHard();
   }
+  void solverResetVars() const override {
+    _solver->resetVariables();
+  }
+  void solverDeclareVars(const std::vector<std::shared_ptr<const Symbol>> vars) const override {
+    std::vector<std::string> vnames;
+    std::vector<Vampire::Sort> vsorts;
+    for(auto var : vars){
+      vnames.push_back(var->name);
+      vsorts.push_back(convertSort(var->rngSort));
+    }
+    _solver->declareQuantifiedVars(vnames, vsorts);
+  }
+  void popVars() const override {
+    _solver->popQuantVars();
+  }
+
   void declareSymbol(std::shared_ptr<const Symbol> sym) const override;
   void declareStruct(Sort* sort) const override;
 
@@ -307,12 +352,14 @@ public:
     if(task.getPrint()){
       _solver->setVerbose(true);
       task.outputSMTLIB(std::cout);
+    } else {
+      _solver->setVerbose(false);      
     }
 
-    _solver->setOption("lemma_literal_selection","on");
+/*    _solver->setOption("lemma_literal_selection","on");
     _solver->setOption("theory_axioms","off");    
     _solver->setOption("cancellation","cautious");
-    _solver->setOption("gaussian_variable_elimination","force");
+    _solver->setOption("gaussian_variable_elimination","force");*/
     setTimeLimit(10);
 
     if(tt == TaskType::MAIN || tt == TaskType::STAY_SAME){
@@ -323,11 +370,11 @@ public:
       return solveWithSched(Vampire::Solver::Schedule::RAPID_MAIN_TASK);
     }
 
-    if(tt == TaskType::CHAINY2){
-      std::cout << "Running Vampire's Rapid schedule for 10s" << std::endl;
-      _solver->setOption("forced_options","acha=acyclic");    
-      SolverResult res = solveWithSched(Vampire::Solver::Schedule::RAPID);   
-      _solver->setOption("forced_options","");    
+    if(tt == TaskType::CHAINY2 || tt == TaskType::CHAINY3){
+      std::cout << "Running Vampire's Rapid schedule for 20s" << std::endl;
+      setTimeLimit(20);
+      SolverResult res = solveWithSched(Vampire::Solver::Schedule::RAPID_CHAIN_TASK);   
+
       return res;
     }
 
@@ -341,8 +388,15 @@ public:
 //      task.outputSMTLIB(std::cout);
     }
 
+
     //assert(false);
-    return solveWithSched(Vampire::Solver::Schedule::RAPID);
+    auto res = solveWithSched(Vampire::Solver::Schedule::RAPID);
+
+    if(task.getPrint())
+      assert(false); 
+
+    return res;
+
   }
 
   // trys to solve the problem using Vampire's CASC mode

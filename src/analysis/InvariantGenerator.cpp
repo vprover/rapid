@@ -131,6 +131,7 @@ void InvariantGenerator::generateEqualMallocFormulas(
                 "Useful instance of above invariant");
 
               auto rt = new ReasoningTask({semantics}, conclusion);
+              rt->setPrint();
 
               InvariantTaskList itl(TaskType::OTHER); 
               itl.addTask(InvariantTask(rt, {conclusionInstance}, whileStatement->location, TaskType::OTHER));
@@ -770,6 +771,79 @@ void InvariantGenerator::generateChainingInvariants(
       }
     }
   }
+
+
+  // if we have a malloc in the loop which returns a poitner to a
+  // struct with a self pointer, we try and reason about chains of malloced
+  // locations, e.g., malloc(0) ->n malloc(n) or 
+  //                  malloc(n) ->n malloc(0)
+  // consider whether this invariatn makes some of the above invariants redundant?
+  for (const auto& statement : whileStatement->bodyStatements) {
+        
+    if(statement->type() == program::Statement::Type::Assignment){
+      auto castedStatement = static_cast<const program::Assignment*>(statement.get());
+      auto rhs = castedStatement->rhs;
+      if(rhs->type() == program::Type::MallocFunc){
+        auto type = rhs->exprType();
+        auto sort = toSort(type);
+        assert(sort->isStructSort());
+
+        auto lStartN = timepointForLoopStatement(whileStatement, n);    
+        auto structSort = static_cast<logic::StructSort*>(sort);
+        for(auto& selector : structSort->recursiveSelectors()){ 
+
+          auto inductionHypothesisForward =
+          [&](std::shared_ptr<const logic::Term> arg) {
+            auto lMallocZero = timepointForNonLoopStatement(castedStatement, Theory::zero());
+            auto lMallocArg = timepointForNonLoopStatement(castedStatement, arg);
+
+            auto mallocTerm1 = toTerm(rhs, lMallocZero, trace);           
+            auto mallocTerm2 = toTerm(rhs, lMallocArg, trace);           
+
+            auto rhsTerm = Theory::chain(selector, mallocTerm1, lStartN, arg, sort->name);
+            return Formulas::equality(rhsTerm, mallocTerm2);
+          }; 
+
+          auto [baseCaseF, stepCaseF, conclusionF, concVariantF] = 
+          inductionAxiom0("Invariant of loop at location " + whileStatement->location,
+                           inductionHypothesisForward, n ,freeVarSymbols, conditionsFromAbove, true); 
+
+
+          auto inductionHypothesisBackward =
+          [&](std::shared_ptr<const logic::Term> arg) {
+            auto lMallocNLessOne = timepointForNonLoopStatement(castedStatement, 
+              Theory::intSubtraction(n, Theory::intConstant(1)));
+            auto lMallocNLessArgPlusOne = timepointForNonLoopStatement(castedStatement,
+              Theory::intSubtraction(n, Theory::intAddition(arg, Theory::intConstant(1)) ));
+
+            auto mallocTerm1 = toTerm(rhs, lMallocNLessOne, trace);           
+            auto mallocTerm2 = toTerm(rhs, lMallocNLessArgPlusOne, trace);           
+
+            auto rhsTerm = Theory::chain(selector, mallocTerm1, lStartN, arg, sort->name);
+            return Formulas::equality(rhsTerm, mallocTerm2);
+          }; 
+
+          auto [baseCaseB, stepCaseB, conclusionB, concVariantB] = 
+          inductionAxiom0("Invariant of loop at location " + whileStatement->location,
+                           inductionHypothesisBackward, n ,freeVarSymbols, conditionsFromAbove, true);
+
+
+          auto rt1 = new ReasoningTask({semantics}, stepCaseF);
+          auto rt2 = new ReasoningTask({semantics}, stepCaseB);
+        //  rt2->setPrint(); 
+
+          InvariantTaskList itl(TaskType::MALLOC); 
+          itl.addTask(InvariantTask(rt1, {conclusionF}, whileStatement->location, TaskType::CHAINY3));
+          itl.addTask(InvariantTask(rt2, {conclusionB}, whileStatement->location, TaskType::CHAINY3));
+
+          _potentialInvariants.push_back(itl);
+        }
+               
+      }
+
+    }
+  }
+
 }
 
 void  InvariantGenerator::generateStaticVarInvariants(
