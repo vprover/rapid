@@ -67,6 +67,8 @@ YY_DECL;
   IF            "if"
   ELSE          "else"
   WHILE         "while"
+  ASSUME        "assume"
+  ASSERT        "assert"
   SKIP          "skip"
   FUNC          "func"
   LPAR          "("
@@ -140,6 +142,8 @@ YY_DECL;
 %type < std::shared_ptr<const program::Assignment> > assignment_statement
 %type < std::shared_ptr<const program::IfElse> > if_else_statement
 %type < std::shared_ptr<const program::WhileStatement> > while_statement
+%type < std::shared_ptr<const program::Assumption> > assume_statement
+%type < std::shared_ptr<const program::Assertion> > assert_statement
 %type < std::shared_ptr<const program::SkipStatement> > skip_statement
 
 %type < std::shared_ptr<const program::ExprType>> type_dec
@@ -199,6 +203,11 @@ program:
   struct_decl_list function_list 
   { 
     parsing_context.program = std::unique_ptr<const program::Program>(new program::Program($2)); 
+  }
+|
+  function_list 
+  { 
+    parsing_context.program = std::unique_ptr<const program::Program>(new program::Program($1)); 
   }
 ;
 
@@ -513,6 +522,8 @@ statement:
 | assignment_statement {$$ = std::move($1);}
 | if_else_statement {$$ = std::move($1);}
 | while_statement {$$ = std::move($1);}
+| assume_statement {$$ = std::move($1);}
+| assert_statement {$$ = std::move($1);}
 | skip_statement {$$ = std::move($1);}
 ;
 
@@ -668,6 +679,20 @@ while_statement:
   {
     parsing_context.popProgramVars();
     $$ = std::shared_ptr<const program::WhileStatement>(new program::WhileStatement(@1.begin.line, std::move($2), std::move($5)));
+  }
+;
+
+assume_statement:
+  ASSUME formula SCOL
+  {
+    $$ = std::shared_ptr<const program::Assumption>(new program::Assumption(@1.begin.line, std::move($2)));
+  }
+;
+
+assert_statement:
+  ASSERT formula SCOL
+  {
+    $$ = std::shared_ptr<const program::Assertion>(new program::Assertion(@1.begin.line, std::move($2)));
   }
 ;
 

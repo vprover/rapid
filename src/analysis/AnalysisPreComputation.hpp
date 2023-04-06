@@ -36,7 +36,6 @@ class AnalysisPreComputation {
       EndTimePointMap& endTimePointMap);
   static void addEndTimePointForWhileStatement(
       const program::WhileStatement* whileStatement,
-      const std::shared_ptr<const logic::Term> nextTimepoint,
       EndTimePointMap& endTimePointMap);
   static const program::Statement*
     getNextProperStatement(

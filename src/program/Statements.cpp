@@ -48,6 +48,18 @@ std::string WhileStatement::toString(int indentation) const {
   return s;
 }
 
+std::string Assumption::toString(int indentation) const {
+  auto s = std::string(indentation, ' ') + "assume (" + formula->toString() +
+           ") @" + location + "\n";
+  return s;
+}
+
+std::string Assertion::toString(int indentation) const {
+  auto s = std::string(indentation, ' ') + "assert (" + formula->toString() +
+           ") @" + location + "\n";
+  return s;  
+}
+
 std::string SkipStatement::toString(int indentation) const {
   return std::string(indentation, ' ') + "skip @" + location;
 }

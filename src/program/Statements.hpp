@@ -39,6 +39,8 @@ class Statement {
 
   enum class Type {
     VarDecl,
+    Assertion,
+    Assumption,
     Assignment,
     IfElse,
     WhileStatement,
@@ -46,6 +48,8 @@ class Statement {
   };
 
   virtual Type type() const = 0;
+
+  virtual bool isAssumpOrAssert() const { return false; }
 
   virtual std::string toString(int indentation) const = 0;
 };
@@ -72,6 +76,36 @@ class VarDecl : public Statement {
   const std::shared_ptr<const program::Variable> var;
 
   Type type() const override { return Type::VarDecl; }
+  std::string toString(int indentation) const override;
+};
+
+class Assertion : public Statement {
+ public:
+  Assertion(unsigned lineNumber,
+                 std::shared_ptr<const BoolExpression> formula)
+      : Statement(lineNumber),
+        formula(std::move(formula)) {}
+
+  const std::shared_ptr<const BoolExpression> formula;
+
+  virtual bool isAssumpOrAssert() const override { return true; }
+
+  Type type() const override { return Type::Assertion; }
+  std::string toString(int indentation) const override;
+};
+
+class Assumption : public Statement {
+ public:
+  Assumption(unsigned lineNumber,
+                 std::shared_ptr<const BoolExpression> formula)
+      : Statement(lineNumber),
+        formula(std::move(formula)){}
+
+  const std::shared_ptr<const BoolExpression> formula;
+
+  virtual bool isAssumpOrAssert() const override { return true; }
+
+  Type type() const override { return Type::Assumption; }
   std::string toString(int indentation) const override;
 };
 

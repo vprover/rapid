@@ -1,5 +1,6 @@
 set(SPECTRE_ANALYSIS_SOURCES
     Semantics.cpp
+    AssertAssumeProcessor.cpp
     GenerateMemConjectures.cpp
     SemanticsHelper.cpp
     SemanticsInliner.cpp
@@ -16,6 +17,7 @@ set(SPECTRE_ANALYSIS_SOURCES
 )
 set(SPECTRE_ANALYSIS_HEADERS
     Semantics.hpp
+    AssertAssumeProcessor.hpp    
     GenerateMemConjectures.hpp    
     SemanticsHelper.hpp
     SemanticsInliner.hpp

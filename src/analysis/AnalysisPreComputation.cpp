@@ -14,13 +14,19 @@ AnalysisPreComputation::getNextProperStatement(
   std::vector<std::shared_ptr<const program::Statement>> statements,
   unsigned currPos){
 
-  // TODO dangerous at the moment! We need to ensure that no statement
-  // block ends with pointless variable declarations  
-    while (statements[currPos].get()->type() ==
-           program::Statement::Type::VarDecl) {
-      currPos = currPos + 1;
+  auto type = statements[currPos].get()->type();
+
+  while (type == program::Statement::Type::VarDecl ||
+         type == program::Statement::Type::Assertion ||
+         type == program::Statement::Type::Assumption) {
+    currPos = currPos + 1;
+    if(currPos >= statements.size()){
+      return 0;
     }
-    return statements[currPos].get();  
+    type = statements[currPos].get()->type();
+  }
+  assert(currPos < statements.size());
+  return statements[currPos].get();  
 }
 
 
@@ -31,19 +37,24 @@ EndTimePointMap AnalysisPreComputation::computeEndTimePointMap(
   for (const auto& function : program.functions) {
     // for each statement except the first, set the end-location of the previous
     // statement to the begin-location of this statement
+
+    auto tpEndOfBlock = 
+      logic::Terms::func(locationSymbolEndLocation(function.get()), {});
+
     for (int i = 1; i < function->statements.size(); ++i) {
       auto lastStatement = function->statements[i - 1].get();
-      auto nextTimepoint =
-          startTimepointForStatement(getNextProperStatement(function->statements, i));
-      addEndTimePointForStatement(lastStatement, nextTimepoint,
-                                  endTimePointMap);
+
+      auto nextStatement = getNextProperStatement(function->statements, i);
+      auto nextTimepoint = nextStatement ? startTimepointForStatement(nextStatement) :
+                                           tpEndOfBlock;
+      addEndTimePointForStatement(lastStatement, nextTimepoint, endTimePointMap);
     }
     // for the last statement, set the end-location to be the end-location of
     // the function.
     auto lastStatement = function->statements.back().get();
     auto nextTimepoint =
         logic::Terms::func(locationSymbolEndLocation(function.get()), {});
-    addEndTimePointForStatement(lastStatement, nextTimepoint, endTimePointMap);
+    addEndTimePointForStatement(lastStatement, tpEndOfBlock, endTimePointMap);
   }
   return endTimePointMap;
 }
@@ -65,14 +76,15 @@ void AnalysisPreComputation::addEndTimePointForStatement(
 
     auto castedStatement =
         static_cast<const program::WhileStatement*>(statement);
-    addEndTimePointForWhileStatement(castedStatement, nextTimepoint,
-                                     endTimePointMap);
+    addEndTimePointForWhileStatement(castedStatement, endTimePointMap);
   }
   // set endTimepoint for atomic statement
   else {
     assert(statement->type() == program::Statement::Type::Assignment ||
            statement->type() == program::Statement::Type::SkipStatement ||
-           statement->type() == program::Statement::Type::VarDecl);
+           statement->type() == program::Statement::Type::VarDecl ||
+           statement->type() == program::Statement::Type::Assertion ||
+           statement->type() == program::Statement::Type::Assumption);
     endTimePointMap[statement] = nextTimepoint;
   }
 }
@@ -86,9 +98,9 @@ void AnalysisPreComputation::addEndTimePointForIfElseStatement(
   // statement
   for (int i = 1; i < ifElse->ifStatements.size(); ++i) {
     auto lastStatement = ifElse->ifStatements[i - 1].get();
-    auto nextTimepointForStatement =
-        startTimepointForStatement(
-          getNextProperStatement(ifElse->ifStatements, i));
+    auto nextStatement = getNextProperStatement(ifElse->ifStatements, i);
+    auto nextTimepointForStatement = nextStatement ? 
+      startTimepointForStatement(nextStatement) : nextTimepoint;
     addEndTimePointForStatement(lastStatement, nextTimepointForStatement,
                                 endTimePointMap);
   }
@@ -97,9 +109,9 @@ void AnalysisPreComputation::addEndTimePointForIfElseStatement(
   // statement
   for (int i = 1; i < ifElse->elseStatements.size(); ++i) {
     auto lastStatement = ifElse->elseStatements[i - 1].get();
-    auto nextTimepointForStatement =
-        startTimepointForStatement(
-          getNextProperStatement(ifElse->elseStatements, i));
+    auto nextStatement = getNextProperStatement(ifElse->elseStatements, i);    
+    auto nextTimepointForStatement = nextStatement ? 
+      startTimepointForStatement(nextStatement) : nextTimepoint;
     addEndTimePointForStatement(lastStatement, nextTimepointForStatement,
                                 endTimePointMap);
   }
@@ -115,15 +127,20 @@ void AnalysisPreComputation::addEndTimePointForIfElseStatement(
 
 void AnalysisPreComputation::addEndTimePointForWhileStatement(
     const program::WhileStatement* whileStatement,
-    const std::shared_ptr<const logic::Term> nextTimepoint,
     EndTimePointMap& endTimePointMap) {
+
+  auto tpEndOfBlock = 
+    timepointForLoopStatement(
+    whileStatement,
+    logic::Theory::succ(iteratorTermForLoop(whileStatement)));
+
   // for each statement in the body except the first, set the end-location of
   // the previous statement to the begin-location of this statement
   for (int i = 1; i < whileStatement->bodyStatements.size(); ++i) {
     auto lastStatement = whileStatement->bodyStatements[i - 1].get();
-    auto nextTimepointForStatement =
-        startTimepointForStatement(
-          getNextProperStatement(whileStatement->bodyStatements, i));
+    auto nextStatement = getNextProperStatement(whileStatement->bodyStatements, i);    
+    auto nextTimepointForStatement = nextStatement ? 
+      startTimepointForStatement(nextStatement) : tpEndOfBlock;
     addEndTimePointForStatement(lastStatement, nextTimepointForStatement,
                                 endTimePointMap);
   }
@@ -131,11 +148,8 @@ void AnalysisPreComputation::addEndTimePointForWhileStatement(
   // for the last statement in the body, set as end-timepoint the start-location
   // of the while-statement in the next iteration
   auto lastStatement = whileStatement->bodyStatements.back().get();
-  auto nextTimepointForStatement = timepointForLoopStatement(
-      whileStatement,
-      logic::Theory::succ(iteratorTermForLoop(whileStatement)));
-  addEndTimePointForStatement(lastStatement, nextTimepointForStatement,
-                              endTimePointMap);
+  addEndTimePointForStatement(lastStatement, tpEndOfBlock,
+                             endTimePointMap);
 }
 
 std::map<std::string, std::unordered_set<std::string>>
@@ -193,6 +207,8 @@ AnalysisPreComputation::computeAssignedFields(const program::Statement* statemen
       break;
     }
     case program::Statement::Type::SkipStatement:
+    case program::Statement::Type::Assumption:
+    case program::Statement::Type::Assertion:
     case program::Statement::Type::VarDecl: {
       break;
     }
@@ -250,6 +266,8 @@ AnalysisPreComputation::computeAssignedVars(const program::Statement* statement,
       break;
     }
     case program::Statement::Type::SkipStatement:
+    case program::Statement::Type::Assumption:
+    case program::Statement::Type::Assertion:      
     case program::Statement::Type::VarDecl: {
       break;
     }

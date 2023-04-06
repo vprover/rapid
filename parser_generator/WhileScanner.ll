@@ -64,6 +64,8 @@ YY_DECL;
 if           { return parser::WhileParser::make_IF(loc); }
 else         { return parser::WhileParser::make_ELSE(loc); }
 while        { return parser::WhileParser::make_WHILE(loc); }
+assume       { return parser::WhileParser::make_ASSUME(loc); }
+assert       { return parser::WhileParser::make_ASSERT(loc); }
 skip         { return parser::WhileParser::make_SKIP(loc); }
 func         { BEGIN(programstate); return parser::WhileParser::make_FUNC(loc);}
 struct       { BEGIN(programstate); return parser::WhileParser::make_STRUCT(loc); }

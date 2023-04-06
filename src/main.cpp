@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "analysis/Semantics.hpp"
+#include "analysis/AssertAssumeProcessor.hpp"
 #include "analysis/GenerateMemConjectures.hpp"
 #include "analysis/TheoryAxioms.hpp"
 #include "analysis/TraceLemmas.hpp"
@@ -61,6 +62,13 @@ int main(int argc, char* argv[]) {
         for (const auto& axiom : theoryAxioms) {
           problemItems.push_back(axiom);
         }
+
+        analysis::AssertAssumeProcessor aap(
+            *parserResult.program, parserResult.locationToActiveVars,
+            parserResult.problemItems, parserResult.numberOfTraces);
+        // takes assert and assume statements and turns them
+        // into axioms and conjectures
+        aap.process();
 
         analysis::Semantics s(
             *parserResult.program, parserResult.locationToActiveVars,
