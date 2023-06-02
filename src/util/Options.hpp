@@ -105,6 +105,7 @@ class Configuration {
         _lemmaPredicates("-lemmaPredicates", "", true),
         _integerIterations("-integerIterations", "use integers to denote loop iterations", false),
         _generateInvariants("-genInvariants","attempt to strengthen the semantics by generating loop invariants. only works for programs with mallocs at the moment",false),
+        _vampViaFile("-vampViaFile","Communicate with Vampire via text files rather than API", false),
         _inlineLemmas("-inlineLemmas", "", false),
         _postcondition("-postcondition", "",  false),
         _outputTraceLemmas("-outputTraceLemmas", "output trace lemmas", {"all", "inductive","dense","none"},"none"),
@@ -143,6 +144,8 @@ class Configuration {
     registerOption(&_integerIterations);
 
     registerOption(&_generateInvariants);
+    
+    registerOption(&_vampViaFile);
 
     // inline lemmas as one big formula without naming
     registerOption(&_inlineLemmas);
@@ -184,6 +187,7 @@ class Configuration {
   bool lemmaPredicates() { return _lemmaPredicates.getValue(); }
   bool integerIterations() { return _integerIterations.getValue(); }
   bool generateInvariants() { return _generateInvariants.getValue(); }
+  bool vampViaFile(){ return _vampViaFile.getValue(); }
   bool inlineLemmas() { return _inlineLemmas.getValue(); }
   bool postcondition() { return _postcondition.getValue(); }
   std::string outputTraceLemmas() { return _outputTraceLemmas.getValue(); }
@@ -213,6 +217,7 @@ class Configuration {
   BooleanOption _lemmaPredicates;
   BooleanOption _integerIterations;
   BooleanOption _generateInvariants;  
+  BooleanOption _vampViaFile;
   BooleanOption _inlineLemmas;
   BooleanOption _postcondition;
   MultiChoiceOption _outputTraceLemmas;

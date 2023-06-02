@@ -3,6 +3,9 @@
 
 #include "LogicProblem.hpp"
 #include "Solver.hpp"
+#include <iostream>
+#include <fstream>
+#include <array>
 
 using namespace logic;
 
@@ -23,6 +26,10 @@ class GenSolver {
           declareStruct(sort);
         }
 
+        if (util::Configuration::instance().nativeNat()) {
+          declareNat();
+        }
+
         // To ensure same ordering and hence precedence of symbols as in file
         // makes comparisons easier.
         for (const auto& symbol : Signature::signatureOrderedByInsertion()) {
@@ -36,9 +43,12 @@ class GenSolver {
           // and do not differentiate between lemmas, axioms etc.
           // All are treated as axioms. Therefore, users must take
           // care to avoid introducing unsoundness
-
-          solverAssert(convertForm(axiom->formula));
-          solverResetVars();
+  
+          if(axiom->type == ProblemItem::Type::SpecAxiom){
+            solverAssertAx(convertForm(axiom->formula));
+          } else {
+            solverAssert(convertForm(axiom->formula));
+          }
         }
         addConjecture(convertForm(task.conjecture->formula));
       } catch (Vampire::ApiException& e){
@@ -218,18 +228,12 @@ class GenSolver {
 
         case Formula::Type::Existential : {
           auto castedF = std::static_pointer_cast<const ExistentialFormula>(f);
-          solverDeclareVars(castedF->vars);
-          auto res = solverExi(castedF->vars, convertForm(castedF->f));
-          popVars();
-          return res;
+          return solverExi(castedF->vars, convertForm(castedF->f));
         }     
 
         case Formula::Type::Universal : {
           auto castedF = std::static_pointer_cast<const UniversalFormula>(f);
-          solverDeclareVars(castedF->vars);          
-          auto res =  solverUni(castedF->vars, convertForm(castedF->f));
-          popVars();
-          return res;          
+          return solverUni(castedF->vars, convertForm(castedF->f));
         }     
 
         case Formula::Type::Implication : {
@@ -262,18 +266,16 @@ class GenSolver {
     // not = 0, since besides for Vampire no other prover supports structs
     // internally
     virtual void declareStruct(Sort* sort) const {}
+    virtual void declareNat() const {}
     // Assumes that ATP API has a way to take a strategy as a string.
     // True for Vampire, may not be true for other ATPs.
     virtual void setStrategy(std::string strat) const {};
     virtual void setTimeLimit(int t = 30) const = 0;
     virtual void solverAssert(SolverExpression) const = 0;
+    virtual void solverAssertAx(SolverExpression) const {}
     virtual void addConjecture(SolverExpression) const = 0;
     virtual void reset() const = 0;
-    //HACKS
-    virtual void solverResetVars() const = 0;
-    virtual void solverDeclareVars(const std::vector<std::shared_ptr<const Symbol>> vars) const = 0;
-    virtual void popVars() const = 0;
-
+    
     virtual SolverResult solve() = 0;
   };
 
@@ -323,31 +325,24 @@ public:
   void setStrategy(std::string strat) const override;
   void setTimeLimit(int t = 30) const override;
   void solverAssert(VExpr) const override;
+  // Vampire treats axioms and conjectures differently when it comes to Sine Selection
+  void solverAssertAx(VExpr) const override;
   void addConjecture(VExpr) const override;
   void reset() const override {
     _solver->resetHard();
   }
-  void solverResetVars() const override {
-    _solver->resetVariables();
-  }
-  void solverDeclareVars(const std::vector<std::shared_ptr<const Symbol>> vars) const override {
-    std::vector<std::string> vnames;
-    std::vector<Vampire::Sort> vsorts;
-    for(auto var : vars){
-      vnames.push_back(var->name);
-      vsorts.push_back(convertSort(var->rngSort));
-    }
-    _solver->declareQuantifiedVars(vnames, vsorts);
-  }
-  void popVars() const override {
-    _solver->popQuantVars();
-  }
 
   void declareSymbol(std::shared_ptr<const Symbol> sym) const override;
   void declareStruct(Sort* sort) const override;
+  void declareNat() const override;
 
   SolverResult solveTask(ReasoningTask task, TaskType tt = TaskType::OTHER) override {
+    if(util::Configuration::instance().vampViaFile()){
+      return solveTaskViaFiles(task,tt);
+    }
     convertTask(task);
+
+    outputProblem();
 
     if(task.getPrint()){
       _solver->setVerbose(true);
@@ -356,10 +351,6 @@ public:
       _solver->setVerbose(false);      
     }
 
-/*    _solver->setOption("lemma_literal_selection","on");
-    _solver->setOption("theory_axioms","off");    
-    _solver->setOption("cancellation","cautious");
-    _solver->setOption("gaussian_variable_elimination","force");*/
     setTimeLimit(10);
 
     if(tt == TaskType::MAIN || tt == TaskType::STAY_SAME){
@@ -380,23 +371,95 @@ public:
 
     std::cout << "Running Vampire's Rapid schedule for 10s" << std::endl;
     if(tt == TaskType::MALLOC){
-      _solver->setOption("unification_with_abstraction","one_side_interp");
-      _solver->setOption("theory_axioms","on");    
+      _solver->setOption("forced_options","uwa=one_side_interp:tha=on:lls=on:canc=cautious:gve=force");
       SolverResult res = solveWithSched(Vampire::Solver::Schedule::RAPID);
-      _solver->setOption("unification_with_abstraction","off");      
+      _solver->setOption("forced_options","");      
       return res;            
 //      task.outputSMTLIB(std::cout);
     }
 
 
     //assert(false);
+    _solver->setOption("forced_options","lls=on:canc=cautious:gve=force");
     auto res = solveWithSched(Vampire::Solver::Schedule::RAPID);
+    _solver->setOption("forced_options","");      
 
     if(task.getPrint())
       assert(false); 
 
     return res;
 
+  }
+
+  SolverResult solveTaskViaFiles(ReasoningTask task, TaskType tt){
+    std::string tmpName = tmpnam(NULL);
+    std::string tmpNameIn  = tmpName + ".smt2";
+    std::string tmpNameOut = tmpName + ".out";
+
+    std::cout << tmpNameIn << std::endl;
+
+    auto tmpFileIn  = std::ofstream(tmpNameIn);
+
+    task.outputSMTLIB(tmpFileIn);
+
+    // setting up run string
+    ////////////////////////////////////////////////////////  
+   
+    std::string timeLim = "10";
+    std::string schedule = "rapid";
+    std::string forcedOptions = "";
+
+    if(tt == TaskType::MAIN || tt == TaskType::STAY_SAME){
+      std::cout << "Running Vampire's Rapid schedule for 60s" << std::endl;      
+      timeLim = "60";  
+      schedule = "rapid_main_task";
+    } else if (tt == TaskType::CHAINY2 || tt == TaskType::CHAINY3) {
+      std::cout << "Running Vampire's Rapid schedule for 20s" << std::endl;
+      timeLim = "20";
+      schedule = "rapid_chain_task";
+    } else if(tt == TaskType::MALLOC){
+      std::cout << "Running Vampire's Rapid schedule for 10s" << std::endl;
+      forcedOptions = "uwa=one_side_interp:tha=on:lls=on:canc=cautious:gve=force";
+    } else {
+      forcedOptions = "lls=on:canc=cautious:gve=force";
+    }
+
+    std::string runStr = 
+      "/Users/user/vampire/build_ahmed_rapid/bin/vampire_z3_rel_ahmed-rapid-without-ir_6620 --mode portfolio --schedule " 
+      + schedule + " -t " + timeLim + " " +  (forcedOptions == "" ? "" : " --forced_options ") + forcedOptions + " " + tmpNameIn + " > " + tmpNameOut;
+
+    //////////////////////////////////////////////////////////
+
+    std::array<char, 128> buffer;
+    std::string result;
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(runStr.c_str(), "r"), pclose);
+    if (!pipe) {
+      std::cout << "FAIL" << std::endl;
+    }
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {} //wait
+
+    auto tmpFileOut = std::ifstream(tmpNameOut);
+
+    bool proofFound = false;
+    std::string time = "";
+    std::string line;
+    while (getline(tmpFileOut, line))
+    {
+      size_t pos = line.find("Tanya");
+      if (pos != std::string::npos){
+        proofFound = true;
+      }    
+      size_t pos2 = line.find(" in time ");
+      if(pos2 != std::string::npos){
+        time = line.substr(pos2 + 9, pos2 + 14);
+      }
+    }
+
+    tmpFileIn.close();
+    tmpFileOut.close();    
+//    remove(tmpNameIn.c_str()); 
+//    remove(tmpNameOut.c_str());     
+    return std::make_pair(proofFound, time);
   }
 
   // trys to solve the problem using Vampire's CASC mode

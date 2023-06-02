@@ -39,8 +39,11 @@ class Term {
   bool isMallocFun() const {
     return symbol->isMallocSymbol();
   } 
-  bool isConstMemoryArray() const { 
-    return (symbol->name).starts_with("value_const"); 
+  bool isConstStack() const { 
+    return symbol->isValueConstArray(); 
+  }
+  bool isStack() const {
+    return symbol->isValueArray();
   }
 };
 

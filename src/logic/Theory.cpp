@@ -45,7 +45,7 @@ void Theory::declareMemoryArrays() {
 
   auto sel = Signature::fetchArraySelect();
   auto store = Signature::fetchArrayStore();
-
+ 
   // false means non-const value array
   valueAt(tp, null, "Int", false);
   valueAt(tp, null, "Int", true);  
@@ -66,7 +66,8 @@ std::shared_ptr<const FuncTerm> Theory::intAddition(
 
 std::shared_ptr<const FuncTerm> Theory::intSubtraction(
     std::shared_ptr<const Term> t1, std::shared_ptr<const Term> t2) {
-  return Terms::func("-", {t1, t2}, Sorts::intSort(), true, Symbol::SymbolType::Minus);
+  auto sort = Sorts::intSort();
+  return Terms::func("-", {t1, t2}, sort, true, Symbol::SymbolType::Minus);
 }
 
 std::shared_ptr<const FuncTerm> Theory::intModulo(
@@ -86,10 +87,6 @@ std::shared_ptr<const FuncTerm> Theory::intAbsolute(
 
 std::shared_ptr<const FuncTerm> Theory::toInt(std::shared_ptr<const Term> t) {
   return Terms::func("to-int", {t}, Sorts::intSort(), false);
-}
-
-std::shared_ptr<const FuncTerm> Theory::intSucc(std::shared_ptr<const Term> t) {
-  return intAddition(t, Theory::intConstant(1));
 }
 
 std::shared_ptr<const Formula> Theory::intLess(std::shared_ptr<const Term> t1,
@@ -153,28 +150,35 @@ std::shared_ptr<const Formula> Theory::natSubEq(std::shared_ptr<const Term> t1,
 }
 
 std::shared_ptr<const FuncTerm> Theory::succ(std::shared_ptr<const Term> t) {
-  if (util::Configuration::instance().integerIterations()) {
-    return Theory::intSucc(t);
-  }
-  return Theory::natSucc(t);
+  const logic::Sort* s = t->sort();
+  assert(s->isNatSort() || s->isIntSort());
+
+  return s->isNatSort() ? Theory::natSucc(t) : intAddition(t, Theory::intConstant(1));
+}
+
+std::shared_ptr<const FuncTerm> Theory::prec(std::shared_ptr<const Term> t) {
+  const logic::Sort* s = t->sort();
+  assert(s->isNatSort() || s->isIntSort());
+
+  return s->isNatSort() ? Theory::natPre(t) : intSubtraction(t, Theory::intConstant(1));
 }
 
 std::shared_ptr<const Formula> Theory::less(std::shared_ptr<const Term> t1,
                                             std::shared_ptr<const Term> t2,
                                             std::string label) {
-  if (util::Configuration::instance().integerIterations()) {
-    return Theory::intLess(t1, t2, label);
-  }
-  return Theory::natSub(t1, t2, label);
+  const logic::Sort* t1s = t1->sort();
+  assert(t1s == t2->sort() && (t1s->isNatSort() || t1s->isIntSort()));  
+  
+  return t1s->isNatSort() ? Theory::natSub(t1, t2, label) : Theory::intLess(t1, t2, label);
 }
 
 std::shared_ptr<const Formula> Theory::lessEq(std::shared_ptr<const Term> t1,
                                               std::shared_ptr<const Term> t2,
                                               std::string label) {
-  if (util::Configuration::instance().integerIterations()) {
-    return Theory::intLessEqual(t1, t2, label);
-  }
-  return Theory::natSubEq(t1, t2, label);
+  const logic::Sort* t1s = t1->sort();
+  assert(t1s == t2->sort() && (t1s->isNatSort() || t1s->isIntSort()));  
+
+  return t1s->isNatSort() ? Theory::natSubEq(t1, t2, label) : Theory::intLessEqual(t1, t2, label);
 }
 
 std::shared_ptr<const FuncTerm> Theory::zero() {
@@ -211,9 +215,12 @@ std::shared_ptr<const FuncTerm> Theory::valueAt(
     subterms.push_back(timePoint);
   }
   subterms.push_back(location);
+  
+  Symbol::SymbolType sym = Symbol::SymbolType::Other;
 
   std::string str = isConst ? "_const" : "";
   if(sortName == "Int"){
+    sym = isConst ?  Symbol::SymbolType::ValueConstArr : Symbol::SymbolType::ValueArr;
     str = "value" + str;
   } else if (sortName == "Var"){
     // TODO constant pointers
@@ -222,7 +229,7 @@ std::shared_ptr<const FuncTerm> Theory::valueAt(
     str = "value" + str + "_" + toLower(sortName);
   }
 
-  return Terms::func(str, subterms, Sorts::fetch(sortName), false);
+  return Terms::func(str, subterms, Sorts::fetch(sortName), false, sym);
 }
 
 std::shared_ptr<const FuncTerm> Theory::selectorAt(

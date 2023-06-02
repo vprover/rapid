@@ -158,7 +158,7 @@ class IntArrayApplication : public Expression {
  public:
   IntArrayApplication(std::shared_ptr<const Variable> array,
                       std::shared_ptr<const Expression> index)
-      : Expression(array->vt), array(std::move(array)), index(std::move(index)) {
+      : Expression(array->vt->getChild()), array(std::move(array)), index(std::move(index)) {
     assert(this->array != nullptr);
     assert(this->index != nullptr);
     assert(this->array->vt->type() == program::BasicType::ARRAY);

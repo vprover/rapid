@@ -16,6 +16,7 @@
 
 namespace program {
 
+// Bit rubbish. ARRAY is not a type. Neither is STRUCT
 enum BasicType { STRUCT, INTEGER, NAT, ARRAY, POINTER };
 
 class VarDecl;
@@ -63,8 +64,8 @@ class ExprType {
     return bt == BasicType::POINTER;
   }
 
-  bool isArrayType() const { 
-    return bt == BasicType::ARRAY;
+  bool isArrayType() const {
+    return bt == BasicType::ARRAY;    
   }
 
   bool isPointerToPointer() const {
@@ -143,7 +144,8 @@ class Expression {
 
   virtual bool isArithmeticExpr() const { 
     return exprtype->type() == BasicType::INTEGER ||
-           exprtype->type() == BasicType::NAT;
+           exprtype->type() == BasicType::NAT ||
+           exprtype->type() == BasicType::ARRAY; // only support integer arays currently
   }
 
   virtual bool isPointerExpr() const { 

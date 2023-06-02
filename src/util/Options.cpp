@@ -89,6 +89,10 @@ void Configuration::checkValues() {
     util::Output::warning("native nat option does not make sense when using integer iterations");
   }
 
+  if(vampViaFile() && outputToFile()){
+    util::Output::error("can only output to a file when not running vampire automatically");
+    std::exit(EXIT_FAILURE);     
+  }
 
 }
 

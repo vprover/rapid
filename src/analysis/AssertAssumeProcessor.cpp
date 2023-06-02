@@ -38,10 +38,13 @@ void AssertAssumeProcessor::process(
 
   auto lNext = endTimePointMap.at(statement);        
 
+  auto freeVarSymbols = enclosingIteratorsSymbols(statement);
+
   if(statement->type() == program::Statement::Type::Assertion){
     auto castedStatement = static_cast<const program::Assertion*>(statement);
     auto assertion = toFormula(castedStatement->formula, lNext, trace);
-    assertion = Formulas::implicationSimp(condition,assertion);
+    assertion = Formulas::universal(freeVarSymbols,
+      Formulas::implicationSimp(condition,assertion));
 
     // TODO add line number
     problemItems.push_back(std::make_shared<logic::Conjecture>(
@@ -49,18 +52,19 @@ void AssertAssumeProcessor::process(
   } else if(statement->type() == program::Statement::Type::Assumption){
     auto castedStatement = static_cast<const program::Assumption*>(statement);
     auto assumption = toFormula(castedStatement->formula, lNext, trace);
-    assumption = Formulas::implicationSimp(condition,assumption);
+    assumption = Formulas::universal(freeVarSymbols,
+      Formulas::implicationSimp(condition,assumption));
 
     // TODO add line number
     problemItems.push_back(std::make_shared<logic::Axiom>(
       assumption, "User assumption"));
   } if (statement->type() == program::Statement::Type::IfElse) {
     auto castedStatement = static_cast<const program::IfElse*>(statement);
-    return process(castedStatement, trace, condition);
+    process(castedStatement, trace, condition);
   } else if (statement->type() == program::Statement::Type::WhileStatement) {
     auto castedStatement =
         static_cast<const program::WhileStatement*>(statement);
-    return process(castedStatement, trace, condition);
+    process(castedStatement, trace, condition);
   }
 }
 

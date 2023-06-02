@@ -32,7 +32,6 @@ class Theory {
   static std::shared_ptr<const FuncTerm> intAbsolute(
       std::shared_ptr<const Term> t);
   static std::shared_ptr<const FuncTerm> toInt(std::shared_ptr<const Term> t);
-  static std::shared_ptr<const FuncTerm> intSucc(std::shared_ptr<const Term> t);
 
   static std::shared_ptr<const Formula> intLess(std::shared_ptr<const Term> t1,
                                                 std::shared_ptr<const Term> t2,
@@ -196,6 +195,7 @@ class Theory {
 
   static std::shared_ptr<const FuncTerm> zero();
   static std::shared_ptr<const FuncTerm> succ(std::shared_ptr<const Term> t);
+  static std::shared_ptr<const FuncTerm> prec(std::shared_ptr<const Term> t);
   static std::shared_ptr<const Formula> less(std::shared_ptr<const Term> t1,
                                              std::shared_ptr<const Term> t2,
                                              std::string label = "");

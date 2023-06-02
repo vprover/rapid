@@ -761,7 +761,14 @@ type_dec:
     if($1 != "Int"){
       error(@1, "Only integer arrays are currently supported");
     }
-    $$ = std::shared_ptr<const program::ExprType>(new program::ExprType(program::BasicType::ARRAY));
+    auto exprType = 
+      std::shared_ptr<const program::ExprType>(new program::ExprType(program::BasicType::ARRAY));
+    // for now just set child type to integer
+    // in future, we can support arrays of other types as well
+    auto childType =
+      std::shared_ptr<const program::ExprType>(new program::ExprType(program::BasicType::INTEGER));   
+    exprType->setChild(childType);     
+    $$ = exprType;
   }
 | type_dec MUL {
     $$ = std::shared_ptr<const program::ExprType>(new program::ExprType(std::move($1)));
@@ -842,17 +849,29 @@ formula:
   }
 | expr EQ expr             
   {     
-    if(*($1->exprType()) != *($3->exprType()) ){
+    if($1->isArithmeticExpr() != $3->isArithmeticExpr()) {
       error(@1, "Cannot compare expressions of different types!");
     }
+    if($1->isPointerExpr() != $3->isPointerExpr()) {
+      error(@1, "Cannot compare expressions of different types!");
+    }    
+    if($1->isStructExpr() != $3->isStructExpr()) {
+      error(@1, "Cannot compare expressions of different types!");
+    }      
     $$ = std::shared_ptr<const program::Equality>
          (new program::Equality(std::move($1), std::move($3)));
   }
 | expr NEQ expr            
   { 
-    if(*($1->exprType()) != *($3->exprType()) ){
+    if($1->isArithmeticExpr() != $3->isArithmeticExpr()) {
       error(@1, "Cannot compare expressions of different types!");
     }
+    if($1->isPointerExpr() != $3->isPointerExpr()) {
+      error(@1, "Cannot compare expressions of different types!");
+    }    
+    if($1->isStructExpr() != $3->isStructExpr()) {
+      error(@1, "Cannot compare expressions of different types!");
+    }    
     auto formula = std::shared_ptr<const program::Equality>
          (new program::Equality(std::move($1), std::move($3)));
     $$ = std::shared_ptr<const program::BooleanNot>(new program::BooleanNot(std::move(formula)));

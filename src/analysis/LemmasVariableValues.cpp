@@ -349,6 +349,8 @@ std::pair<bool, bool> StaticAnalysisLemmas::derefAssignementsInLoop(
       break;
     }
     case program::Statement::Type::VarDecl:
+    case program::Statement::Type::Assumption:
+    case program::Statement::Type::Assertion:      
     case program::Statement::Type::SkipStatement: {
       break;
     }

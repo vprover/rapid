@@ -49,6 +49,9 @@ class Symbol {
     Plus,
     Minus,
     Multiply,
+    IntConstant,
+    ValueArr,
+    ValueConstArr,
     Other
   };
 
@@ -110,6 +113,8 @@ class Symbol {
   const bool isColorSymbol;
 
   bool isPredicateSymbol() const { return rngSort == Sorts::boolSort(); }
+  bool isValueArray() const { return symbolType == SymbolType::ValueArr; }
+  bool isValueConstArray() const { return symbolType == SymbolType::ValueConstArr; }  
   bool isMallocSymbol() const { return symbolType == SymbolType::MallocFunc; }
   bool isSelectorSymbol() const { return symbolType == SymbolType::Selector; }
   bool integerCompSym() const { return (symbolType == SymbolType::LessEq ||

@@ -444,7 +444,7 @@ void NEqualLemmas::generateOutputForInteger(
               logic::Formulas::conjunction({logic::Theory::intLess(it, nT1),
                                             logic::Theory::intLess(it, nT2),
                                             inductionHypothesis(it)}),
-              inductionHypothesis(logic::Theory::intSucc(it))));
+              inductionHypothesis(logic::Theory::succ(it))));
       auto inductiveCaseDef = std::make_shared<logic::Definition>(
           logic::Formulas::universal(freeVarSymbols,
                                      logic::Formulas::equivalence(

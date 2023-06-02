@@ -72,8 +72,10 @@ Semantics::generateSemantics() {
 
       SemanticsInliner inliner(problemItems, trace);
       for (const auto& statement : function->statements) {
-        auto semantics = generateSemantics(statement.get(), inliner, trace, Formulas::trueFormula());
-        conjunctsTrace.push_back(semantics);
+        if(!statement->isAssumpOrAssert()){
+          auto semantics = generateSemantics(statement.get(), inliner, trace, Formulas::trueFormula());
+          conjunctsTrace.push_back(semantics);
+        }
       }
       if (util::Configuration::instance().inlineSemantics()) {
         // handle persistence of last statement of the function
@@ -623,6 +625,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
 
     unsigned argNum = lhs->isConstVar() ? 0 : 1;
     auto arrayAccessedAt = (*array)[argNum];
+
     //auto locSymbol = locVarSymbol();
    // auto loc = memLocVar();
  
@@ -698,14 +701,18 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     SemanticsInliner inlinerRight(inliner);
 
     for (const auto& statement : ifElse->ifStatements) {
-      auto semanticsOfStatement =
+      if(!statement->isAssumpOrAssert()){
+        auto semanticsOfStatement =
           generateSemantics(statement.get(), inlinerLeft, trace, cond);
-      conjunctsLeft.push_back(semanticsOfStatement);
+        conjunctsLeft.push_back(semanticsOfStatement);
+      }
     }
     for (const auto& statement : ifElse->elseStatements) {
-      auto semanticsOfStatement =
+      if(!statement->isAssumpOrAssert()){
+        auto semanticsOfStatement =
           generateSemantics(statement.get(), inlinerRight, trace, cond);
-      conjunctsRight.push_back(semanticsOfStatement);
+        conjunctsRight.push_back(semanticsOfStatement);
+      }
     }
 
     // Part 3: define variable values at the merge of branches
@@ -813,19 +820,23 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
     // Part 2: collect all formulas describing semantics of branches and assert
     // them conditionally
     for (const auto& statement : ifElse->ifStatements) {
-      auto semanticsOfStatement =
-          generateSemantics(statement.get(), inliner, trace, conditionIf);
-      auto implication = logic::Formulas::implication(
-          condition, semanticsOfStatement, "Semantics of left branch");
-      conjuncts.push_back(implication);
+      if(!statement->isAssumpOrAssert()){
+        auto semanticsOfStatement =
+            generateSemantics(statement.get(), inliner, trace, conditionIf);
+        auto implication = logic::Formulas::implication(
+            condition, semanticsOfStatement, "Semantics of left branch");
+        conjuncts.push_back(implication);
+      }
     }
 
     for (const auto& statement : ifElse->elseStatements) {
-      auto semanticsOfStatement =
-          generateSemantics(statement.get(), inliner, trace, conditionElse);
-      auto implication = logic::Formulas::implication(
-          negatedCondition, semanticsOfStatement, "Semantics of right branch");
-      conjuncts.push_back(implication);
+      if(!statement->isAssumpOrAssert()){      
+        auto semanticsOfStatement =
+            generateSemantics(statement.get(), inliner, trace, conditionElse);
+        auto implication = logic::Formulas::implication(
+            negatedCondition, semanticsOfStatement, "Semantics of right branch");
+        conjuncts.push_back(implication);
+      }
     }
 
     return logic::Formulas::conjunction(
@@ -865,6 +876,15 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
   auto pos = posVar();
 
   auto activeVars = locationToActiveVars.at(lStart0->symbol->name);
+
+
+  static bool integerIts = util::Configuration::instance().integerIterations();
+  auto lowerBound = integerIts ? Theory::lessEq(Theory::zero(), it) : Formulas::trueFormula();
+  
+  auto newCondition = Formulas::conjunctionSimp({
+      condition,
+      lowerBound,
+      Theory::less(it, n)});
 
   if (util::Configuration::instance().inlineSemantics()) {
     auto assignedVars =
@@ -948,9 +968,11 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
 
     std::vector<std::shared_ptr<const logic::Formula>> conjunctsBody;
     for (const auto& statement : whileStatement->bodyStatements) {
-      auto semanticsOfStatement =
-          generateSemantics(statement.get(), inliner, trace, condition);
-      conjunctsBody.push_back(semanticsOfStatement);
+      if(!statement->isAssumpOrAssert()){      
+        auto semanticsOfStatement =
+          generateSemantics(statement.get(), inliner, trace, newCondition);
+        conjunctsBody.push_back(semanticsOfStatement);
+      }
     }
 
     inliner.currTimepoint = lStartSuccOfIt;
@@ -992,6 +1014,10 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
           "The last iteration is >= 0 when of sort integer"));
     }
 
+
+    // add at the end, so that we create invariants for inner loops first  
+    _loops.push_back(std::make_pair(whileStatement, condition));
+
     return logic::Formulas::conjunctionSimp(
         conjuncts, "Loop at location " + whileStatement->location);
   } else {
@@ -1005,9 +1031,8 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
             allVarEqual(lBodyStartIt, lStartIt, trace)),
         "Jumping into the loop body doesn't change the variable values");
 
-    std::shared_ptr<const logic::Formula> newCondition;
 
-    if (util::Configuration::instance().integerIterations()) {
+    if (integerIts) {
       part1 = logic::Formulas::universal(
           {itSymbol},
           logic::Formulas::implication(
@@ -1016,24 +1041,16 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
                    logic::Theory::less(it, n)}),
               allVarEqual(lBodyStartIt, lStartIt, trace)),
           "Jumping into the loop body doesn't change the variable values");
-      newCondition = Formulas::conjunctionSimp({
-        condition,
-        Theory::lessEq(Theory::zero(), it),
-        Theory::less(it, n)
-      });
-    } else {
-      newCondition = Formulas::conjunctionSimp({
-        condition,
-        Theory::less(it, n)
-      });      
     }
     conjuncts.push_back(part1);
 
     // Part 2: collect all formulas describing semantics of body
     std::vector<std::shared_ptr<const logic::Formula>> conjunctsBody;
     for (const auto& statement : whileStatement->bodyStatements) {
-      auto conjunct = generateSemantics(statement.get(), inliner, trace, newCondition);
-      conjunctsBody.push_back(conjunct);
+      if(!statement->isAssumpOrAssert()){
+        auto conjunct = generateSemantics(statement.get(), inliner, trace, newCondition);
+        conjunctsBody.push_back(conjunct);
+      }
     }
     auto bodySemantics = logic::Formulas::universal(
         {itSymbol},

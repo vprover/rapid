@@ -619,7 +619,10 @@ std::shared_ptr<const logic::Term> toTerm(
   // the expression being dereferenced
   auto expr = e->expr;
 
-  if(innerTp != nullptr){
+  if(expr->type() == program::Type::VariableAccess){
+    auto sort = logic::Sorts::varSort();
+    exprToTerm = logic::Terms::func(expr->toString(), {}, sort, false, logic::Symbol::SymbolType::ProgramVar);
+  } else if(innerTp != nullptr){
     exprToTerm = toTerm(expr, innerTp, trace);
   } else {
     exprToTerm = toTerm(expr, tp, trace);      
@@ -704,8 +707,8 @@ std::shared_ptr<const logic::Term> toTerm(
   auto sort = logic::Sorts::intSort();
   if(typedModel){
     sort = logic::Sorts::varSort();
-    if(var->vt->isPointerToStruct())
-      array = toSort(var->vt)->name;
+    //if(var->vt->isPointerToStruct())
+    array = toSort(var->vt)->name;
   }
   
   auto varAsConst = logic::Terms::func(var->name, {}, sort, false, typ);
@@ -792,7 +795,8 @@ std::shared_ptr<const logic::Term> toIntTerm(
     case program::Type::PointerDeref: {
       auto castedExpr =
           std::static_pointer_cast<const program::DerefExpression>(expr);
-      return toTerm(castedExpr, tp, trace, innerTp);
+      return logic::Theory::valueAt(tp, toTerm(castedExpr, innerTp, trace));    
+      //return toTerm(castedExpr, tp, trace, innerTp);
     }
     default :
       assert(false);

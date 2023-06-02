@@ -41,7 +41,14 @@ void InvariantGenerator::generateInvariants(
   generateEqualMallocFormulas(whileStatement, semanticsAxiom, conditionsFromAbove);
 
   generateStaticVarInvariants(whileStatement, semanticsAxiom, conditionsFromAbove);
-  generateDenseInvariants(whileStatement, semanticsAxiom, conditionsFromAbove);
+
+  if(util::Configuration::instance().integerIterations()){
+    // cannot add invariants when using natural number iterations
+    // since they involve adding loop counter to integer variables
+    // Could potentially work with an axiomatised to_int function, but
+    // is still a bit of a faff
+    generateDenseInvariants(whileStatement, semanticsAxiom, conditionsFromAbove);
+  }
 
   generatePointsToNullInvariants(whileStatement, semanticsAxiom, conditionsFromAbove);
   if(_typed){
@@ -61,7 +68,7 @@ void InvariantGenerator::generateEqualMallocFormulas(
   std::shared_ptr<const logic::Formula> conditionsFromAbove)
 {
 
-  auto itSym = Signature::varSymbol("it", logic::Sorts::intSort());
+  auto itSym = Signature::varSymbol("it", logic::Sorts::iterSort());
   auto it = Terms::var(itSym); 
 
   auto trace = traceTerm(1);
@@ -70,7 +77,7 @@ void InvariantGenerator::generateEqualMallocFormulas(
   auto activeVars = _locationToActiveVars.at(lStart0->symbol->name);  
 
   auto n = lastIterationTermForLoop(whileStatement, 1, trace);
-  auto nMinus1 = Theory::intSubtraction(n, Theory::intConstant(1));
+  auto nMinus1 = Theory::prec(n);
 
   auto freeVarSymbols = enclosingIteratorsSymbols(whileStatement);
 
@@ -131,7 +138,6 @@ void InvariantGenerator::generateEqualMallocFormulas(
                 "Useful instance of above invariant");
 
               auto rt = new ReasoningTask({semantics}, conclusion);
-              rt->setPrint();
 
               InvariantTaskList itl(TaskType::OTHER); 
               itl.addTask(InvariantTask(rt, {conclusionInstance}, whileStatement->location, TaskType::OTHER));
@@ -356,7 +362,7 @@ void InvariantGenerator::generateStructsStaySameInvariants(
   auto trace = traceTerm(1);
   auto n = lastIterationTermForLoop(whileStatement, 1, trace);    
 
-  auto itSym = Signature::varSymbol("it", logic::Sorts::intSort());
+  auto itSym = Signature::varSymbol("it", logic::Sorts::iterSort());
   auto it = Terms::var(itSym); 
   auto lStartIt = timepointForLoopStatement(whileStatement, it);
   auto lStartZero = timepointForLoopStatement(whileStatement, Theory::zero());
@@ -449,8 +455,9 @@ void InvariantGenerator::generateDenseInvariants(
   std::shared_ptr<const logic::Formula> conditionsFromAbove)
 {
 
+  std::cout << "Generating dense invariants" << std::endl;
 
-  auto itSym = Signature::varSymbol("it", logic::Sorts::intSort());
+  auto itSym = Signature::varSymbol("it", logic::Sorts::iterSort());
   auto it = Terms::var(itSym); 
 
   auto trace = traceTerm(1);
@@ -762,6 +769,7 @@ void InvariantGenerator::generateChainingInvariants(
               inductionAxiom3("Invariant of loop at location " + whileStatement->location,
                               inductionHypothesis2, 0, n ,freeVarSymbols, conditionsFromAbove); 
               auto rt2 = new ReasoningTask({semantics}, stepCase2);
+//              rt2->setPrint();
               itl.addTask(InvariantTask(rt2, {conclusion2}, whileStatement->location, TaskType::CHAINY1));
             }
 
@@ -830,7 +838,7 @@ void InvariantGenerator::generateChainingInvariants(
 
           auto rt1 = new ReasoningTask({semantics}, stepCaseF);
           auto rt2 = new ReasoningTask({semantics}, stepCaseB);
-        //  rt2->setPrint(); 
+//          rt2->setPrint(); 
 
           InvariantTaskList itl(TaskType::MALLOC); 
           itl.addTask(InvariantTask(rt1, {conclusionF}, whileStatement->location, TaskType::CHAINY3));
@@ -852,7 +860,7 @@ void  InvariantGenerator::generateStaticVarInvariants(
   std::shared_ptr<const logic::Formula> conditionsFromAbove)
 {
 
-  auto itSym = Signature::varSymbol("it", logic::Sorts::intSort());
+  auto itSym = Signature::varSymbol("it", logic::Sorts::iterSort());
   auto it = Terms::var(itSym); 
 
   auto trace = traceTerm(1);
@@ -1015,7 +1023,7 @@ bool InvariantGenerator::attemptToProveInvariant(InvariantTask& item){
 
 void  InvariantGenerator::attemptToProveInvariants(){
 
-  util::Output::status("Stengthening semantics with loop invariants");
+  util::Output::status("Strengthening semantics with loop invariants");
 
   for(auto& invList : _potentialInvariants){
 

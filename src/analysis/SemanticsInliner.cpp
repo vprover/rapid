@@ -102,9 +102,13 @@ void SemanticsInliner::computePersistentTermsRec(
     }
     case logic::Term::Type::FuncTerm: {
       auto castedTerm = std::static_pointer_cast<const logic::FuncTerm>(t);
-
-      //TODO fix below
-      if (false /*castedTerm->isValueAt() || castedTerm->isArrayAt()*/) {
+ 
+      //TODO 
+      // 1) what about arrays, does the code below work for them?
+      // 2) in the case where we have structs, the struct selectors 
+      //    also need to be dealt with (isStack of course returns false for them)
+      //    Currently code is not viable in the presence of selectors
+      if (castedTerm->isStack()) {
         auto timepointName = castedTerm->subterms[0]->symbol->name;
         auto programVarName = castedTerm->subterms[1]->symbol->name;
 
@@ -116,9 +120,10 @@ void SemanticsInliner::computePersistentTermsRec(
         }
       }
 
-      if (castedTerm->isConstMemoryArray()) {
+      if (castedTerm->isConstStack()) {
         // check whether castedTerm could denote constant program variable
         auto programVarName = castedTerm->subterms[0]->symbol->name;
+        // TODO what is the purpose of the check below?????
         if (programVarName != "0" && programVarName != "1" &&
             programVarName != "-") {
           persistentConstVarTerms.insert(programVarName);

@@ -196,6 +196,11 @@ void VampireSolver::solverAssert(VExpr v) const
   _solver->assertFormula(v);
 }
 
+void VampireSolver::solverAssertAx(VExpr v) const
+{
+  _solver->assertAxiom(v);
+}
+
 void VampireSolver::addConjecture(VExpr v) const 
 {
   _solver->addConjecture(v);
@@ -203,7 +208,6 @@ void VampireSolver::addConjecture(VExpr v) const
 
 void VampireSolver::declareSymbol(std::shared_ptr<const Symbol> sym) const
 {
-
   //TODO remove code duplication
   std::vector<Vampire::Sort> argSorts;
   for(auto& sort : sym->argSorts){
@@ -269,6 +273,11 @@ void VampireSolver::declareStruct(Sort* sort) const
   _solver->declareStruct(structName, nullName, fields);
 }
   
+void VampireSolver::declareNat() const 
+{
+  _solver->declareNat();
+}
+
 VampireSolver::SolverResult VampireSolver::solve()
 {
   Vampire::Result res;
