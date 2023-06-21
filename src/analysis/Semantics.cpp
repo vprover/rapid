@@ -143,13 +143,13 @@ Semantics::generateSemantics() {
     // below we try and prove the invariants using the complete semantics.
     // An alternative would be to use just the sematnics of the loop
     // but these can at time not be sufficient. Particularly for proving base cases
-    for(auto& loop : _loops){
-      _ig->generateInvariants(loop.first, loop.second, axiomFormula);
+    for(auto& stmt : _statementsToStrengthen){
+      _ig->generateStrengthenings(stmt.first, stmt.second, axiomFormula);
     }
 
     _ig->insertAxiomsIntoTasks(axioms2);
-    _ig->attemptToProveInvariants();
-    auto additionalAxioms = _ig->getProvenInvariantsAndAxioms();
+    _ig->attemptToProveStrengthenings();
+    auto additionalAxioms = _ig->getProvenStrengtheningsAndAxioms();
     for(auto& ax : additionalAxioms){
       axioms.push_back(ax);
     }
@@ -791,6 +791,9 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
         negatedCondition, logic::Formulas::conjunctionSimp(conjunctsRight),
         "Semantics of right branch"));
 
+    // add at the end, so that we create invariants for inner statements first
+    _statementsToStrengthen.push_back(std::make_pair(ifElse, cond));
+
     return logic::Formulas::conjunctionSimp(
         conjuncts, "Semantics of IfElse at location " + ifElse->location);
   } else {
@@ -838,6 +841,9 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
         conjuncts.push_back(implication);
       }
     }
+
+    // add at the end, so that we create invariants for inner statements first
+    _statementsToStrengthen.push_back(std::make_pair(ifElse, cond));
 
     return logic::Formulas::conjunction(
         conjuncts, "Semantics of IfElse at location " + ifElse->location);
@@ -1016,7 +1022,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
 
 
     // add at the end, so that we create invariants for inner loops first  
-    _loops.push_back(std::make_pair(whileStatement, condition));
+    _statementsToStrengthen.push_back(std::make_pair(whileStatement, condition));
 
     return logic::Formulas::conjunctionSimp(
         conjuncts, "Loop at location " + whileStatement->location);
@@ -1109,7 +1115,7 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
         conjuncts, "Loop at location " + whileStatement->location);
   
     // add at the end, so that we create invariants for inner loops first  
-    _loops.push_back(std::make_pair(whileStatement, condition));
+    _statementsToStrengthen.push_back(std::make_pair(whileStatement, condition));
 
     return loopSemantics;
   }

@@ -5,6 +5,7 @@
 #include "Formula.hpp"
 #include "LogicProblem.hpp"
 #include "SolverInterface.hpp"
+#include "AnalysisPreComputation.hpp"
 
 #include <unordered_set>
 
@@ -104,18 +105,19 @@ class InvariantGenerator {
     InvariantGenerator(bool typed,
             std::unordered_map<std::string,
                          std::vector<std::shared_ptr<const program::Variable>>>
-          locationToActiveVars) : 
-    _typed(typed), _locationToActiveVars(locationToActiveVars) {
+          locationToActiveVars,
+        EndTimePointMap endTimePointMap) : 
+    _typed(typed), _locationToActiveVars(locationToActiveVars), _endTimePointMap(endTimePointMap) {
       solvers::VampireSolver::instance().setTimeLimit(10);
     }
  
-    void generateInvariants( 
-      const program::WhileStatement* whileStatement,
+    void generateStrengthenings( 
+      const program::Statement* statement,
       std::shared_ptr<const logic::Formula> conditionsFromAbove,
       std::shared_ptr<const logic::Formula> semantics);
 
     std::vector<InvariantTaskList>&
-    getPotentialInvariants(){ return _potentialInvariants; }
+    getPotentialStrengthenings(){ return _potentialInvariants; }
   
     /*
      * Insert axioms in @param iterms into
@@ -127,14 +129,42 @@ class InvariantGenerator {
       std::vector<std::shared_ptr<const logic::Axiom>> items, 
       std::string location = "");
 
-    void attemptToProveInvariants();
+    void attemptToProveStrengthenings();
 
     std::vector<std::shared_ptr<const logic::Axiom>>
-    getProvenInvariantsAndAxioms();
+    getProvenStrengtheningsAndAxioms();
   private:
 
+    // TODO should const these arguments that we are passing by reference
     bool attemptToProveInvariant(InvariantTask& task);
+    bool attemptToProveStrengthening(InvariantTask& task);
   
+
+    /*
+     * Given an if statement
+     *
+     * if(c){ p1 } else { p2 }
+     *
+     * try and show that some entire class of objects is not affected by the statement
+     */
+    void generateStaySameFormulas(
+      const program::IfElse* ifStatement,
+      std::shared_ptr<const logic::Axiom> semantics,
+      std::shared_ptr<const logic::Formula> conditionsFromAbove);
+
+    /*
+     * Given an if statement
+     *
+     * if(c){ p1 } else { p2 }
+     *
+     * try and show for each variable in scope before the start of the 
+     * if statement that it remains unchanged by the statement
+     */
+    void generateFrameFormulas(
+      const program::IfElse* ifStatement,
+      std::shared_ptr<const logic::Axiom> semantics,
+      std::shared_ptr<const logic::Formula> conditionsFromAbove);
+
     /*
      * Generate a reasoning tasks whose conclusions are the following invariant:
      *
@@ -230,6 +260,7 @@ class InvariantGenerator {
     const std::unordered_map<
       std::string, std::vector<std::shared_ptr<const program::Variable>>>
       _locationToActiveVars;
+    const EndTimePointMap _endTimePointMap;
 
     std::vector<InvariantTaskList> _potentialInvariants;
     std::unordered_set<std::string> _chainsSameProved;

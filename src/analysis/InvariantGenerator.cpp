@@ -3,7 +3,6 @@
 #include "Term.hpp"
 #include "Theory.hpp"
 #include "SemanticsHelper.hpp"
-#include "AnalysisPreComputation.hpp"
 
 #include "Output.hpp"
 
@@ -28,39 +27,144 @@ void InvariantTask::removeVariantConclusion(){
   _conclusions.erase(_conclusions.begin() + 1);
 }
 
-void InvariantGenerator::generateInvariants( 
-    const program::WhileStatement* whileStatement,
+void InvariantGenerator::generateStrengthenings( 
+    const program::Statement* statement,
     std::shared_ptr<const logic::Formula> conditionsFromAbove,
     std::shared_ptr<const logic::Formula> semantics)
 {
 
-  _chainsSameProved.clear();
-
   auto semanticsAxiom = std::make_shared<Axiom>(semantics);
 
-  generateEqualMallocFormulas(whileStatement, semanticsAxiom, conditionsFromAbove);
+  if (statement->type() == program::Statement::Type::IfElse) {
+    auto ifStatement = static_cast<const program::IfElse*>(statement);
 
-  generateStaticVarInvariants(whileStatement, semanticsAxiom, conditionsFromAbove);
+    if(_typed){
+      generateStaySameFormulas(ifStatement, semanticsAxiom, conditionsFromAbove);
+    }
+    generateFrameFormulas(ifStatement, semanticsAxiom, conditionsFromAbove);
 
-  if(util::Configuration::instance().integerIterations()){
-    // cannot add invariants when using natural number iterations
-    // since they involve adding loop counter to integer variables
-    // Could potentially work with an axiomatised to_int function, but
-    // is still a bit of a faff
-    generateDenseInvariants(whileStatement, semanticsAxiom, conditionsFromAbove);
+
+  } else if (statement->type() == program::Statement::Type::WhileStatement) {
+    auto whileStatement = static_cast<const program::WhileStatement*>(statement);
+
+    _chainsSameProved.clear();
+
+    generateEqualMallocFormulas(whileStatement, semanticsAxiom, conditionsFromAbove);
+
+    generateStaticVarInvariants(whileStatement, semanticsAxiom, conditionsFromAbove);
+
+    if(util::Configuration::instance().integerIterations()){
+      // cannot add invariants when using natural number iterations
+      // since they involve adding loop counter to integer variables
+      // Could potentially work with an axiomatised to_int function, but
+      // is still a bit of a faff
+      generateDenseInvariants(whileStatement, semanticsAxiom, conditionsFromAbove);
+    }
+
+    generatePointsToNullInvariants(whileStatement, semanticsAxiom, conditionsFromAbove);
+    if(_typed){
+      generateStructsStaySameInvariants(whileStatement, semanticsAxiom, conditionsFromAbove);
+    } 
+    generateMallocInLoopInvariants(whileStatement, semanticsAxiom, conditionsFromAbove);
+    // TODO in the untyped case we want to generate invariants over active mallocs
+    // we should actually add such invariants as fall backs even in the typed case
+    // as well
+    generateChainingInvariants(whileStatement, semanticsAxiom, conditionsFromAbove);
+
+  } else {
+    // we should never reach here at the moment
+    // we currentl only attempt to strengthen loops and conditionals
+    assert(false);
   }
 
-  generatePointsToNullInvariants(whileStatement, semanticsAxiom, conditionsFromAbove);
-  if(_typed){
-    generateStructsStaySameInvariants(whileStatement, semanticsAxiom, conditionsFromAbove);
-  } 
-  generateMallocInLoopInvariants(whileStatement, semanticsAxiom, conditionsFromAbove);
-  // TODO in the untyped case we want to generate invariants over active mallocs
-  // we should actually add such invariants as fall backs even in the typed case
-  // as well
-  generateChainingInvariants(whileStatement, semanticsAxiom, conditionsFromAbove);
+}
+
+
+void InvariantGenerator::generateStaySameFormulas(
+  const program::IfElse* ifStatement,
+  std::shared_ptr<const logic::Axiom> semantics,
+  std::shared_ptr<const logic::Formula> conditionsFromAbove)
+{
+
+  auto freeVarSymbols = enclosingIteratorsSymbols(ifStatement);
+
+  auto trace = traceTerm(1);
+
+  auto lStart = startTimepointForStatement(ifStatement);  
+  auto lEnd   = _endTimePointMap.at(ifStatement);
+
+  auto assignedFields = AnalysisPreComputation::computeAssignedFields(ifStatement);
+
+  auto addBounds = [&](std::shared_ptr<const logic::Formula> form){
+    return  Formulas::implicationSimp(conditionsFromAbove, form);
+  };
+
+  auto structSorts = logic::Sorts::structSorts();
+  for(auto& sort : structSorts){
+
+    auto structSort = static_cast<logic::StructSort*>(sort);
+    
+    std::vector<std::shared_ptr<const logic::Axiom>> axioms;
+
+    if(!assignedFields.contains(sort->name)){
+      // no variable of this struct sort is changed in the loop
+      auto same = Theory::allSame(lStart, lEnd, sort->name);
+      axioms.push_back(std::make_shared<logic::Axiom>(
+        Formulas::universal(freeVarSymbols, addBounds(same))));
+
+      for(auto sel : structSort->recursiveSelectors()){
+        same = Theory::allSame(lStart, lEnd, sel + "_chain");
+        axioms.push_back(std::make_shared<logic::Axiom>(
+          Formulas::universal(freeVarSymbols, addBounds(same))));
+      }
+
+    } else {
+
+      auto modifiedFields = assignedFields[sort->name];
+
+      for(auto& field : structSort->selectors()){
+        if(!modifiedFields.contains(field)){
+          auto varName = logic::toLower(sort->name) + "_var";
+          auto varSym = logic::Signature::varSymbol(varName, sort);
+          auto var = Terms::var(varSym);
+
+          freeVarSymbols.push_back(varSym);
+       
+          auto lhs = Theory::selectorAt(field, lStart, var);
+          auto rhs = Theory::selectorAt(field, lEnd, var);
+          auto same = Formulas::equality(lhs,rhs);
+          axioms.push_back(std::make_shared<logic::Axiom>(
+            Formulas::universal(freeVarSymbols, addBounds(same))));
+
+          freeVarSymbols.pop_back();
+        }
+      }
+
+      for(auto sel : structSort->recursiveSelectors()){
+        if(!modifiedFields.contains(sel)){
+          auto same = Theory::allSame(lStart, lEnd, sel + "_chain");
+          axioms.push_back(std::make_shared<logic::Axiom>(
+            Formulas::universal(freeVarSymbols, addBounds(same))));
+        }
+      } 
+    }
+
+    InvariantTaskList itl(TaskType::OTHER);
+    itl.addTask(InvariantTask(axioms, ifStatement->location));
+
+    _potentialInvariants.push_back(itl);
+  }
+}
+
+void InvariantGenerator::generateFrameFormulas(
+  const program::IfElse* ifStatement,
+  std::shared_ptr<const logic::Axiom> semantics,
+  std::shared_ptr<const logic::Formula> conditionsFromAbove)
+{
+
 
 }
+
 
 void InvariantGenerator::generateEqualMallocFormulas(
   const program::WhileStatement* whileStatement,
@@ -369,11 +473,6 @@ void InvariantGenerator::generateStructsStaySameInvariants(
 
   auto assignedFields = AnalysisPreComputation::computeAssignedFields(whileStatement);
 
-  auto activeVars = _locationToActiveVars.at(lStartZero->symbol->name);
-  std::vector<Sort*> sorts;
-  for(auto& v : activeVars){
-    sorts.push_back(toSort(v->vt));
-  }
 
   auto addBounds = [&](std::shared_ptr<const logic::Formula> form){
     return 
@@ -454,9 +553,6 @@ void InvariantGenerator::generateDenseInvariants(
   std::shared_ptr<const logic::Axiom> semantics,
   std::shared_ptr<const logic::Formula> conditionsFromAbove)
 {
-
-  std::cout << "Generating dense invariants" << std::endl;
-
   auto itSym = Signature::varSymbol("it", logic::Sorts::iterSort());
   auto it = Terms::var(itSym); 
 
@@ -951,7 +1047,7 @@ void InvariantGenerator::insertAxiomsIntoTasks(
 }
 
 std::vector<std::shared_ptr<const logic::Axiom>>
-InvariantGenerator::getProvenInvariantsAndAxioms() 
+InvariantGenerator::getProvenStrengtheningsAndAxioms() 
 {
   std::vector<std::shared_ptr<const logic::Axiom>> axioms;
   std::set<std::string> chainDefsAdded;
@@ -971,10 +1067,22 @@ InvariantGenerator::getProvenInvariantsAndAxioms()
   return axioms;  
 }
 
-bool InvariantGenerator::attemptToProveInvariant(InvariantTask& item){
-
+bool InvariantGenerator::attemptToProveStrengthening(InvariantTask& item){
   // a set of conclusions that we could derive statically
-  // add cinclusions to other tasks and return
+  // add conclusions to other tasks and return
+  if(!item.baseCase() && !item.stepCase()){
+    item.setStatus(InvariantTask::Status::SOLVED);
+    insertAxiomsIntoTasks(item.conclusions(), item.loopLoc());
+    return true;
+  }  
+
+  assert(false);
+  return true;
+}
+
+bool InvariantGenerator::attemptToProveInvariant(InvariantTask& item){
+  // a set of conclusions that we could derive statically
+  // add conclusions to other tasks and return
   if(!item.baseCase() && !item.stepCase()){
     item.setStatus(InvariantTask::Status::SOLVED);
     insertAxiomsIntoTasks(item.conclusions(), item.loopLoc());
@@ -1021,7 +1129,7 @@ bool InvariantGenerator::attemptToProveInvariant(InvariantTask& item){
 
 }
 
-void  InvariantGenerator::attemptToProveInvariants(){
+void  InvariantGenerator::attemptToProveStrengthenings(){
 
   util::Output::status("Strengthening semantics with loop invariants");
 
@@ -1032,7 +1140,7 @@ void  InvariantGenerator::attemptToProveInvariants(){
         auto& task1 = invList.tasks()[0];
         if(attemptToProveInvariant(task1) && invList.tasks().size() == 2){
           auto& forwardTask = invList.tasks()[1];
-          attemptToProveInvariant(forwardTask);
+          attemptToProveStrengthening(forwardTask);
           task1.removeStandardConclusion();
         }
         break;
@@ -1057,6 +1165,14 @@ void  InvariantGenerator::attemptToProveInvariants(){
         attemptToProveInvariant(task);
         break;
       }
+      case TaskType::IF_SAME:
+      case TaskType::IF_FRAME: {
+        assert(invList.tasks().size() == 1);
+        auto& task = invList.tasks()[0];
+        attemptToProveStrengthening(task);
+        break;
+      }
+
       default:
         assert(false);
     }

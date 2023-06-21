@@ -51,7 +51,7 @@ class Semantics {
       _model = MemoryModel::UNTYPED;
     }
 
-    _ig = new InvariantGenerator(_model == MemoryModel::TYPED, locationToActiveVars);
+    _ig = new InvariantGenerator(_model == MemoryModel::TYPED, locationToActiveVars, endTimePointMap);
    
     bool containsPointerVariable = false;
     for (auto vars : locationToActiveVars) {
@@ -121,10 +121,10 @@ class Semantics {
   std::set<std::pair<std::string, std::string>> sameChainAxiomsToAdd;
   std::set<std::string> sameAxiomsToAdd;
 
-  // as we generate semantics, we record all loops we pass
-  // in order to create invariants subsequently
-  std::vector<std::pair<const program::WhileStatement*, 
-              std::shared_ptr<const logic::Formula>>> _loops;
+  // as we generate semantics, we record all the statements
+  // whose semantics we wish to try and strengthen
+  std::vector<std::pair<const program::Statement*, 
+              std::shared_ptr<const logic::Formula>>> _statementsToStrengthen;
 
   void addAllSameAxioms();
 
