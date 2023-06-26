@@ -94,18 +94,26 @@ void InvariantGenerator::generateStaySameFormulas(
   auto lEnd   = _endTimePointMap.at(ifStatement);
 
   auto assignedFields = AnalysisPreComputation::computeAssignedFields(ifStatement);
+  auto assignedVars =   AnalysisPreComputation::computeAssignedVars(ifStatement);
 
   auto addBounds = [&](std::shared_ptr<const logic::Formula> form){
     return  Formulas::implicationSimp(conditionsFromAbove, form);
   };
+
+  std::vector<std::shared_ptr<const logic::Axiom>> axioms;
+
+  if(assignedVars.empty()){
+    //no variables modified in if statment
+    auto same = Theory::allSame(lStart, lEnd, "value");
+    axioms.push_back(std::make_shared<logic::Axiom>(
+      Formulas::universal(freeVarSymbols, addBounds(same))));
+  }
 
   auto structSorts = logic::Sorts::structSorts();
   for(auto& sort : structSorts){
 
     auto structSort = static_cast<logic::StructSort*>(sort);
     
-    std::vector<std::shared_ptr<const logic::Axiom>> axioms;
-
     if(!assignedFields.contains(sort->name)){
       // no variable of this struct sort is changed in the loop
       auto same = Theory::allSame(lStart, lEnd, sort->name);
@@ -148,7 +156,9 @@ void InvariantGenerator::generateStaySameFormulas(
         }
       } 
     }
+  }
 
+  if(!axioms.empty()){
     InvariantTaskList itl(TaskType::OTHER);
     itl.addTask(InvariantTask(axioms, ifStatement->location));
 
@@ -790,94 +800,75 @@ void InvariantGenerator::generateChainingInvariants(
     }
   }
   
-  // type 2 as described in .hpp file
+  // type 2 as described in .hpp file      
+  for(auto& v : activeVars){
+    if(assignedVars.contains(v)){
+       // at this point we know that the statement is of the form
+       // var = var->f for some field f
+      auto sort = toSort(v->vt);            
+      if(sort->isStructSort()){
+        auto structSort = static_cast<logic::StructSort*>(sort);
+        for(auto& selector : structSort->recursiveSelectors()){
 
-  for (const auto& statement : whileStatement->bodyStatements) {
-        
-    if(statement->type() == program::Statement::Type::Assignment){
-      auto castedStatement = static_cast<const program::Assignment*>(statement.get());
-      auto lhs = castedStatement->lhs;
-      auto rhs = castedStatement->rhs;
-      auto lhsIsVar = lhs->type() == program::Type::VariableAccess;
-      auto rhsIsFieldAccess = rhs->type() == program::Type::FieldAccess;
-      
-      if(lhsIsVar && rhsIsFieldAccess){
-        auto castedRhs = std::static_pointer_cast<const program::StructFieldAccess>(rhs);
-        auto strct = castedRhs->getStruct();
-        auto strctIsVar = strct->type() == program::Type::VariableAccess;
-        
-        if(strctIsVar){
-          auto lhsAsVar = std::static_pointer_cast<const program::VariableAccess>(lhs);
-          auto strctAsVar = std::static_pointer_cast<const program::VariableAccess>(strct);
-          
-          if(lhsAsVar->var == strctAsVar->var){
-             // at this point we know that the statement is of the form
-             // var = var->f for some field f
-            auto sort = toSort(lhsAsVar->var->vt);            
+          auto inductionHypothesis =
+          [&](std::shared_ptr<const logic::Term> arg) {
+            auto lStartArg = timepointForLoopStatement(whileStatement, arg);
+            auto lhsTerm = toTerm(v, lStartArg, trace);
+            auto rhsTerm = Theory::chain(selector, toTerm(v, lStartZero, trace), lStartArg, arg, sort->name);
+            return Formulas::equality(lhsTerm, rhsTerm);
+          }; 
 
-            auto selectorName = toLower(sort->name) + "_" + castedRhs->getField()->name;
+          auto [baseCase1, stepCase1, conclusion1, concVariant] = 
+          inductionAxiom0("Invariant of loop at location " + whileStatement->location,
+                         inductionHypothesis, n ,freeVarSymbols, conditionsFromAbove); 
 
-            auto inductionHypothesis =
-            [&](std::shared_ptr<const logic::Term> arg) {
-              auto lStartArg = timepointForLoopStatement(whileStatement, arg);
-              auto lhsTerm = toTerm(lhs, lStartArg, trace);
-              auto rhsTerm = Theory::chain(selectorName, toTerm(lhsAsVar, lStartZero, trace), lStartArg, arg, sort->name);
-              return Formulas::equality(lhsTerm, rhsTerm);
-            }; 
+          auto conclusionInstance = 
+            std::make_shared<Axiom>(Formulas::universal(freeVarSymbols, 
+              Formulas::implicationSimp(
+                conditionsFromAbove,
+                inductionHypothesis(n))), 
+            "Useful instance of above invariant");
 
-            auto [baseCase1, stepCase1, conclusion1, concVariant] = 
-            inductionAxiom0("Invariant of loop at location " + whileStatement->location,
-                           inductionHypothesis, n ,freeVarSymbols, conditionsFromAbove); 
+          auto inductionHypothesis2 =
+          [&](std::shared_ptr<const logic::Term> arg1, 
+              std::shared_ptr<const logic::Term> arg2) {
+            auto lStartArg1 = timepointForLoopStatement(whileStatement, arg1);
+            auto lStartArg2 = timepointForLoopStatement(whileStatement, arg2);              
+            auto lhsTerm = Theory::chain(selector, toTerm(v, lStartZero, trace), lStartArg1, arg1, sort->name);
+            auto rhsTerm = Theory::chain(selector, toTerm(v, lStartZero, trace), lStartArg2, arg1, sort->name);
+            return Formulas::equality(lhsTerm, rhsTerm);
+          };            
 
-            auto conclusionInstance = 
-              std::make_shared<Axiom>(Formulas::universal(freeVarSymbols, 
-                Formulas::implicationSimp(
-                  conditionsFromAbove,
-                  inductionHypothesis(n))), 
-              "Useful instance of above invariant");
+          auto rt1 = new ReasoningTask({semantics}, stepCase1);
 
-            auto inductionHypothesis2 =
-            [&](std::shared_ptr<const logic::Term> arg1, 
-                std::shared_ptr<const logic::Term> arg2) {
-              auto lStartArg1 = timepointForLoopStatement(whileStatement, arg1);
-              auto lStartArg2 = timepointForLoopStatement(whileStatement, arg2);              
-              auto lhsTerm = Theory::chain(selectorName, toTerm(lhsAsVar, lStartZero, trace), lStartArg1, arg1, sort->name);
-              auto rhsTerm = Theory::chain(selectorName, toTerm(lhsAsVar, lStartZero, trace), lStartArg2, arg1, sort->name);
-              return Formulas::equality(lhsTerm, rhsTerm);
-            };            
-
-            auto rt1 = new ReasoningTask({semantics}, stepCase1);
-
-            InvariantTaskList itl(TaskType::CHAINY1); 
-            if(!_chainsSameProved.contains(selectorName)){
-              itl.addTask(InvariantTask(rt1, {conclusion1, concVariant, conclusionInstance}, 
-                whileStatement->location, TaskType::CHAINY1));     
-            } else {
-              itl.addTask(InvariantTask(rt1, {conclusion1, conclusionInstance}, 
-                whileStatement->location, TaskType::CHAINY1));  
-            }
-
-            // if set includes the select name,
-            // means we have been able to show that all chains
-            // stay the same over the loop statically. No need to prove it 
-            if(!_chainsSameProved.contains(selectorName)){
-              auto [stepCase2, conclusion2] = 
-              inductionAxiom3("Invariant of loop at location " + whileStatement->location,
-                              inductionHypothesis2, 0, n ,freeVarSymbols, conditionsFromAbove); 
-              auto rt2 = new ReasoningTask({semantics}, stepCase2);
-//              rt2->setPrint();
-              itl.addTask(InvariantTask(rt2, {conclusion2}, whileStatement->location, TaskType::CHAINY1));
-            }
-
-            _potentialInvariants.push_back(itl);      
+          InvariantTaskList itl(TaskType::CHAINY1); 
+          if(!_chainsSameProved.contains(selector)){
+            itl.addTask(InvariantTask(rt1, {conclusion1, concVariant, conclusionInstance}, 
+              whileStatement->location, TaskType::CHAINY1));     
+          } else {
+            itl.addTask(InvariantTask(rt1, {conclusion1, conclusionInstance}, 
+              whileStatement->location, TaskType::CHAINY1));  
           }
-        }
+
+          // if set includes the select name,
+          // means we have been able to show that all chains
+          // stay the same over the loop statically. No need to prove it 
+          if(!_chainsSameProved.contains(selector)){
+            auto [stepCase2, conclusion2] = 
+            inductionAxiom3("Invariant of loop at location " + whileStatement->location,
+                            inductionHypothesis2, 0, n ,freeVarSymbols, conditionsFromAbove); 
+            auto rt2 = new ReasoningTask({semantics}, stepCase2);
+            itl.addTask(InvariantTask(rt2, {conclusion2}, whileStatement->location, TaskType::CHAINY1));
+          }
+
+          _potentialInvariants.push_back(itl);  
+        }    
       }
     }
   }
 
 
-  // if we have a malloc in the loop which returns a poitner to a
+  // if we have a malloc in the loop which returns a pointer to a
   // struct with a self pointer, we try and reason about chains of malloced
   // locations, e.g., malloc(0) ->n malloc(n) or 
   //                  malloc(n) ->n malloc(0)
@@ -1140,7 +1131,7 @@ void  InvariantGenerator::attemptToProveStrengthenings(){
         auto& task1 = invList.tasks()[0];
         if(attemptToProveInvariant(task1) && invList.tasks().size() == 2){
           auto& forwardTask = invList.tasks()[1];
-          attemptToProveStrengthening(forwardTask);
+          attemptToProveInvariant(forwardTask);
           task1.removeStandardConclusion();
         }
         break;

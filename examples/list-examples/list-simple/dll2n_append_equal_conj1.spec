@@ -49,7 +49,7 @@ func main() {
 }
 
 (axiom
-  (<= 10 (value_const len))
+  (<= 0 (value_const len))
 )
 
 (conjecture
@@ -57,9 +57,9 @@ func main() {
     (=>
       (and
         (<= 0 it)
-        (< it nl44)
+        (< it nl45)
       )
-      (= (node_data (l44 it) (value_node (l44 it) head)) 1)
+      (= (node_data (l45 it) (value_node (l45 it) head)) 1)
     )
   )
 )
