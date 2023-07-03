@@ -23,8 +23,7 @@ func main() {
   node2->data = dat;
   head = node2;
 
-  head = head->next;
-  Int count = 1;  
+  Int count = 0;  
   while(head != NULL) {
     head = head->next;
     count = count + 1;
@@ -41,9 +40,9 @@ func main() {
     (=>
       (and
         (<= 0 it)
-        (< it nl28)
+        (< it nl27)
       )
-      (= (node_data (l28 it) (value_node (l28 it) head)) 1)
+      (= (node_data (l27 it) (value_node (l27 it) head)) 1)
     )
   )
 )

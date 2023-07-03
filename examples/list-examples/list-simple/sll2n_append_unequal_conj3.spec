@@ -45,10 +45,10 @@ func main() {
 
 
 (axiom
-  (<= 10 (value_const len))
+  (<= 0 (value_const len))
 )
 
 (conjecture
-  (= (value main_end count) (+ (value_const len) 1))
+  (= (value main_end counter) (+ (value_const len) 1))
 )
 

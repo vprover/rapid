@@ -42,7 +42,7 @@ func main() {
 
 
 (axiom
-  (<= 10 (value_const len))
+  (<= 0 (value_const len))
 )
 
 
