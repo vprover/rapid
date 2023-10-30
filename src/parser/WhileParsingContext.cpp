@@ -140,6 +140,7 @@ void WhileParsingContext::endParsingStruct(std::shared_ptr<const program::Struct
     // if we have a pointer to the very struct that is being parsed,
     // we are now in a position to set the child type
     if(field->vt->isPointerType() && field->vt->getChild() == nullptr){
+      containsSelfPointer = true;
       field->vt->setChild(st);
     }
   }

@@ -95,6 +95,15 @@ class Theory {
       std::shared_ptr<const Term> timePoint,
       std::string sortName = "Int");
 
+  static std::shared_ptr<const FuncTerm> nondetInt(
+      std::shared_ptr<const Term> timePoint);  
+
+  static std::shared_ptr<const FuncTerm> nondetUInt(
+      std::shared_ptr<const Term> timePoint); 
+
+  static std::shared_ptr<logic::Axiom> nondetUAxiom(
+      std::shared_ptr<const logic::Symbol> tpVarSym);
+
   static std::shared_ptr<const Formula> isList(
       std::shared_ptr<const Term> loc1,
       std::shared_ptr<const Term> loc2,

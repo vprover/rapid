@@ -1091,7 +1091,7 @@ bool InvariantGenerator::attemptToProveInvariant(InvariantTask& item){
   if(item.baseCase()){
     std::cout << "Attempting to prove step case" << std::endl;
   }
-  auto [stepCaseProven, timeStep] = solver.solveTask(*item.stepCase(), item.taskType());
+  auto [stepCaseProven, timeStep] = solver.solveTask(*item.stepCase(), item.taskType(), _containsSelfPointer);
   if(stepCaseProven)
     std::cout << "Proof attempt successful in " + timeStep << std::endl;
   else
@@ -1100,7 +1100,7 @@ bool InvariantGenerator::attemptToProveInvariant(InvariantTask& item){
   // no point trying to prove base case if we already failed to prove step case
   if(item.baseCase() && stepCaseProven){
     std::cout << "Attempting to prove base case" << std::endl;        
-    std::tie(baseCaseProven, timeBase) = solver.solveTask(*item.baseCase(), item.taskType());
+    std::tie(baseCaseProven, timeBase) = solver.solveTask(*item.baseCase(), item.taskType(), _containsSelfPointer);
     if(baseCaseProven)
       std::cout << "Proof attempt successful in " + timeBase << std::endl;  
     else

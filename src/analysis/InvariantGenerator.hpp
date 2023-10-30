@@ -106,8 +106,12 @@ class InvariantGenerator {
             std::unordered_map<std::string,
                          std::vector<std::shared_ptr<const program::Variable>>>
           locationToActiveVars,
-        EndTimePointMap endTimePointMap) : 
-    _typed(typed), _locationToActiveVars(locationToActiveVars), _endTimePointMap(endTimePointMap) {
+        EndTimePointMap endTimePointMap,
+        bool containsSelfPointer) : 
+    _typed(typed), 
+    _locationToActiveVars(locationToActiveVars), 
+    _endTimePointMap(endTimePointMap),
+    _containsSelfPointer(containsSelfPointer) {
       solvers::VampireSolver::instance().setTimeLimit(10);
     }
  
@@ -261,6 +265,7 @@ class InvariantGenerator {
       std::string, std::vector<std::shared_ptr<const program::Variable>>>
       _locationToActiveVars;
     const EndTimePointMap _endTimePointMap;
+    const bool _containsSelfPointer;
 
     std::vector<InvariantTaskList> _potentialInvariants;
     std::unordered_set<std::string> _chainsSameProved;

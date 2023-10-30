@@ -735,6 +735,31 @@ std::shared_ptr<const FuncTerm> Theory::mallocFun(
     logic::Symbol::SymbolType::MallocFunc);
 }
 
+std::shared_ptr<const FuncTerm> Theory::nondetInt(
+    std::shared_ptr<const Term> timePoint) {
+  return Terms::func("nondet", {timePoint}, Sorts::intSort());
+}
+
+std::shared_ptr<const FuncTerm> Theory::nondetUInt(
+    std::shared_ptr<const Term> timePoint) {
+  return Terms::func("nondet_u", {timePoint}, Sorts::intSort());
+}
+
+std::shared_ptr<logic::Axiom> Theory::nondetUAxiom(
+      std::shared_ptr<const logic::Symbol> tpVarSym) 
+{
+  auto tpVar = logic::Terms::var(tpVarSym);  
+
+  auto nondetTerm = Theory::nondetUInt(tpVar);
+  auto greaterEqual = Theory::intGreaterEqual(nondetTerm, zero());
+
+  auto form = Formulas::universal({tpVarSym}, greaterEqual);
+
+  return std::make_shared<logic::SpecAxiom>(
+    form, "Nondet unsigned always returns a value greater or equal 0",
+    logic::ProblemItem::Visibility::Implicit);
+}
+
 // Set based reasoning
   
 std::shared_ptr<const FuncTerm> Theory::emptySet() {

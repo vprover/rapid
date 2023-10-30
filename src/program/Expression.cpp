@@ -26,6 +26,12 @@ std::string Multiplication::toString() const {
 std::string MallocFunc::toString() const {
   return "malloc()";
 }
+std::string NondetInt::toString() const {
+  return "nondet()";
+}
+std::string NondetUInt::toString() const {
+  return "nondet_unsigned()";
+}
 std::string NullPtr::toString() const {
   return "NULL";
 }

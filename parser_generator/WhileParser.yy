@@ -93,6 +93,8 @@ YY_DECL;
   REFERENCE     "#"
   ARROW         "->"
   MALLOC        "malloc()"
+  NONDET        "nondet()"
+  NONDET_U      "nondet_unsigned()"
   NULL          "NULL"
   DOT           "."
   AND           "&&"
@@ -941,6 +943,12 @@ expr:
   LPAR expr RPAR           { $$ = std::move($2); }
 | location                 { $$ = std::move(std::static_pointer_cast<const program::Expression>($1)); }
 | INTEGER                  { $$ = std::shared_ptr<const program::ArithmeticConstant>(new program::ArithmeticConstant(std::move($1)));}
+| NONDET                   {  $$ = std::shared_ptr<const program::NondetInt>(new program::NondetInt()); }
+| NONDET_U                 
+  {  
+    parsing_context.declareNondetU();
+    $$ = std::shared_ptr<const program::NondetUInt>(new program::NondetUInt()); 
+  }
 | expr MUL expr    
   { 
     if(!$1->isArithmeticExpr()){

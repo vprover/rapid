@@ -197,6 +197,12 @@ std::shared_ptr<const logic::Term> SemanticsInliner::toCachedTerm(
       return logic::Theory::intAddition(toCachedTerm(castedExpr->summand1),
                                         toCachedTerm(castedExpr->summand2));
     }
+    case program::Type::NondetInt: {
+      return logic::Theory::nondetInt(currTimepoint);
+    }
+    case program::Type::NondetUInt: {
+      return logic::Theory::nondetUInt(currTimepoint);
+    }    
     case program::Type::Subtraction: {
       auto castedExpr =
           std::static_pointer_cast<const program::Subtraction>(expr);

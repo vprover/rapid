@@ -112,6 +112,8 @@ mod          { return parser::WhileParser::make_MOD(loc); }
 "false"      { return parser::WhileParser::make_FALSE(loc); }
 "NULL"       { return parser::WhileParser::make_NULL(loc); }
 "malloc()"   { return parser::WhileParser::make_MALLOC(loc); }
+"nondet()"   { return parser::WhileParser::make_NONDET(loc); }
+"nondet_unsigned()"   { return parser::WhileParser::make_NONDET_U(loc); }
 
 "Int"|"Bool"|"Nat"|"Time"|"Trace" { return parser::WhileParser::make_TYPE(yytext, loc); }
 

@@ -63,7 +63,7 @@ class GenSolver {
     // solvers can choose how to handle chainy tasks
     // We call a task chainy if it involves proving some facts about
     // a chain of fields e.g. a->f->f->f->f ...
-    virtual SolverResult solveTask(ReasoningTask task, TaskType tt = TaskType::OTHER) {
+    virtual SolverResult solveTask(ReasoningTask task, TaskType tt = TaskType::OTHER, bool containsChains = false) {
       convertTask(task);
       return solve();
     }
@@ -336,13 +336,11 @@ public:
   void declareStruct(Sort* sort) const override;
   void declareNat() const override;
 
-  SolverResult solveTask(ReasoningTask task, TaskType tt = TaskType::OTHER) override {
+  SolverResult solveTask(ReasoningTask task, TaskType tt = TaskType::OTHER, bool containsChains = false) override {
     if(util::Configuration::instance().vampViaFile()){
-      return solveTaskViaFiles(task,tt);
+      return solveTaskViaFiles(task,tt,containsChains);
     }
     convertTask(task);
-
-    outputProblem();
 
     if(task.getPrint()){
       _solver->setVerbose(true);
@@ -391,7 +389,7 @@ public:
 
   }
 
-  SolverResult solveTaskViaFiles(ReasoningTask task, TaskType tt){
+  SolverResult solveTaskViaFiles(ReasoningTask task, TaskType tt, bool containsChains){
     std::string tmpName = tmpnam(NULL);
     std::string tmpNameIn  = tmpName + ".smt2";
     std::string tmpNameOut = tmpName + ".out";
@@ -412,7 +410,11 @@ public:
     if(tt == TaskType::MAIN || tt == TaskType::STAY_SAME){
       std::cout << "Running Vampire's Rapid schedule for 60s" << std::endl;      
       timeLim = "60";  
-      schedule = "rapid_main_task";
+      if(containsChains){
+        schedule = "rapid_main_task";
+      } else {
+        schedule = "rapid_main_task_no_chain";
+      } 
     } else if (tt == TaskType::CHAINY2 || tt == TaskType::CHAINY3) {
       std::cout << "Running Vampire's Rapid schedule for 20s" << std::endl;
       timeLim = "20";
@@ -425,7 +427,7 @@ public:
     }
 
     std::string runStr = 
-      "/Users/user/vampire/build_ahmed_rapid/bin/vampire_z3_rel_ahmed-rapid-without-ir_6620 --mode portfolio --schedule " 
+      "/Users/user/vampire/build_ahmed_rapid/bin/vampire_z3_rel_ahmed-rapid-without-ir_6628 --mode portfolio --schedule " 
       + schedule + " -t " + timeLim + " " +  (forcedOptions == "" ? "" : " --forced_options ") + forcedOptions + " " + tmpNameIn + " > " + tmpNameOut;
 
     //////////////////////////////////////////////////////////

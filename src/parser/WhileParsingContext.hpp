@@ -31,6 +31,8 @@ class WhileParsingContext {
         numberOfAxioms(0),
         numberOfLemmas(0),
         numberOfConjectures(0),
+        containsSelfPointer(false),
+        containsNondetU(false),
         quantifiedVarsDeclarations(),
         quantifiedVarsStack(),
         declaredTypeNames(),
@@ -55,6 +57,8 @@ class WhileParsingContext {
   int numberOfAxioms;
   int numberOfLemmas;
   int numberOfConjectures;
+  bool containsSelfPointer;
+  bool containsNondetU;
 
  private:
   // context-information
@@ -82,6 +86,7 @@ class WhileParsingContext {
                           // Signature.
   bool isVariableName(std::string name);
 
+  void declareNondetU(){ containsNondetU = true; }
 
   void pushProgramVars();
   void popProgramVars();

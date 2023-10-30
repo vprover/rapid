@@ -25,6 +25,11 @@ class AnalysisPreComputation {
   static EndTimePointMap computeEndTimePointMap(
       const program::Program& program);
 
+  static const program::Statement*
+    getNextProperStatement(
+      std::vector<std::shared_ptr<const program::Statement>> statements,
+      unsigned currPos);
+
  private:
   static void addEndTimePointForStatement(
       const program::Statement* statement,
@@ -37,10 +42,6 @@ class AnalysisPreComputation {
   static void addEndTimePointForWhileStatement(
       const program::WhileStatement* whileStatement,
       EndTimePointMap& endTimePointMap);
-  static const program::Statement*
-    getNextProperStatement(
-      std::vector<std::shared_ptr<const program::Statement>> statements,
-      unsigned currPos);
 
  public:
   /*

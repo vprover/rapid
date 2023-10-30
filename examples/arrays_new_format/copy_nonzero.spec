@@ -26,9 +26,9 @@ func main()
 	(forall ((k Int))
 		(=>
 			(and
-				(<= 0 (value_const_int blength))
+				(<= 0 (value_const blength))
 				(<= 0 k)
-				(< k (value_int main_end alength))
+				(< k (value main_end alength))
 			)
 			(not (= (select (value_arr main_end a) k) 0))
 		)
@@ -41,8 +41,8 @@ func main()
 			(=>
 				(and
 					(<= 0 k)
-					(<= 0 (value_const_int blength))
-					(< k (value_int main_end alength))
+					(<= 0 (value_const blength))
+					(< k (value main_end alength))
 				)
 				(= 
 				    (select (value_arr main_end a) k) 

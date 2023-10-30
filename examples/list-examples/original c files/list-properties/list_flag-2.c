@@ -49,11 +49,12 @@ int main() {
   /* Check it */
   p = a;
   if (flag)
-    while (p->h == 2)
+    while (p->h == 1)
       p = p->n;
   else
-    while (p->h == 1)
+    while (p->h == 2)
       p = p->n;
   if (p->h != 3)
     ERROR: {reach_error();abort();}
 }
+

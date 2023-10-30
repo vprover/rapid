@@ -72,7 +72,8 @@ int main(int argc, char* argv[]) {
 
         analysis::Semantics s(
             *parserResult.program, parserResult.locationToActiveVars,
-            parserResult.problemItems, parserResult.numberOfTraces);
+            parserResult.problemItems, parserResult.numberOfTraces,
+            parserResult.containsSelfPointer, parserResult.containsNondetU);
         auto [semantics, inlinedVarValues] = s.generateSemantics();
 
         problemItems.insert(problemItems.end(), semantics.begin(),

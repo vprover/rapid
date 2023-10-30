@@ -6,5 +6,5 @@ func main() {
 }
 
 (conjecture
-    (= (value_int main_end a) 2)  
+    (= (value main_end a) 2)  
 )

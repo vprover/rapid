@@ -35,13 +35,17 @@ class Semantics {
                          std::vector<std::shared_ptr<const program::Variable>>>
           locationToActiveVars,
       std::vector<std::shared_ptr<const logic::ProblemItem>>& problemItems,
-      unsigned numberOfTraces)
+      unsigned numberOfTraces,
+      bool containsSelfPointer,
+      bool containsNondetU)
       : program(program),
         endTimePointMap(
             AnalysisPreComputation::computeEndTimePointMap(program)),
         locationToActiveVars(locationToActiveVars),
         problemItems(problemItems),
         numberOfTraces(numberOfTraces),
+        containsSelfPointer(containsSelfPointer),
+        containsNondetU(containsNondetU),
         inlinedVariableValues(traceTerms(numberOfTraces)) {
 
     auto model = util::Configuration::instance().memoryModel();
@@ -51,7 +55,7 @@ class Semantics {
       _model = MemoryModel::UNTYPED;
     }
 
-    _ig = new InvariantGenerator(_model == MemoryModel::TYPED, locationToActiveVars, endTimePointMap);
+    _ig = new InvariantGenerator(_model == MemoryModel::TYPED, locationToActiveVars, endTimePointMap, containsSelfPointer);
    
     bool containsPointerVariable = false;
     for (auto vars : locationToActiveVars) {
@@ -94,6 +98,8 @@ class Semantics {
       locationToActiveVars;
   std::vector<std::shared_ptr<const logic::ProblemItem>>& problemItems;
   const unsigned numberOfTraces;
+  const bool containsSelfPointer;
+  const bool containsNondetU;
   InlinedVariableValues inlinedVariableValues;
 
   // stores variables that are used in the left side of assignments, i.e.

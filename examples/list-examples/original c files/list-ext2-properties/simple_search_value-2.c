@@ -54,20 +54,16 @@ int main() {
   p = a;
 
   int hasTwo = 0;
-  int hasTwelve = 0;
 
   while (p!=0) {
     if (p->h == 2) {
       hasTwo = 1;
     }
-
-    if (p->h == 12) {
-      hasTwelve = 1;
-    }
+    
     p = p->n;
   }
 
-  if(!hasTwelve || !hasTwo) {
+  if(!hasTwo) {
     ERROR: {reach_error();abort();}
   }
 

@@ -745,6 +745,12 @@ std::shared_ptr<const logic::Term> toIntTerm(
           toTerm(castedExpr->child1, tp, trace, tp),
           toTerm(castedExpr->child2, tp, trace, tp));
     }
+    case program::Type::NondetInt: {
+      return logic::Theory::nondetInt(tp);
+    }
+    case program::Type::NondetUInt: {
+      return logic::Theory::nondetUInt(tp);
+    }
     case program::Type::Modulo: {
       auto castedExpr = std::static_pointer_cast<const program::Modulo>(expr);
       return logic::Theory::intModulo(

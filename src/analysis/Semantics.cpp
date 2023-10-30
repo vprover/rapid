@@ -108,6 +108,10 @@ Semantics::generateSemantics() {
   auto tp2 = tpVarSymbol("tp2");
   auto memLocSymbol = locVarSymbol("m1");
 
+  if(containsNondetU){
+    axioms.push_back(logic::Theory::nondetUAxiom(tp));
+  }
+
   if(_model == MemoryModel::UNTYPED){
     axioms.push_back(logic::Theory::untypedFrameAxiom(tp, tp2, memLocSymbol));
     axioms2.push_back(axioms[axioms.size()-1]);
@@ -874,8 +878,8 @@ std::shared_ptr<const logic::Formula> Semantics::generateSemantics(
   auto lStartSuccOfIt =
       timepointForLoopStatement(whileStatement, logic::Theory::succ(it));
   auto lStartN = timepointForLoopStatement(whileStatement, n);
-  auto lBodyStartIt =
-      startTimepointForStatement(whileStatement->bodyStatements.front().get());
+  auto firstBodyStatement = AnalysisPreComputation::getNextProperStatement(whileStatement->bodyStatements, 0);
+  auto lBodyStartIt = startTimepointForStatement(firstBodyStatement);
   auto lEnd = endTimePointMap.at(whileStatement);
 
   auto posSymbol = posVarSymbol();

@@ -105,6 +105,8 @@ std::ostream& operator<<(
 
 enum class Type {
   IntegerConstant,
+  NondetInt,
+  NondetUInt,
   Addition,
   Subtraction,
   Modulo,
@@ -190,6 +192,22 @@ class ArithmeticConstant : public Expression {
 
   Type type() const override { return program::Type::IntegerConstant; }
   std::string toString() const override;
+};
+
+class NondetInt : public Expression {
+ public:
+  NondetInt() : Expression(BasicType::INTEGER) {}
+
+  Type type() const override { return program::Type::NondetInt; }
+  std::string toString() const override;  
+};
+
+class NondetUInt : public Expression {
+ public:
+  NondetUInt() : Expression(BasicType::INTEGER) {}
+
+  Type type() const override { return program::Type::NondetUInt; }
+  std::string toString() const override;  
 };
 
 class Addition : public Expression {

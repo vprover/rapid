@@ -17,9 +17,9 @@ func main()
 	(forall ((j Int))
 		(=>
 			(and
-				(<= 0 (value_const_int blength))
+				(<= 0 (value_const blength))
 				(<= 0 j)
-				(< j (value_const_int blength))
+				(< j (value_const blength))
 			)
 			(= 
 			    (select (value_arr main_end a) j) 
